@@ -655,3 +655,6 @@ contoso-health-notes.md
 components/local/
 
 secrets.json
+
+# Claude Code session tracking
+.claude/sessions/
