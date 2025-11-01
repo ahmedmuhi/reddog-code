@@ -89,35 +89,50 @@ Transform Red Dog from a .NET-centric demo (2021) into a modern, polyglot micros
 ## What to Remove
 
 ### Directories:
-- [ ] `.vscode/` (or minimize to 1-2 examples)
-- [ ] `.devcontainer/`
-- [ ] `manifests/local/`
-- [ ] `manifests/corporate/`
-- [ ] `RedDog.Bootstrapper/`
-- [ ] `RedDog.CorporateTransferService/`
+- [x] `.vscode/` - ✅ Removed (Phase 3)
+- [x] `.devcontainer/` - ✅ Removed (Phase 1)
+- [x] `manifests/local/` - ✅ Removed (Phase 1)
+- [x] `manifests/corporate/` - ✅ Removed (Phase 1)
+- [x] `RedDog.Bootstrapper/` - ✅ Removed (Phase 2B)
+- [x] `RedDog.CorporateTransferService/` - ✅ Removed (Phase 2A)
 
 ### Files:
-- [ ] `.github/workflows/*` (all 11 files - will be replaced)
-- [ ] Flux-related configs (`.flux.yaml` files)
+- [ ] `.github/workflows/*` - ⚠️ SKIPPED (9 files remain - need fixing, not deletion)
+- [x] Flux-related configs (`.flux.yaml` files) - ✅ Removed (Phase 5)
+- [x] `docs/` directory - ✅ Removed (Phase 1)
 
-### Keep (Low Priority):
-- `rest-samples/` (useful for content creation)
-- `docs/` (might have useful diagrams)
+### Kept:
+- ✅ `rest-samples/` (useful for content creation)
+- ✅ GitHub workflows for active services (need modernization later)
 
 ---
 
 ## Phased Modernization Approach
 
-### Phase 0: Foundation (PRIORITY)
+### Phase 0: Foundation ✅ COMPLETED (2025-11-02)
 **Goal:** Clean up, remove bloat, establish baseline
 
-- [ ] Remove unnecessary directories/services
-- [ ] Remove old GitHub workflows
-- [ ] Simplify manifest structure (keep only branch/)
-- [ ] Update CLAUDE.md with new architecture
-- [ ] Document polyglot migration decisions
+**Completed:**
+- [x] Remove unnecessary directories/services - ✅ Done (Phases 1, 2A, 2B, 3)
+  - Removed: .devcontainer/, manifests/local/, manifests/corporate/, docs/
+  - Removed: RedDog.Bootstrapper/, RedDog.CorporateTransferService/
+  - Removed: .vscode/ (broken configs referencing removed services)
+- [x] Simplify manifest structure (keep only branch/) - ✅ Done (Phase 1)
+- [x] Remove Flux v1 configs - ✅ Done (Phase 5)
 
-**Duration:** 1-2 days
+**Skipped:**
+- [ ] Remove old GitHub workflows - ⚠️ SKIPPED (workflows need fixing, not deletion)
+- [ ] Update CLAUDE.md with new architecture - Deferred (CLAUDE.md already current)
+- [ ] Document polyglot migration decisions - Deferred to implementation phases
+
+**Results:**
+- 58 files removed (including cleanup guide)
+- 4,760 lines deleted
+- 2 unused services eliminated
+- 5 cleanup commits + 1 guide removal
+- Session documented: `.claude/sessions/2025-11-02-0730-safe-cleanup.md`
+
+**Actual Duration:** 1 day (2025-11-02)
 
 ---
 
