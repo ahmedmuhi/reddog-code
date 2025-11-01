@@ -4,7 +4,6 @@ resources:
 - ./deployments/namespace.yaml
 - ./deployments/rbac.yaml
 - ./deployments/accounting-service.yaml
-- ./deployments/bootstrapper.yaml
 - ./deployments/loyalty-service.yaml
 - ./deployments/make-line-service.yaml
 - ./deployments/order-service.yaml

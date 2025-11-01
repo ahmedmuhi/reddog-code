@@ -17,7 +17,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RedDog.VirtualWorker", "Red
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RedDog.AccountingService", "RedDog.AccountingService\RedDog.AccountingService.csproj", "{F8E0D2B2-5E21-4763-AC61-0074FA1297F9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RedDog.Bootstrapper", "RedDog.Bootstrapper\RedDog.Bootstrapper.csproj", "{B2AE26A4-3A12-4BC8-824C-6C08F04A111F}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RedDog.AccountingModel", "RedDog.AccountingModel\RedDog.AccountingModel.csproj", "{775EACDA-CD1B-41BC-A1CE-85E7CB8CDB63}"
 EndProject
