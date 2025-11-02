@@ -18,8 +18,8 @@ Transform Red Dog from a .NET-centric demo (2021) into a modern, polyglot micros
 - .NET 6.0 (EOL November 2024)
 - Node.js 14 (EOL April 2023)
 - Vue.js 2.6 (EOL December 2023)
-- Dapr 1.3.0 (Released 2021, current is 1.14+)
-- KEDA 2.2.0 (Released 2021, current is 2.16+)
+- Dapr 1.3.0 (Released 2021, current is 1.16)
+- KEDA 2.2.0 (Released 2021, current is 2.17)
 - Flux v1 (DEPRECATED)
 
 ### Services (10 .NET services + 1 Vue UI):
@@ -45,12 +45,12 @@ Transform Red Dog from a .NET-centric demo (2021) into a modern, polyglot micros
 ## Target State (To-Be)
 
 ### Modern Tech Stack:
-- **.NET 9** (Latest stable, November 2024)
-- **Node.js 20 or 22** (LTS versions)
+- **.NET 10** (Latest LTS, November 2025)
+- **Node.js 24** (LTS, supported until April 2028)
 - **Vue.js 3.5** (Current stable)
 - **Go 1.23 or 1.24** (Latest stable)
 - **Python 3.12 or 3.13** (Latest stable)
-- **Dapr 1.15 or 1.16** (Latest stable)
+- **Dapr 1.16** (Latest stable, September 2025)
 - **KEDA 2.17** (Latest stable)
 
 ### Polyglot Services (8 services):
@@ -74,8 +74,10 @@ Transform Red Dog from a .NET-centric demo (2021) into a modern, polyglot micros
 8. **UI** - Dashboard (Vue 3)
 
 ### Removed Services:
-- ❌ Bootstrapper (replace with init containers/SQL scripts)
+- ❌ Bootstrapper (replace with init containers/SQL scripts using Dapr secret store for credentials)
 - ❌ CorporateTransferService (Arc scenarios not needed)
+
+**Secret Management Decision:** All services (including init containers for database setup) will use **Dapr secret store** with Azure Key Vault backend. CSI Secrets Store driver will NOT be used to maintain consistency and avoid dual secret management solutions.
 
 ### Infrastructure:
 - Modern GitHub Actions workflows (GitHub Container Registry - GHCR)
@@ -140,8 +142,8 @@ Transform Red Dog from a .NET-centric demo (2021) into a modern, polyglot micros
 **Goal:** Update existing .NET services to latest LTS
 
 **Services to update:**
-- [ ] OrderService: .NET 6 → .NET 8/9
-- [ ] AccountingService: .NET 6 → .NET 8/9
+- [ ] OrderService: .NET 6 → .NET 9
+- [ ] AccountingService: .NET 6 → .NET 9
 - [ ] Update all Dockerfiles
 - [ ] Update NuGet packages (Dapr SDK, EF Core, Serilog, Swashbuckle)
 - [ ] Test services still work
@@ -162,7 +164,7 @@ Transform Red Dog from a .NET-centric demo (2021) into a modern, polyglot micros
 - [ ] Migrate Vue 2 → Vue 3 (Composition API)
 - [ ] Update Vue Router 3 → 4
 - [ ] Update build tooling (Vite instead of Vue CLI?)
-- [ ] Update Dockerfile (Node 14 → Node 20/22)
+- [ ] Update Dockerfile (Node 14 → Node 24)
 - [ ] Test UI functionality
 
 **Deliverables:**
@@ -328,22 +330,67 @@ Transform Red Dog from a .NET-centric demo (2021) into a modern, polyglot micros
 
 ---
 
-### Phase 8: Dapr & KEDA Updates
-**Goal:** Update infrastructure components to latest versions
+### Phase 8: Dapr & KEDA Updates + Workload Identity Migration
+**Goal:** Update infrastructure components to latest versions and migrate to modern authentication
 
-- [ ] Update Dapr components to v1.15/1.16 API
+**Dapr & KEDA Updates:**
+- [ ] Update Dapr components to v1.16 API
 - [ ] Update KEDA manifests to v2.17
 - [ ] Test KEDA autoscaling behavior (CPU, RabbitMQ queue length)
 - [ ] Update component configs (Redis, RabbitMQ, SQL)
 - [ ] Verify Dapr 1.16 features work correctly
 
+**Dapr Configuration API Implementation (NEW - Cloud-Agnostic Config):**
+- [ ] Create `reddog.config` Dapr Configuration component for each environment
+  - Local: `configuration.redis` (Redis in Docker)
+  - Azure: `configuration.azureappconfig` (Azure App Configuration)
+  - AWS: `configuration.postgresql` (RDS PostgreSQL)
+  - GCP: `configuration.postgresql` (Cloud SQL PostgreSQL)
+- [ ] Migrate OrderService to use `DaprClient.GetConfiguration()` instead of environment variables
+- [ ] Migrate AccountingService to use Dapr Configuration API
+- [ ] Add configuration subscription support for dynamic updates (feature flags, operational settings)
+- [ ] Update all service Dockerfiles to remove application config environment variables
+- [ ] Keep environment variables only for Dapr sidecar (`DAPR_HTTP_PORT`, `DAPR_GRPC_PORT`) and runtime (`ASPNETCORE_URLS`)
+- [ ] Document configuration key naming conventions (camelCase, service prefixes)
+- [ ] Test configuration updates propagate without redeployment
+
+**Why Dapr Configuration API:**
+- Cloud-agnostic application code (same `GetConfiguration()` call across all platforms)
+- Dynamic configuration updates without redeployment (subscribe to changes)
+- Centralized management via cloud-native UIs (Azure Portal, AWS Console, Redis CLI)
+- Consistent with ADR-0002 (Dapr abstraction) and ADR-0004 (Configuration API standardization)
+- Read-only access for applications (security/safety)
+
+**Workload Identity Migration (HIGH PRIORITY - Security):**
+- [ ] Enable Workload Identity on AKS cluster (`--enable-oidc-issuer --enable-workload-identity`)
+- [ ] Create Managed Identity for each service (order-service, accounting-service, etc.)
+- [ ] Grant Azure Key Vault "Key Vault Secrets User" role to managed identities
+- [ ] Update `reddog.secretstore.yaml` - remove Service Principal certificate auth
+- [ ] Create Kubernetes ServiceAccounts with `azure.workload.identity/client-id` annotations
+- [ ] Update Deployments with `azure.workload.identity/use: "true"` label
+- [ ] Test secret retrieval via Dapr secret store with Workload Identity
+- [ ] Remove deprecated Service Principal certificate from K8s secrets
+
+**Why Workload Identity:**
+- Zero secrets stored in cluster (zero-trust security model)
+- Pod identity federated with Microsoft Entra ID via OIDC
+- Automatic token rotation (no manual certificate renewal)
+- Replaces deprecated Service Principal + Certificate pattern (2021)
+- Industry best practice for AKS 2025
+
 **Deliverables:**
-- Modern Dapr components (1.15/1.16)
+- Modern Dapr components (1.16)
 - Modern KEDA scaled objects (2.17)
 - Tested autoscaling demos
 - Updated component manifests
+- Dapr Configuration API components for all environments (Local, Azure, AWS, GCP)
+- Services migrated to use Dapr Configuration API (OrderService, AccountingService)
+- Workload Identity configured for all services
+- Dapr secret store using Azure Key Vault with Workload Identity (no hardcoded credentials)
+- Documentation: Research/dapr-secret-store-vs-azure-key-vault-aks-comparison.md
+- Documentation: ADR-0004 (Dapr Configuration API standardization)
 
-**Duration:** 2-3 days
+**Duration:** 1.5 weeks (3 days Dapr/KEDA, 2 days Configuration API migration, 4 days Workload Identity migration)
 
 ---
 

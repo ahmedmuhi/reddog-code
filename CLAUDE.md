@@ -6,6 +6,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 The user is using voice transcription for input. If you encounter any unusual phrasing or words that don't make sense in context, please ask for clarification rather than assuming the intended meaning.
 
+## When Are We
+
+Very important: The user's timezone is {datetime(.)now().strftime("%Z")}. The current date is {datetime(.)now().strftime("%Y-%m-%d")}. 
+
+Any dates before this are in the past, and any dates after this are in the future. When the user asks for the 'latest', 'most recent', 'today's', etc. don't assume your knowledge is up to date;
+
 ## Development Sessions
 
 This project uses session tracking to maintain a history of development work. Sessions are stored in `.claude/sessions/` and provide context about past changes, decisions, and progress.
@@ -52,6 +58,19 @@ To understand past development work:
 - **`plan/SAFE_CLEANUP.md`** - Step-by-step guide for removing outdated components
 - **`.claude/sessions/`** - Detailed session logs of all decisions and progress
 
+### Architectural Decisions:
+- **`docs/adr/`** - Architectural Decision Records documenting key technical choices
+  - `adr-0001-dotnet10-lts-adoption.md` - .NET 10 LTS adoption rationale
+  - `adr-0002-cloud-agnostic-configuration-via-dapr.md` - Dapr abstraction for multi-cloud portability
+  - `adr-0003-ubuntu-2404-base-image-standardization.md` - Ubuntu 24.04 for all container base images
+  - `adr-0004-dapr-configuration-api-standardization.md` - Dapr Configuration API for application settings
+  - `adr-0005-kubernetes-health-probe-standardization.md` - Kubernetes health probes (/healthz, /livez, /readyz)
+  - `adr-0006-infrastructure-configuration-via-environment-variables.md` - Environment variables for infrastructure config
+
+### Technical Standards:
+- **`docs/standards/`** - Implementation standards for consistent development practices
+  - `web-api-standards.md` - HTTP API standards (CORS, errors, versioning, health checks)
+
 ### Modernization Goals:
 1. **Polyglot Architecture** - Migrate from .NET-only to 5 languages (Go, Python, Node.js, .NET, Vue.js)
 2. **Modern Tech Stack** - Upgrade all dependencies to latest LTS versions
@@ -62,11 +81,11 @@ To understand past development work:
 
 | Component | Current (2021) | Target (2025) |
 |-----------|---------------|---------------|
-| .NET | 6.0 (EOL) | 8.0 or 9.0 (LTS) |
-| Node.js | 14 (EOL) | 20 or 22 (LTS) |
-| Vue.js | 2.6 (EOL) | 3.x (Current) |
-| Dapr | 1.3.0 (Old) | 1.14+ (Latest) |
-| KEDA | 2.2.0 (Old) | 2.16+ (Latest) |
+| .NET | 6.0 (EOL) | 10.0 (LTS) |
+| Node.js | 14 (EOL) | 24 (LTS) |
+| Vue.js | 2.6 (EOL) | 3.5 |
+| Dapr | 1.3.0 (Old) | 1.16 |
+| KEDA | 2.2.0 (Old) | 2.17 |
 | Languages | .NET only (10 services) | 5 languages (8 services) |
 
 ### Service Migration Plan:
@@ -97,88 +116,7 @@ To understand past development work:
 
 ## Project Overview
 
-**Red Dog Coffee** - A multi-location coffee chain demo application.
-
-Red Dog is a microservices-based demo application showcasing Dapr (Distributed Application Runtime) in a retail order management scenario. The application simulates a multi-location coffee/restaurant chain (Red Dog Coffee) with services for order processing, loyalty management, receipt generation, and analytics.
-
-**Business Domain:**
-- Coffee shop chain with multiple store locations
-- Customers order beverages (Americano, Latte, Caramel Macchiato, etc.)
-- Orders processed through a queue (MakeLine)
-- Workers (baristas) complete orders
-- Loyalty points tracked per customer
-- Corporate analytics across all stores
-
-## Build Commands
-
-### .NET Services
-```bash
-# Build entire solution
-dotnet build
-
-# Build specific service
-dotnet build RedDog.OrderService
-dotnet build RedDog.AccountingService
-dotnet build RedDog.MakeLineService
-dotnet build RedDog.LoyaltyService
-dotnet build RedDog.ReceiptGenerationService
-dotnet build RedDog.VirtualWorker
-dotnet build RedDog.VirtualCustomers
-dotnet build RedDog.Bootstrapper
-```
-
-### Vue.js UI
-```bash
-cd RedDog.UI
-npm install          # Install dependencies
-npm run serve        # Development server
-npm run build        # Production build
-npm run lint         # Lint code
-```
-
-### Database Setup
-The Bootstrapper service initializes the SQL database using EF Core migrations:
-```bash
-# Run Bootstrapper to create database schema
-# Requires DAPR_HTTP_PORT environment variable
-DAPR_HTTP_PORT=5880 dotnet run --project RedDog.Bootstrapper
-```
-
-### Entity Framework Commands
-```bash
-# Optimize DbContext (generates compiled models)
-dotnet ef dbcontext optimize -p RedDog.AccountingService -n RedDog.AccountingModel -o RedDog.AccountingModel/CompiledModels -c AccountingContext
-```
-
-## Running Services Locally
-
-### Using VS Code Tasks
-The repository includes pre-configured VS Code tasks in `.vscode/tasks.json`:
-- **"Build Solution"** - Build all .NET services (default build task)
-- **"Dapr (All Services)"** - Start all Dapr sidecars for all services
-- Individual **"Dapr [ServiceName]"** tasks for each service
-
-### Running Individual Services
-Each service runs with Dapr sidecar. Services use ports 51XX-59XX for apps and 51XX-59XX for Dapr HTTP/gRPC ports.
-
-Example:
-```bash
-# Start Dapr sidecar for OrderService
-dapr run --app-id order-service \
-  --components-path ./manifests/local/branch \
-  --app-port 5100 \
-  --dapr-grpc-port 5101 \
-  --dapr-http-port 5180
-
-# In another terminal, run the service
-cd RedDog.OrderService
-DAPR_HTTP_PORT=5180 DAPR_GRPC_PORT=5101 dotnet run
-```
-
-### VS Code Launch Configurations
-Use `.vscode/launch.json` debug configurations:
-- **"Debug All Services"** - Compound configuration to debug all services simultaneously
-- Individual debug configurations for each service with proper Dapr environment variables
+**Red Dog Coffee** - A microservices-based demo application showcasing Dapr (Distributed Application Runtime) in a retail order management scenario. The application simulates a multi-location coffee chain where customers order beverages, orders are processed through a queue (MakeLine), workers complete orders, loyalty points are tracked, and corporate analytics aggregate data across all stores.
 
 ## Architecture
 
@@ -253,79 +191,3 @@ Located in `manifests/local/branch/`:
 - Compiled models in `RedDog.AccountingModel/CompiledModels/` (generated)
 - Migrations in `RedDog.Bootstrapper/Migrations/`
 - AccountingContext connects to SQL Server via connection string from Dapr secret store
-
-## Configuration
-
-### Environment Variables
-
-Each service requires Dapr ports:
-```bash
-DAPR_HTTP_PORT=5X80  # Dapr HTTP API port
-DAPR_GRPC_PORT=5X01  # Dapr gRPC API port
-ASPNETCORE_URLS=http://*:5X00  # App listening port (for ASP.NET services)
-```
-
-VirtualCustomers and VirtualWorker require:
-```bash
-STORE_ID=Redmond  # Store location identifier
-```
-
-### Local Development Setup
-
-1. Ensure Dapr CLI is installed: `dapr init`
-2. Start SQL Server container (configured in `.devcontainer/docker-compose.yml`)
-3. Run Bootstrapper to initialize database
-4. Start services using VS Code tasks or manual dapr run commands
-5. For UI: Create `RedDog.UI/.env` with:
-   ```
-   VUE_APP_MAKELINE_BASE_URL=http://localhost:5200
-   VUE_APP_ACCOUNTING_BASE_URL=http://localhost:5700
-   ```
-
-### Testing API Endpoints
-
-REST files in `rest-samples/` directory:
-- `order-service.rest` - Test order creation, product listing
-- `makeline-service.rest` - Test order queue operations
-- `accounting-service.rest` - Test analytics endpoints
-- `ui.rest` - Test UI backend calls
-
-Use VS Code REST Client extension or similar tools.
-
-## Key Implementation Patterns
-
-### Pub/Sub Subscription
-Services subscribe to Dapr pub/sub topics using decorators:
-```csharp
-[Topic("reddog.pubsub", "orders")]
-[HttpPost("orders")]
-public async Task<ActionResult> HandleOrder([FromBody] CloudEvent<OrderSummary> cloudEvent)
-```
-
-### Dapr Middleware
-Services must configure Dapr middleware in Startup.cs:
-```csharp
-app.UseCloudEvents();  // Enable CloudEvents format
-endpoints.MapSubscribeHandler();  // Enable pub/sub subscriptions
-services.AddControllers().AddDapr();  // Add Dapr to controllers
-```
-
-### State Management
-Services use `DaprClient` for state operations:
-```csharp
-await _daprClient.SaveStateAsync("reddog.state.makeline", key, value);
-var data = await _daprClient.GetStateAsync<T>("reddog.state.makeline", key);
-```
-
-### Service Scoping
-Dapr components use `scopes` to limit which services can access them. Check YAML files for scope definitions.
-
-## Deployment Scenarios
-
-This codebase supports multiple deployment targets:
-- **Local/Codespaces**: Uses `manifests/local/` with Redis and local storage
-- **AKS**: See https://github.com/Azure/reddog-aks
-- **Container Apps**: See https://github.com/Azure/reddog-containerapps
-- **Hybrid/Arc**: See https://github.com/Azure/reddog-hybrid-arc (uses `manifests/corporate/` for corporate hub)
-
-When modifying services, ensure code remains infrastructure-agnostic - Dapr handles environment differences through component configuration.
