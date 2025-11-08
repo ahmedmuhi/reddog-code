@@ -1,5 +1,5 @@
 ---
-title: "ADR-0003: Ubuntu 24.04 Base Image Standardization for All Container Images"
+title: "ADR-0003: Ubuntu 24.04 Base Image Standardization for Application Containers"
 status: "Accepted"
 date: "2025-11-02"
 authors: "Red Dog Modernization Team"
@@ -8,7 +8,7 @@ supersedes: ""
 superseded_by: ""
 ---
 
-# ADR-0003: Ubuntu 24.04 Base Image Standardization for All Container Images
+# ADR-0003: Ubuntu 24.04 Base Image Standardization for Application Containers
 
 ## Status
 
@@ -65,6 +65,22 @@ Using official language-specific images creates **OS fragmentation**: Ubuntu for
 - **Go services**: Use `ubuntu/go` from Canonical (Ubuntu 24.04-based)
 - **Python services**: Use `ubuntu/python` from Canonical (Ubuntu 24.04-based)
 - **Node.js services**: Use `ubuntu/node` from Canonical (Ubuntu 24.04-based)
+
+## Scope
+
+This ADR applies to **application containers** (services we build and maintain):
+- OrderService, AccountingService, MakeLineService, LoyaltyService, ReceiptGenerationService, VirtualCustomers, VirtualWorker
+- RedDog.UI build stage (Node.js compilation)
+
+This ADR does **NOT** apply to **infrastructure containers** (third-party dependencies we consume):
+- Redis, PostgreSQL, SQL Server, Nginx (runtime for UI), RabbitMQ, message brokers, databases
+- **Rationale:** Use official upstream-maintained images for:
+  - **Performance optimization:** Official images use glibc (2x faster than musl on Alpine for Redis/databases)
+  - **Security hardening:** Vendor-provided security patches and CVE response SLAs
+  - **Maintenance reduction:** Avoid custom build pipelines for infrastructure components
+  - **Battle-tested reliability:** Production-validated by millions of deployments
+
+**Infrastructure image selection documented in ADR-0007 (Cloud-Agnostic Deployment Strategy).**
 
 **Rationale:**
 - **STD-001**: **Single Base OS Family**: All 8 services run on Ubuntu 24.04, eliminating OS fragmentation. Operators learn one OS, one package manager (apt), one CVE database (Ubuntu Security Notices).
@@ -131,7 +147,7 @@ Using official language-specific images creates **OS fragmentation**: Ubuntu for
 | ReceiptGenerationService | Python | `ubuntu/python:24.04` | `ubuntu/python:24.04-slim` (if available) | Single/multi-stage |
 | VirtualCustomers | Python | `ubuntu/python:24.04` | `ubuntu/python:24.04-slim` (if available) | Single/multi-stage |
 | LoyaltyService | Node.js 24 | `ubuntu/node:24.04` | `ubuntu/node:24.04-slim` (if available) | Single/multi-stage |
-| UI | Node.js 24 | `ubuntu/node:24.04` (build) | `ubuntu/nginx:24.04` or `nginx:alpine` (runtime) | Static site hosting |
+| UI | Node.js 24 | `ubuntu/node:24.04` (build) | `nginx:1.27-bookworm` (runtime) | Static site hosting (see ADR-0007 for infrastructure image rationale) |
 
 - **IMP-002**: **Dockerfile Pattern (Go Example)**:
 ```dockerfile
@@ -184,3 +200,4 @@ CMD ["makeline-service"]
 - **REF-006**: Ubuntu Release: [Ubuntu 24.04 LTS Noble Numbat (EOL April 2029)](https://ubuntu.com/about/release-cycle)
 - **REF-007**: Docker Hub: [ubuntu/go](https://hub.docker.com/r/ubuntu/go), [ubuntu/python](https://hub.docker.com/r/ubuntu/python), [ubuntu/node](https://hub.docker.com/r/ubuntu/node)
 - **REF-008**: Session Log: `.claude/sessions/2025-11-02-1105-orderservice-dotnet10-refinement.md` (Ubuntu 24.04 research and standardization discussion)
+- **REF-009**: Related ADR: `docs/adr/adr-0007-cloud-agnostic-deployment-strategy.md` (infrastructure container image selection and cloud-agnostic portability rationale)

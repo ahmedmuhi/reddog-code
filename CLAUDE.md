@@ -55,16 +55,19 @@ To understand past development work:
 
 ### Key Documents:
 - **`plan/modernization-strategy.md`** - Comprehensive 8-phase modernization roadmap
+- **`plan/testing-validation-strategy.md`** - Testing and validation baseline (prerequisite for Phase 1A)
+- **`docs/research/`** - Research documents (upgrade analysis, gap analysis, breaking changes)
 - **`.claude/sessions/`** - Detailed session logs of all decisions and progress
 
 ### Architectural Decisions:
 - **`docs/adr/`** - Architectural Decision Records documenting key technical choices
   - `adr-0001-dotnet10-lts-adoption.md` - .NET 10 LTS adoption rationale
   - `adr-0002-cloud-agnostic-configuration-via-dapr.md` - Dapr abstraction for multi-cloud portability
-  - `adr-0003-ubuntu-2404-base-image-standardization.md` - Ubuntu 24.04 for all container base images
+  - `adr-0003-ubuntu-2404-base-image-standardization.md` - Ubuntu 24.04 for application containers
   - `adr-0004-dapr-configuration-api-standardization.md` - Dapr Configuration API for application settings
   - `adr-0005-kubernetes-health-probe-standardization.md` - Kubernetes health probes (/healthz, /livez, /readyz)
   - `adr-0006-infrastructure-configuration-via-environment-variables.md` - Environment variables for infrastructure config
+  - `adr-0007-cloud-agnostic-deployment-strategy.md` - Containerized infrastructure for multi-cloud portability
 
 ### Technical Standards:
 - **`docs/standards/`** - Implementation standards for consistent development practices
@@ -73,7 +76,7 @@ To understand past development work:
 ### Modernization Goals:
 1. **Polyglot Architecture** - Migrate from .NET-only to 5 languages (Go, Python, Node.js, .NET, Vue.js)
 2. **Modern Tech Stack** - Upgrade all dependencies to latest LTS versions
-3. **Cloud-First Deployment** - One-command deployment scripts for AKS, Container Apps, EKS, GKE
+3. **Cloud-Agnostic Architecture** - Dapr abstraction enables deployment to any platform (AKS, Container Apps, EKS, GKE), showcasing infrastructure independence
 4. **Teaching Focus** - Optimize for instructor-led demonstrations, not self-guided learning
 
 ### Current State vs Target State:
@@ -83,7 +86,7 @@ To understand past development work:
 | .NET | 6.0 (EOL) | 10.0 (LTS) |
 | Node.js | 14 (EOL) | 24 (LTS) |
 | Vue.js | 2.6 (EOL) | 3.5 |
-| Dapr | 1.3.0 (Old) | 1.16 |
+| Dapr | 1.5.0 (Old) | 1.16 |
 | KEDA | 2.2.0 (Old) | 2.17 |
 | Languages | .NET only (10 services) | 5 languages (8 services) |
 
