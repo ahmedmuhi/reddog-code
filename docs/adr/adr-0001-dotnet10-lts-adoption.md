@@ -105,7 +105,7 @@ Red Dog's .NET services currently run on .NET 6.0, which reached End-of-Life (EO
 ## References
 
 - **REF-001**: Related Plan: `plan/orderservice-dotnet10-upgrade.md` (comprehensive 8-phase implementation guide)
-- **REF-002**: Related Plan: `plan/MODERNIZATION_PLAN.md` (Phase 1: .NET Modernization)
+- **REF-002**: Related Plan: `plan/modernization-strategy.md` (Phase 1: .NET Modernization)
 - **REF-003**: Microsoft Docs: [What's new in .NET 10](https://learn.microsoft.com/en-us/dotnet/core/whats-new/dotnet-10/overview)
 - **REF-004**: Microsoft Docs: [Breaking changes in .NET 10](https://learn.microsoft.com/en-us/dotnet/core/compatibility/10.0)
 - **REF-005**: Microsoft Docs: [.NET support policy](https://dotnet.microsoft.com/platform/support/policy)

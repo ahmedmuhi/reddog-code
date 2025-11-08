@@ -111,7 +111,7 @@ Red Dog's modernization strategy targets deployment across multiple cloud platfo
   - **AKS**: Azure Key Vault (secrets), Azure Redis (state), Azure Service Bus (pub/sub), Azure Blob Storage (bindings)
   - **Container Apps**: Managed Dapr components (Azure-backed, invisible sidecar injection)
   - **EKS/GKE**: AWS/GCP equivalents (Secrets Manager, ElastiCache/Memorystore, SNS/Pub/Sub, S3/Cloud Storage)
-- **IMP-004**: **Workload Identity Integration**: Dapr secret store component uses Workload Identity (no Service Principal certificates). See `plan/MODERNIZATION_PLAN.md` Phase 8 for migration steps.
+- **IMP-004**: **Workload Identity Integration**: Dapr secret store component uses Workload Identity (no Service Principal certificates). See `plan/modernization-strategy.md` Phase 8 for migration steps.
 - **IMP-005**: **Sidecar Architecture Universality**: All platforms use sidecar pattern:
   - **Container Apps**: Azure injects Dapr sidecar automatically (invisible, fully managed)
   - **AKS**: Dapr extension or Helm chart injects sidecar via `dapr.io/enabled: true` annotation
@@ -123,7 +123,7 @@ Red Dog's modernization strategy targets deployment across multiple cloud platfo
 ## References
 
 - **REF-001**: Related Requirement: `plan/orderservice-dotnet10-upgrade.md` REQ-004 (multi-platform deployment support)
-- **REF-002**: Related Plan: `plan/MODERNIZATION_PLAN.md` (Phase 3: Dapr 1.16 upgrade, Phase 8: Workload Identity)
+- **REF-002**: Related Plan: `plan/modernization-strategy.md` (Phase 3: Dapr 1.16 upgrade, Phase 8: Workload Identity)
 - **REF-003**: Research Document: `Research/dapr-secret-store-vs-azure-key-vault-aks-comparison.md` (Dapr secret store vs direct Azure SDK)
 - **REF-004**: Session Log: `.claude/sessions/2025-11-02-1105-orderservice-dotnet10-refinement.md` (Dapr sidecar architecture clarification)
 - **REF-005**: Dapr Docs: [Dapr building blocks overview](https://docs.dapr.io/concepts/building-blocks-concept/)

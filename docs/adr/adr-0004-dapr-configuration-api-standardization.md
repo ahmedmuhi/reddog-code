@@ -305,7 +305,7 @@ public class ConfigurationUpdateService : BackgroundService
 
 - **REF-001**: Related ADR: `docs/adr/adr-0002-cloud-agnostic-configuration-via-dapr.md` (establishes Dapr as abstraction layer)
 - **REF-002**: Related Plan: `plan/orderservice-dotnet10-upgrade.md` REQ-004 (multi-platform deployment, configuration requirements)
-- **REF-003**: Related Plan: `plan/MODERNIZATION_PLAN.md` (Phase 3: Dapr 1.16 upgrade includes Configuration API support)
+- **REF-003**: Related Plan: `plan/modernization-strategy.md` (Phase 3: Dapr 1.16 upgrade includes Configuration API support)
 - **REF-004**: Dapr Docs: [Configuration API Overview](https://docs.dapr.io/developing-applications/building-blocks/configuration/configuration-api-overview/)
 - **REF-005**: Dapr Docs: [How-To: Manage Configuration](https://docs.dapr.io/developing-applications/building-blocks/configuration/howto-manage-configuration/)
 - **REF-006**: Dapr Component: [Azure App Configuration](https://docs.dapr.io/reference/components-reference/supported-configuration-stores/azure-appconfig-configuration-store/)

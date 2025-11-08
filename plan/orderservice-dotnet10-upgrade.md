@@ -16,7 +16,7 @@ tags: [upgrade, dotnet10, lts, modernization, orderservice, dapr, framework-upgr
 
 This implementation plan details the upgrade of **OrderService** from .NET 6 to **.NET 10 LTS**.
 
-**Scope:** OrderService is one of two .NET services being retained in the modernized Red Dog architecture (see `MODERNIZATION_PLAN.md`).
+**Scope:** OrderService is one of two .NET services being retained in the modernized Red Dog architecture (see `modernization-strategy.md`).
 
 **Strategic Rationale:** See `docs/adr/adr-0001-dotnet10-lts-adoption.md` for complete context on why .NET 10 LTS was selected over .NET 8/9 alternatives.
 
@@ -573,7 +573,7 @@ See `docs/adr/adr-0001-dotnet10-lts-adoption.md` section "Alternatives Considere
 
 ### Internal Documentation
 
-- [Red Dog Modernization Plan](./MODERNIZATION_PLAN.md) - Overall modernization roadmap
+- [Red Dog Modernization Strategy](./modernization-strategy.md) - Overall modernization roadmap
 - [Safe Cleanup Guide](./SAFE_CLEANUP.md) - Phase 0 cleanup completed before this upgrade
 - [CLAUDE.md](../CLAUDE.md) - Project guidance and development instructions
 - [Session Log: 2025-11-02 OrderService .NET 10 Upgrade](../.claude/sessions/2025-11-02-0805-order-service-dotnet10-upgrade.md)

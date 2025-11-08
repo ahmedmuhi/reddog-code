@@ -170,7 +170,7 @@ CMD ["makeline-service"]
 
 - **IMP-006**: **Documentation Updates**:
   - Update `plan/orderservice-dotnet10-upgrade.md` TASK-502 with Ubuntu 24.04 requirement
-  - Update `plan/MODERNIZATION_PLAN.md` Phase 2-7 service migration Dockerfiles
+  - Update `plan/modernization-strategy.md` Phase 2-7 service migration Dockerfiles
   - Add Dockerfile examples to each service migration plan (Go, Python, Node.js)
   - Create `docs/docker-base-images.md` explaining Ubuntu 24.04 standardization decision
 
@@ -178,7 +178,7 @@ CMD ["makeline-service"]
 
 - **REF-001**: Related ADR: `docs/adr/adr-0001-dotnet10-lts-adoption.md` (documents .NET 10 LTS choice, Ubuntu 24.04 default)
 - **REF-002**: Related Plan: `plan/orderservice-dotnet10-upgrade.md` TASK-502 (Dockerfile updates)
-- **REF-003**: Related Plan: `plan/MODERNIZATION_PLAN.md` (Phase 2-7 service migrations)
+- **REF-003**: Related Plan: `plan/modernization-strategy.md` (Phase 2-7 service migrations)
 - **REF-004**: Canonical Announcement: [LTS Docker Image Portfolio on Docker Hub](https://canonical.com/blog/canonical-publishes-lts-docker-image-portfolio-on-docker-hub)
 - **REF-005**: Microsoft Announcement: [Default .NET images changed to Ubuntu 24.04 (October 30, 2025)](https://github.com/dotnet/dotnet-docker/blob/main/documentation/supported-tags.md)
 - **REF-006**: Ubuntu Release: [Ubuntu 24.04 LTS Noble Numbat (EOL April 2029)](https://ubuntu.com/about/release-cycle)

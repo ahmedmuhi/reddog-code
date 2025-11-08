@@ -54,7 +54,7 @@ To understand past development work:
 **Current Phase:** Phase 1: .NET Modernization
 
 ### Key Documents:
-- **`plan/MODERNIZATION_PLAN.md`** - Comprehensive 8-phase modernization roadmap
+- **`plan/modernization-strategy.md`** - Comprehensive 8-phase modernization roadmap
 - **`.claude/sessions/`** - Detailed session logs of all decisions and progress
 
 ### Architectural Decisions:

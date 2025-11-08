@@ -1,4 +1,4 @@
-# Red Dog Modernization Plan
+# Red Dog Modernization Strategy
 
 ## Executive Summary
 

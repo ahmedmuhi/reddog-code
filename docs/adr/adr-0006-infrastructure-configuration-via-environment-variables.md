@@ -417,7 +417,7 @@ var app = builder.Build();
 - **REF-001**: Related ADR: `docs/adr/adr-0004-dapr-configuration-api-standardization.md` (application settings use Dapr Config API, NOT environment variables)
 - **REF-002**: Related ADR: `docs/adr/adr-0002-cloud-agnostic-configuration-via-dapr.md` (cloud-agnostic architecture principles)
 - **REF-003**: Related Plan: `plan/orderservice-dotnet10-upgrade.md` REQ-004 (configurable port via ASPNETCORE_URLS)
-- **REF-004**: Related Plan: `plan/MODERNIZATION_PLAN.md` (applies to all service migrations: Go, Python, Node.js, .NET)
+- **REF-004**: Related Plan: `plan/modernization-strategy.md` (applies to all service migrations: Go, Python, Node.js, .NET)
 - **REF-005**: 12-Factor App: [III. Config - Store config in the environment](https://12factor.net/config)
 - **REF-006**: Microsoft Docs: [ASP.NET Core Configuration - Environment Variables](https://learn.microsoft.com/aspnet/core/fundamentals/configuration/#environment-variables)
 - **REF-007**: Kubernetes Docs: [Define Environment Variables for a Container](https://kubernetes.io/docs/tasks/inject-data-application/define-environment-variable-container/)

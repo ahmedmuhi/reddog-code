@@ -405,7 +405,7 @@ properties:
 
 - **REF-001**: Related ADR: `docs/adr/adr-0002-cloud-agnostic-configuration-via-dapr.md` (cloud-agnostic architecture principles)
 - **REF-002**: Related Plan: `plan/orderservice-dotnet10-upgrade.md` REQ-004 (health check endpoint requirement)
-- **REF-003**: Related Plan: `plan/MODERNIZATION_PLAN.md` (applies to all service migrations: Go, Python, Node.js, .NET)
+- **REF-003**: Related Plan: `plan/modernization-strategy.md` (applies to all service migrations: Go, Python, Node.js, .NET)
 - **REF-004**: Kubernetes Docs: [Configure Liveness, Readiness, and Startup Probes](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/)
 - **REF-005**: Azure Docs: [Health probes in Azure Container Apps](https://learn.microsoft.com/azure/container-apps/health-probes)
 - **REF-006**: Kubernetes API: [Probe v1 core specification](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#probe-v1-core)
