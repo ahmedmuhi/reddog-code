@@ -148,6 +148,8 @@ Transform Red Dog from a .NET-centric demo (2021) into a modern, polyglot micros
 ### Phase 1A: .NET 10 Upgrade (All Services)
 **Goal:** Upgrade ALL 9 .NET projects to .NET 10 LTS before language migrations
 
+**Reference:** See `docs/research/dotnet-upgrade-analysis.md` for the detailed Platform Upgrade Implementation Guide and Breaking Change Analysis.
+
 **Strategic Rationale:**
 - **Risk Isolation:** Separate framework upgrade from language migration (one variable at a time)
 - **Dapr Validation:** Test Dapr 1.16 compatibility once in .NET, then reuse for all language migrations
@@ -173,11 +175,20 @@ Transform Red Dog from a .NET-centric demo (2021) into a modern, polyglot micros
 - Entity Framework Core 10.0.x (for AccountingService/AccountingModel/Bootstrapper)
 - Remove deprecated package: `Microsoft.AspNetCore 2.2.0` (VirtualCustomers)
 
+**Key Findings from Research:**
+- All 7 web services still use `IHostBuilder + Startup.cs`; each needs a Program.cs refactor to `WebApplicationBuilder`.
+- Health probes use `/probes/*`; migrate to ADR-0005 standard endpoints (`/healthz`, `/livez`, `/readyz`).
+- VirtualCustomers must drop `Microsoft.AspNetCore 2.2.0` before retargeting.
+- EF Core upgrades: AccountingService/AccountingModel/Bootstrapper must move to EF Core 10.0.x.
+- Swashbuckle → Microsoft.AspNetCore.OpenApi + Scalar; Serilog → OpenTelemetry.
+
 **Deliverables:**
 - All 9 .NET projects running on .NET 10 + Dapr 1.16
 - Production-ready deployment (no EOL frameworks)
 - Validated Dapr 1.16 compatibility across all patterns (pub/sub, state, bindings, service invocation)
 - Modern .NET baseline for Phase 1B migrations
+
+**Estimated Effort (per research):** 33-44 engineering hours spanning targeting updates, hosting/logging refactors, async fixes, and feature adoption.
 
 **Duration:** 1-2 weeks
 
@@ -265,6 +276,8 @@ Transform Red Dog from a .NET-centric demo (2021) into a modern, polyglot micros
 ### Phase 4: CI/CD Modernization
 **Goal:** Automate builds and publish to GitHub Container Registry
 
+**Reference:** `docs/research/cicd-modernization.md` contains the full pipeline assessment and modernization steps.
+
 **Key Changes:**
 - Matrix build workflow (all services, all languages)
 - Push to GHCR (free for public repos)
@@ -297,6 +310,8 @@ Transform Red Dog from a .NET-centric demo (2021) into a modern, polyglot micros
 
 ### Phase 5: Infrastructure Modernization
 **Goal:** Update Dapr/KEDA components and implement modern cloud patterns
+
+**Reference:** Use the CI/CD research doc for deployment automation details and `docs/research/testing-validation-strategy.md` for validation tie-ins.
 
 **Dapr & KEDA Updates:**
 - Dapr components → v1.16 API
@@ -332,6 +347,8 @@ Transform Red Dog from a .NET-centric demo (2021) into a modern, polyglot micros
 
 ### Phase 5b: OpenTelemetry Integration (Optional)
 **Goal:** Enhanced observability with distributed tracing
+
+**Reference:** `docs/research/testing-validation-strategy.md` documents the observability validation steps.
 
 **Key Components:**
 - OpenTelemetry Collector deployment
