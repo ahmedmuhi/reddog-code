@@ -91,6 +91,35 @@ The Red Dog Coffee solution contains **9 .NET projects**, all currently built wi
 
 ---
 
+## Tooling Workflow
+
+1. **Upgrade Assistant Execution**
+   - Command: `upgrade-assistant upgrade <Project>.csproj --entry-point <Project>.csproj --non-interactive --skip-backup false`
+   - Output: Markdown summary stored at `artifacts/upgrade-assistant/<project>.md`
+   - Purpose: Applies SDK multi-targeting updates, appsettings adjustments, and records actions for audit.
+2. **Workload Sync**
+   - Commands: `dotnet workload restore` followed by `dotnet workload update`
+   - Output: Console log appended to `artifacts/dependencies/<project>-workloads.txt`
+   - Purpose: Ensures SDK workloads (ASP.NET, Web, wasm, etc.) align with SDK 10.0 before builds.
+3. **Dependency & Vulnerability Audit**
+   - Commands:
+     - `dotnet list <Project>.csproj package --outdated --include-transitive > artifacts/dependencies/<project>-outdated.txt`
+     - `dotnet list <Project>.csproj package --vulnerable > artifacts/dependencies/<project>-vulnerable.txt`
+     - `dotnet list <Project>.csproj reference --graph > artifacts/dependencies/<project>-graph.txt`
+   - Purpose: Provides deterministic evidence of dependency health for NuGet & transitive packages.
+4. **API Analyzer**
+   - Command: `dotnet tool run api-analyzer -f net10.0 -p <Project>.csproj > artifacts/api-analyzer/<project>.md`
+   - Purpose: Flags removed/obsolete APIs introduced between .NET 6 and .NET 10.
+
+### Integration with Breaking Change Analysis
+
+- API Analyzer outputs feed into the “Breaking Changes by Priority” table: any warning with severity ≥ Medium becomes a tracked entry with remediation tasks and references to the analyzer log.
+- Dependency reports inform the NuGet & Dependency Management section; vulnerabilities discovered during `dotnet list package --vulnerable` must be resolved before marking Phase 1A complete.
+- Upgrade Assistant Markdown logs are required artifacts for compliance reviews and serve as the baseline diff for each project’s Program.cs/Startup.cs transition.
+- Implementation guides under `plan/` (e.g., `plan/upgrade-*-dotnet10-implementation-1.md`) must capture these artifacts before proceeding to manual edits; modernization strategy phases assume those logs exist.
+
+---
+
 ## Project Inventory
 
 This section provides a comprehensive catalog of all 9 .NET projects in the Red Dog Coffee solution, their current state, upgrade path, and final destination after both Phase 1A (.NET 10 upgrade) and Phase 1B (language migration) complete.
@@ -200,38 +229,15 @@ The following 3 projects require special attention due to unique dependencies, d
 
 ---
 
-### Project Dependency Graph
-
-```
-RedDog Solution (9 projects)
-├── RedDog.AccountingModel (foundation library)
-│   └── No dependencies
-│
-├── RedDog.AccountingService (Web API)
-│   └── Depends on: RedDog.AccountingModel
-│
-├── RedDog.Bootstrapper (Console App - Database Init)
-│   └── Depends on: RedDog.AccountingModel
-│
-├── 6 other services (no project dependencies)
-    └── MakeLineService, LoyaltyService, ReceiptGenerationService,
-        OrderService, VirtualWorker, VirtualCustomers
-```
-
-**Dependency Depth:** Shallow (1 level deep)
-**Coupling Level:** Minimal (only 2 project references: AccountingService → AccountingModel, Bootstrapper → AccountingModel)
-
----
-
 ## Dependency Analysis
 
 ### Executive Summary
 
-The Red Dog Coffee solution consists of 8 .NET projects, all using .NET 6.0 (which reached End of Life on November 12, 2024). The dependency landscape is relatively clean with minimal external packages, but **all packages are outdated** and the current framework itself is EOL.
+The Red Dog Coffee solution consists of 9 .NET projects, all using .NET 6.0 (which reached End of Life on November 12, 2024). The dependency landscape is relatively clean with minimal external packages, but **all packages are outdated** and the current framework itself is EOL.
 
 **Upgrade Complexity Assessment:** **MEDIUM**
-- Simple dependency graph (only 1 internal project reference)
-- Small number of external dependencies (6 unique packages)
+- Simple dependency graph (only 2 internal project references)
+- Small number of external dependencies (10 unique packages)
 - All packages have clear upgrade paths to .NET 10
 - One deprecated package identified (Microsoft.AspNetCore 2.2.0)
 
@@ -881,9 +887,9 @@ public IActionResult IsReady()
 
 ---
 
-# CI/CD & Build Pipeline Modernization
+# CI/CD Modernization Strategy
 
-Detailed CI/CD pipeline analysis, modernization recommendations, and workflow templates now live in `docs/research/cicd-modernization.md`. Review that document when planning GitHub Actions or Azure DevOps updates for the .NET 10 rollout.
+Detailed CI/CD pipeline analysis, modernization recommendations, and workflow templates now live in `plan/cicd-modernization-strategy.md`. Review that document when planning GitHub Actions updates for the .NET 10 rollout.
 
 ---
 
@@ -2203,7 +2209,7 @@ After each service migration:
 
 ### 8.1 Technical Success
 
-- [ ] All 7 services compile and run on .NET 10
+- [ ] All 9 projects compile and run on .NET 10
 - [ ] All Dapr integrations functional (pub/sub, state, service invocation, bindings)
 - [ ] All health endpoints respond at /healthz, /livez, /readyz
 - [ ] OpenAPI specs generated and Scalar UI accessible
@@ -2257,4 +2263,4 @@ After each service migration:
 **Target Framework:** .NET 10 LTS
 **Current Framework:** .NET 6 (EOL)
 **Total Analysis Effort:** 3 agents × 8 hours = 24 hours
-**Total Document Length:** 4,782+ lines
+**Total Document Length:** 2,266 lines

@@ -14,6 +14,12 @@ tags: [upgrade, dotnet10, orderservice, dapr, observability]
 
 This implementation plan defines the deterministic steps for upgrading `RedDog.OrderService` from .NET 6.0 to .NET 10.0 LTS while adopting the modernization requirements identified in `docs/research/dotnet-upgrade-analysis.md`. The plan is fully executable by AI agents or humans without additional interpretation.
 
+## Research References
+
+- `docs/research/dotnet-upgrade-analysis.md` (Dependency Analysis, Breaking Change Analysis, Docker base image guidance)
+- `plan/testing-validation-strategy.md` (Tool installation, validation scripts, artifact expectations)
+- `plan/cicd-modernization-strategy.md` (GitHub Actions workflow modernization and tooling audit requirements)
+
 ## 1. Requirements & Constraints
 
 - **REQ-001**: Service must target `.NET 10.0` and use SDK features (`Nullable`, `ImplicitUsings`, `LangVersion 14.0`).
@@ -34,13 +40,17 @@ This implementation plan defines the deterministic steps for upgrading `RedDog.O
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| **TASK-001** | Edit `RedDog.OrderService/RedDog.OrderService.csproj`: set `<TargetFramework>net10.0</TargetFramework>`, add `<Nullable>enable</Nullable>`, `<ImplicitUsings>enable</ImplicitUsings>`, `<LangVersion>14.0</LangVersion>`. Remove `<PackageReference>` entries for Serilog and Swashbuckle. | | |
-| **TASK-002** | In same csproj, update package versions: `Dapr.AspNetCore` to `1.16.0`, `Microsoft.Extensions.*` to `10.0.x`, `Microsoft.EntityFrameworkCore.*` to `10.0.x`, add `OpenTelemetry.Extensions.Hosting`, `OpenTelemetry.Exporter.OpenTelemetryProtocol`, `OpenTelemetry.Instrumentation.AspNetCore`, `Microsoft.AspNetCore.OpenApi`, `Scalar.AspNetCore`. | | |
-| **TASK-003** | Run `dotnet restore RedDog.OrderService/RedDog.OrderService.csproj` and `dotnet list package --outdated --include-transitive` to confirm only target versions remain. Capture output in `artifacts/orderservice-package-report.txt`. | | |
-| **TASK-004** | Update `RedDog.OrderService/Dockerfile`: change base images to `mcr.microsoft.com/dotnet/sdk:10.0` and `mcr.microsoft.com/dotnet/aspnet:10.0`; ensure publish step uses `dotnet publish -c Release -o /app/publish`. | | |
-| **TASK-005** | Execute `dotnet build RedDog.OrderService/RedDog.OrderService.csproj -warnaserror` and resolve all compilation or nullable warnings introduced by phase tasks. | | |
+| **TASK-000** | Run `.NET Upgrade Assistant`: `upgrade-assistant upgrade RedDog.OrderService/RedDog.OrderService.csproj --entry-point RedDog.OrderService/RedDog.OrderService.csproj --non-interactive --skip-backup false` and store the generated report at `artifacts/upgrade-assistant/orderservice.md`. | | |
+| **TASK-001** | Execute `dotnet workload restore` and `dotnet workload update` within the repo root; append console output to `artifacts/dependencies/orderservice-workloads.txt`. | | |
+| **TASK-002** | Capture dependency baselines: `dotnet list RedDog.OrderService/RedDog.OrderService.csproj package --outdated --include-transitive`, `dotnet list ... package --vulnerable`, and `dotnet list ... reference --graph`, saving outputs to `artifacts/dependencies/orderservice-{outdated|vulnerable|graph}.txt`. | | |
+| **TASK-003** | Run API Analyzer: `dotnet tool run api-analyzer -f net10.0 -p RedDog.OrderService/RedDog.OrderService.csproj > artifacts/api-analyzer/orderservice.md`. | | |
+| **TASK-004** | Edit `RedDog.OrderService/RedDog.OrderService.csproj`: set `<TargetFramework>net10.0</TargetFramework>`, add `<Nullable>enable</Nullable>`, `<ImplicitUsings>enable</ImplicitUsings>`, `<LangVersion>14.0</LangVersion>`, and remove Serilog/Swashbuckle `<PackageReference>` entries. | | |
+| **TASK-005** | Update package references to target versions: `Dapr.AspNetCore` 1.16.0, `Microsoft.Extensions.*` 10.0.x, `Microsoft.EntityFrameworkCore.*` 10.0.x, add `OpenTelemetry.Extensions.Hosting`, `OpenTelemetry.Exporter.OpenTelemetryProtocol`, `OpenTelemetry.Instrumentation.AspNetCore`, `Microsoft.AspNetCore.OpenApi`, `Scalar.AspNetCore`. | | |
+| **TASK-006** | Re-run dependency audits post-package update: `dotnet restore` followed by the same `dotnet list package` commands, overwriting the artifacts in `artifacts/dependencies/` to confirm zero outdated/vulnerable packages. | | |
+| **TASK-007** | Update `RedDog.OrderService/Dockerfile` to use `mcr.microsoft.com/dotnet/sdk:10.0` and `mcr.microsoft.com/dotnet/aspnet:10.0` images; ensure publish step uses `dotnet publish -c Release -o /app/publish`. | | |
+| **TASK-008** | Execute `dotnet build RedDog.OrderService/RedDog.OrderService.csproj -warnaserror` to confirm zero warnings after csproj/Docker changes; fix any nullable or analyzer issues surfaced. | | |
 
-**Completion Criteria (Phase 1):** `dotnet build` succeeds with zero warnings; `artifacts/orderservice-package-report.txt` shows no outdated packages; Dockerfile references only .NET 10 images.
+**Completion Criteria (Phase 1):** Artifact files exist under `artifacts/upgrade-assistant/`, `artifacts/dependencies/`, and `artifacts/api-analyzer/`; `dotnet build` completes without warnings; Dockerfile references only .NET 10 base images.
 
 ### Implementation Phase 2
 
@@ -48,12 +58,12 @@ This implementation plan defines the deterministic steps for upgrading `RedDog.O
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| **TASK-006** | Replace `RedDog.OrderService/Program.cs` contents with minimal hosting pattern from research doc: instantiate `WebApplication.CreateBuilder`, configure services, map controllers, Dapr subscribe handler, CloudEvents, and run the app. Delete `RedDog.OrderService/Startup.cs`. | | |
-| **TASK-007** | Implement ADR-0005 health checks in Program.cs: add `builder.Services.AddHealthChecks()` with tags `live` and `ready`, map endpoints `/healthz`, `/livez`, `/readyz`. Delete `RedDog.OrderService/Controllers/ProbesController.cs`. | | |
-| **TASK-008** | Configure OpenTelemetry: in Program.cs add `builder.Services.AddOpenTelemetry().WithTracing(...)` and `.WithMetrics(...)` using OTLP exporter endpoint `OTEL_EXPORTER_OTLP_ENDPOINT` from environment variables. Remove all Serilog-specific code references. | | |
-| **TASK-009** | Configure OpenAPI + Scalar: `builder.Services.AddOpenApi()`, `app.MapOpenApi()`, `app.MapScalarApiReference()`. Verify `/openapi/v1.json` and `/scalar/v1` serve successfully via `dotnet run`. | | |
-| **TASK-010** | Apply modernization features: convert namespaces to file-scoped, replace any `Task.FromResult` usages, ensure DTOs/controllers resolve nullable warnings, adopt collection expressions where applicable. Use `dotnet format` to enforce style. | | |
-| **TASK-011** | Create or update validation scripts per `docs/research/testing-validation-strategy.md`: run `dotnet test` with coverage, execute Dapr integration smoke test, and run `ci/scripts/validate-health-endpoints.sh`. Store results in `artifacts/orderservice-validation-report.md`. | | |
+| **TASK-009** | Replace `RedDog.OrderService/Program.cs` contents with minimal hosting pattern from research doc: instantiate `WebApplication.CreateBuilder`, configure services, map controllers, Dapr subscribe handler, CloudEvents, and run the app. Delete `RedDog.OrderService/Startup.cs`. | | |
+| **TASK-010** | Implement ADR-0005 health checks in Program.cs: add `builder.Services.AddHealthChecks()` with tags `live` and `ready`, map endpoints `/healthz`, `/livez`, `/readyz`. Delete `RedDog.OrderService/Controllers/ProbesController.cs`. | | |
+| **TASK-011** | Configure OpenTelemetry: in Program.cs add `builder.Services.AddOpenTelemetry().WithTracing(...)` and `.WithMetrics(...)` using OTLP exporter endpoint `OTEL_EXPORTER_OTLP_ENDPOINT` from environment variables. Remove all Serilog-specific code references. | | |
+| **TASK-012** | Configure OpenAPI + Scalar: `builder.Services.AddOpenApi()`, `app.MapOpenApi()`, `app.MapScalarApiReference()`. Verify `/openapi/v1.json` and `/scalar/v1` serve successfully via `dotnet run`. | | |
+| **TASK-013** | Apply modernization features: convert namespaces to file-scoped, replace any `Task.FromResult` usages, ensure DTOs/controllers resolve nullable warnings, adopt collection expressions where applicable. Use `dotnet format` to enforce style. | | |
+| **TASK-014** | Create or update validation scripts per `plan/testing-validation-strategy.md`: run `dotnet test` with coverage, execute Dapr integration smoke test, run `ci/scripts/validate-health-endpoints.sh`, and append results to `artifacts/orderservice-validation-report.md`. | | |
 
 **Completion Criteria (Phase 2):** `Program.cs` contains minimal hosting + OTEL + OpenAPI; health endpoints respond 200 locally; `artifacts/orderservice-validation-report.md` records passing unit/integration tests and health-check results; repository has no Serilog or Startup files.
 
@@ -65,8 +75,8 @@ This implementation plan defines the deterministic steps for upgrading `RedDog.O
 ## 4. Dependencies
 
 - **DEP-001**: `docs/research/dotnet-upgrade-analysis.md` for minimal hosting samples and package versions.
-- **DEP-002**: `docs/research/testing-validation-strategy.md` for required validation scripts and coverage thresholds.
-- **DEP-003**: `docs/research/cicd-modernization.md` for GitHub Actions modifications (ensuring workflows use SDK 10.0 and run tests).
+- **DEP-002**: `plan/testing-validation-strategy.md` for required validation scripts and coverage thresholds.
+- **DEP-003**: `plan/cicd-modernization-strategy.md` for GitHub Actions modifications (ensuring workflows use SDK 10.0 and run tests).
 
 ## 5. Files
 
@@ -92,8 +102,8 @@ This implementation plan defines the deterministic steps for upgrading `RedDog.O
 ## 8. Related Specifications / Further Reading
 
 - `docs/research/dotnet-upgrade-analysis.md`
-- `docs/research/testing-validation-strategy.md`
-- `docs/research/cicd-modernization.md`
+- `plan/testing-validation-strategy.md`
+- `plan/cicd-modernization-strategy.md`
 - `plan/modernization-strategy.md`
 - `docs/adr/adr-0001-dotnet10-lts-adoption.md`
 - `docs/adr/adr-0005-kubernetes-health-probe-standardization.md`

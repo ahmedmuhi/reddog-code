@@ -1,4 +1,4 @@
-# CI/CD & Build Pipeline Modernization
+# CI/CD Modernization Strategy
 
 **Effort Estimate:** 8-12 hours
 **Risk Level:** LOW
@@ -9,7 +9,7 @@
 
 ## Overview
 
-Phase 5 analyzes the current CI/CD infrastructure and provides comprehensive modernization recommendations for the .NET 10 upgrade. The analysis covers pipeline configuration, build automation, testing strategies, and continuous integration best practices.
+This strategy defines the Phase 5 CI/CD modernization scope for the .NET 10 upgrade, covering GitHub Actions pipeline configuration, build automation, testing strategies, and continuous integration best practices.
 
 ---
 
@@ -120,6 +120,19 @@ FROM mcr.microsoft.com/dotnet/aspnet:10.0
 - Current: No static analysis, linting, or style enforcement
 - Recommendation: Add Roslyn analyzer validation
 
+### Tooling Compliance Checks
+
+- Add a `tooling-audit` job to every PR workflow (runs after checkout, before build):
+  1. `upgrade-assistant upgrade <Project>.csproj --entry-point <Project>.csproj --non-interactive --skip-backup false > artifacts/upgrade-assistant/<project>.md`
+  2. `dotnet workload restore` and `dotnet workload update`
+  3. `dotnet list <Project>.csproj package --outdated --include-transitive`, `--vulnerable`, and `dotnet list <Project>.csproj reference --graph` (outputs stored under `artifacts/dependencies/`)
+  4. `dotnet tool run api-analyzer -f net10.0 -p <Project>.csproj > artifacts/api-analyzer/<project>.md`
+- Job fails if:
+  - API Analyzer emits any warning with severity ≥ Medium.
+  - `dotnet list package --vulnerable` reports vulnerabilities.
+  - Required artifact files are missing.
+- Publish tooling artifacts as workflow artifacts for auditing and use them as merge-gate requirements (status check `tooling-audit` must pass before merge).
+
 ### Implementation Effort
 
 | Task | Hours | Complexity |
@@ -196,20 +209,6 @@ steps:
       # Create test order
       # Verify message delivery
 ```
-
-### Azure DevOps Pipeline
-
-**4-Stage Pipeline:**
-1. **Build** - Compile all projects, unit tests
-2. **IntegrationTest** - Dapr-based integration tests
-3. **ContainerBuild** - Docker image builds, push to ACR
-4. **DeploymentValidation** - Deploy to dev, smoke tests
-
-**Key Tasks:**
-- `UseDotNet@2` with `useGlobalJson: true`
-- `DotNetCoreCLI@2` for build/test/publish
-- `Docker@2` for container builds
-- `KubernetesManifest@0` for deployment
 
 ### Feature Branch Validation Strategy
 
@@ -337,7 +336,6 @@ services:
 | Category | Hours | Notes |
 |----------|-------|-------|
 | GitHub Actions workflow | 19 | Matrix builds, integration tests |
-| Azure DevOps pipeline | 17 | If needed as alternative |
 | Dapr integration | 13 | CLI setup, components, tests |
 | EF Core migration testing | 9 | Validation, rollback, safety |
 | Documentation | 17 | Runbooks, troubleshooting |
@@ -688,7 +686,7 @@ date,commit,coverage_percent
 
 **All issues have identified solutions:**
 - Clear migration path for all 9 pipelines
-- Complete GitHub Actions + Azure DevOps templates
+- Complete GitHub Actions templates
 - Production-ready automation scripts
 - Effort aligns with modernization timeline (Phase 1A)
 - Risk is manageable with staged rollout

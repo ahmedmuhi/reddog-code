@@ -145,6 +145,20 @@ Transform Red Dog from a .NET-centric demo (2021) into a modern, polyglot micros
 
 ---
 
+### Phase Dependency Matrix (Global Prerequisites)
+
+1. **Tooling Readiness**
+   - Install and verify Upgrade Assistant, API Analyzer, `dotnet workload update`, `dotnet list` scripts, and Dapr CLI per *Tool Installation Requirements* in `plan/testing-validation-strategy.md`.
+   - Ensure artifact directories (`artifacts/upgrade-assistant/`, `artifacts/api-analyzer/`, `artifacts/dependencies/`) exist and are writable.
+2. **Testing & Validation Baseline**
+   - Implement the scripts/checklists in `plan/testing-validation-strategy.md` (health endpoint validation, Dapr smoke tests, coverage collection) before touching service code.
+3. **CI/CD Modernization**
+   - Execute `plan/cicd-modernization-strategy.md` together with `plan/upgrade-github-workflows-implementation-1.md` so every `.github/workflows/*.yaml` file runs the tooling-audit, build/test, and publish jobs with .NET 10 SDKs/Node 24.
+
+Only after all three prerequisites are marked complete may Phase 1A begin. Each subsequent phase references its implementation guides below.
+
+---
+
 ### Phase 1A: .NET 10 Upgrade (All Services)
 **Goal:** Upgrade ALL 9 .NET projects to .NET 10 LTS before language migrations
 
@@ -182,6 +196,12 @@ Transform Red Dog from a .NET-centric demo (2021) into a modern, polyglot micros
 - EF Core upgrades: AccountingService/AccountingModel/Bootstrapper must move to EF Core 10.0.x.
 - Swashbuckle → Microsoft.AspNetCore.OpenApi + Scalar; Serilog → OpenTelemetry.
 
+**Tooling & Automation Requirements:**
+- Run `.NET Upgrade Assistant` for each project before manual edits: `upgrade-assistant upgrade <Project>.csproj --entry-point <Project>.csproj --non-interactive --skip-backup false`, storing logs in `artifacts/upgrade-assistant/<project>.md`.
+- Execute `.NET API Analyzer` (`dotnet tool run api-analyzer -f net10.0 -p <Project>.csproj`) and capture reports in `artifacts/api-analyzer/<project>.md`.
+- Capture dependency status with `dotnet list <Project>.csproj package --outdated --include-transitive`, `dotnet list <Project>.csproj package --vulnerable`, and `dotnet list <Project>.csproj reference --graph`, saving outputs to `artifacts/dependencies/<project>-outdated.txt`, `...-vulnerable.txt`, and `...-graph.txt`.
+- Run `dotnet workload restore` and `dotnet workload update` prior to every `dotnet build` to keep workloads aligned with the .NET 10 SDK.
+
 **Deliverables:**
 - All 9 .NET projects running on .NET 10 + Dapr 1.16
 - Production-ready deployment (no EOL frameworks)
@@ -191,6 +211,17 @@ Transform Red Dog from a .NET-centric demo (2021) into a modern, polyglot micros
 **Estimated Effort (per research):** 33-44 engineering hours spanning targeting updates, hosting/logging refactors, async fixes, and feature adoption.
 
 **Duration:** 1-2 weeks
+
+**Implementation Guides:**
+- `plan/upgrade-accountingservice-dotnet10-implementation-1.md`
+- `plan/upgrade-accountingmodel-dotnet10-implementation-1.md`
+- `plan/upgrade-bootstrapper-dotnet10-implementation-1.md`
+- `plan/upgrade-makelineservice-dotnet10-implementation-1.md`
+- `plan/upgrade-loyaltyservice-dotnet10-implementation-1.md`
+- `plan/upgrade-receiptgenerationservice-dotnet10-implementation-1.md`
+- `plan/upgrade-orderservice-dotnet10-implementation-1.md`
+- `plan/upgrade-virtualworker-dotnet10-implementation-1.md`
+- `plan/upgrade-virtualcustomers-dotnet10-implementation-1.md`
 
 ---
 
@@ -245,6 +276,8 @@ Transform Red Dog from a .NET-centric demo (2021) into a modern, polyglot micros
 
 **Duration:** 2-3 days
 
+**Implementation Guide:** `plan/upgrade-ui-vue3-implementation-1.md`
+
 ---
 
 ### Phase 3: Deployment Automation (CRITICAL PATH)
@@ -276,7 +309,9 @@ Transform Red Dog from a .NET-centric demo (2021) into a modern, polyglot micros
 ### Phase 4: CI/CD Modernization
 **Goal:** Automate builds and publish to GitHub Container Registry
 
-**Reference:** `docs/research/cicd-modernization.md` contains the full pipeline assessment and modernization steps.
+**Implementation Guides:** `plan/cicd-modernization-strategy.md`, `plan/upgrade-github-workflows-implementation-1.md`
+
+**Reference:** `plan/cicd-modernization-strategy.md` contains the full pipeline assessment and modernization steps.
 
 **Key Changes:**
 - Matrix build workflow (all services, all languages)
@@ -311,7 +346,9 @@ Transform Red Dog from a .NET-centric demo (2021) into a modern, polyglot micros
 ### Phase 5: Infrastructure Modernization
 **Goal:** Update Dapr/KEDA components and implement modern cloud patterns
 
-**Reference:** Use the CI/CD research doc for deployment automation details and `docs/research/testing-validation-strategy.md` for validation tie-ins.
+**Reference:** `plan/testing-validation-strategy.md` (validation flows) and `plan/cicd-modernization-strategy.md` (deployment automation)
+
+**Reference:** Use the CI/CD research doc for deployment automation details and `plan/testing-validation-strategy.md` for validation tie-ins.
 
 **Dapr & KEDA Updates:**
 - Dapr components → v1.16 API
@@ -348,7 +385,7 @@ Transform Red Dog from a .NET-centric demo (2021) into a modern, polyglot micros
 ### Phase 5b: OpenTelemetry Integration (Optional)
 **Goal:** Enhanced observability with distributed tracing
 
-**Reference:** `docs/research/testing-validation-strategy.md` documents the observability validation steps.
+**Reference:** `plan/testing-validation-strategy.md` documents the observability validation steps.
 
 **Key Components:**
 - OpenTelemetry Collector deployment
@@ -449,6 +486,11 @@ Transform Red Dog from a .NET-centric demo (2021) into a modern, polyglot micros
 
 ### Risk: Too much scope, takes too long
 **Mitigation:** Follow phased approach, prioritize critical path first (Phase 1A → Phase 3 → Phase 1B)
+
+### Risk: Automated tooling skipped causes undetected regressions
+**Mitigation:**
+- Enforce execution of Upgrade Assistant, API Analyzer, and dotnet list commands for every project (artifacts saved under `artifacts/upgrade-assistant/`, `artifacts/api-analyzer/`, `artifacts/dependencies/`) before reviews.
+- Block merges unless CI tooling checks pass (API Analyzer reports no critical warnings, `dotnet list package --vulnerable` returns none, dependency reports uploaded).
 
 ---
 
