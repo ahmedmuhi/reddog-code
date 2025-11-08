@@ -155,12 +155,104 @@ Transform Red Dog from a .NET-centric demo (2021) into a modern, polyglot micros
 3. **CI/CD Modernization**
    - Execute `plan/cicd-modernization-strategy.md` together with `plan/upgrade-github-workflows-implementation-1.md` so every `.github/workflows/*.yaml` file runs the tooling-audit, build/test, and publish jobs with .NET 10 SDKs/Node 24.
 
-Only after all three prerequisites are marked complete may Phase 1A begin. Each subsequent phase references its implementation guides below.
+Only after all three prerequisites are marked complete may **Phase 0** begin. Phase 0 is a **mandatory prerequisite** for Phase 1A. Each subsequent phase references its implementation guides below.
+
+---
+
+## Phase 0: Platform Foundation (PREREQUISITE FOR ALL PHASES)
+
+**Status:** Planned
+**Duration:** 3-4 weeks
+**Objective:** Upgrade infrastructure platform to support .NET 10 and polyglot services
+
+### Why Phase 0 is Required
+
+- **Dapr 1.3.0 is incompatible** with modern .NET features and 3+ years outdated
+- **All services run Dapr sidecars** - upgrading Dapr is a blocking dependency for Phase 1A
+- **KEDA 2.2.0 predates Kubernetes 1.30** API changes
+- **State stores must migrate from Redis** - Dapr 1.16 does NOT support Redis 7/8 (only 6.x)
+- **Object storage must adopt cloud-agnostic strategy** per ADR-0007
+
+### Scope
+
+**Platform Infrastructure:**
+- Dapr 1.3.0 → 1.16.2 (runtime platform for all services)
+- KEDA 2.2.0 → 2.18.1 (autoscaling framework)
+- cert-manager 1.3.1 → 1.19 (TLS certificate management)
+
+**Data Infrastructure:**
+- State stores: Migrate from Redis to cloud-native databases
+  - Local dev: Redis 6.2.14 (Dapr 1.16 compatible)
+  - Azure: Cosmos DB (NoSQL API) via `state.azure.cosmosdb`
+  - AWS: DynamoDB via `state.aws.dynamodb`
+  - GCP: Cloud Firestore via `state.gcp.firestore`
+
+**Object Storage:**
+- Migrate from Azure Blob (cloud-specific) to cloud-agnostic strategy
+  - Local dev: MinIO (S3-compatible) via `bindings.aws.s3`
+  - AWS: S3 via `bindings.aws.s3` with IRSA
+  - Azure: Blob Storage via `bindings.azure.blobstorage` with Workload Identity
+  - GCP: Cloud Storage via `bindings.gcp.bucket` with Workload Identity
+
+**Supporting Infrastructure:**
+- SQL Server 2019 → 2022 (or PostgreSQL 17 alternative)
+- RabbitMQ Helm 8.20.2 → Docker 4.2.0-management
+- Nginx Helm 3.31.0 → Docker 1.28.0-bookworm
+
+### Success Criteria
+
+- ✅ Dapr 1.16.2 operational on all clusters (AKS, EKS, GKE, Container Apps)
+- ✅ KEDA 2.18.1 installed and healthy
+- ✅ cert-manager 1.19 issuing Let's Encrypt certificates
+- ✅ State stores migrated to cloud-native databases (no data loss)
+- ✅ Object storage using cloud-agnostic Dapr bindings
+- ✅ All infrastructure containers upgraded to latest stable versions
+- ✅ Kubernetes 1.30+ verified on all target platforms
+- ✅ Workload Identity configured for Azure, AWS, GCP
+- ✅ All services running Dapr 1.16 sidecars successfully
+- ✅ End-to-end order flow validated (VirtualCustomers → OrderService → MakeLineService → VirtualWorker)
+
+### Critical Constraints
+
+- **Dapr .NET SDK 1.16.2 does NOT support .NET 10** - Services must use Dapr HTTP/gRPC APIs directly until upstream fix
+- **Dapr 1.16 does NOT support Redis 7/8** - Cloud-native state stores (Cosmos DB, DynamoDB, Firestore) required
+- **Azure Blob Storage has NO S3 API** - Must use cloud-specific Dapr bindings per environment
+- **Redis 6.2.14 is EOL (July 2024)** - Acceptable for local dev only, NOT production
+
+### Implementation Plans
+
+1. [Phase 0: Platform Foundation (Master Plan)](./upgrade-phase0-platform-foundation-implementation-1.md)
+2. [Dapr 1.3.0 → 1.16.2 Upgrade](./upgrade-dapr-1.16-implementation-1.md)
+3. [KEDA 2.2.0 → 2.18.1 Upgrade](./upgrade-keda-2.18-implementation-1.md)
+4. [cert-manager 1.3.1 → 1.19 Upgrade](./upgrade-certmanager-1.19-implementation-1.md)
+5. [Infrastructure Containers Upgrade](./upgrade-infrastructure-containers-implementation-1.md)
+6. [Cloud-Native State Stores Migration](./migrate-state-stores-cloud-native-implementation-1.md)
+7. [Cloud-Agnostic Object Storage Migration](./migrate-object-storage-cloud-agnostic-implementation-1.md)
+
+### Risks and Mitigation
+
+- **RISK-001: State Data Loss** - Export state before migration, verify import integrity
+- **RISK-002: Dapr Service Invocation Breaking Change** - Add explicit `Content-Type: application/json` headers (Dapr 1.9+ requirement)
+- **RISK-003: KEDA Helm CRD Conflicts** - Patch CRDs with Helm ownership metadata before upgrade
+- **RISK-004: Workload Identity Misconfiguration** - Test in staging, document configuration steps
+- **RISK-005: Production Downtime** - 2-hour maintenance window for production deployment
+
+### Deliverables
+
+- Modern infrastructure platform ready for .NET 10 and polyglot services
+- Cloud-native state stores and object storage
+- Workload Identity Federation configured (no long-lived secrets)
+- Dapr 1.16 HTTP/gRPC API patterns documented
+- All infrastructure upgrades validated in staging before production
+
+**Duration:** 3-4 weeks
+**Risk Level:** Medium (7 Dapr breaking changes, state migration complexity)
 
 ---
 
 ### Phase 1A: .NET 10 Upgrade (All Services)
 **Goal:** Upgrade ALL 9 .NET projects to .NET 10 LTS before language migrations
+**Prerequisite:** Phase 0 must complete successfully
 
 **Reference:** See `docs/research/dotnet-upgrade-analysis.md` for the detailed Platform Upgrade Implementation Guide and Breaking Change Analysis.
 
