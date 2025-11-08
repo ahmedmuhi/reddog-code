@@ -18,21 +18,23 @@ Transform Red Dog from a .NET-centric demo (2021) into a modern, polyglot micros
 - .NET 6.0 (EOL November 2024)
 - Node.js 14 (EOL April 2023)
 - Vue.js 2.6 (EOL December 2023)
-- Dapr 1.3.0 (Released 2021, current is 1.16)
+- Dapr 1.5.0 (Released 2022, current is 1.16)
 - KEDA 2.2.0 (Released 2021, current is 2.17)
 - Flux v1 (DEPRECATED)
 
-### Services (10 .NET services + 1 Vue UI):
+### Services (9 .NET projects + 1 Vue UI):
 1. OrderService (.NET)
 2. MakeLineService (.NET)
 3. LoyaltyService (.NET)
 4. ReceiptGenerationService (.NET)
 5. AccountingService (.NET)
-6. VirtualCustomers (.NET)
-7. VirtualWorker (.NET)
-8. Bootstrapper (.NET)
-9. CorporateTransferService (.NET)
+6. AccountingModel (.NET - EF Core library used by AccountingService)
+7. VirtualCustomers (.NET)
+8. VirtualWorker (.NET)
+9. Bootstrapper (.NET)
 10. UI (Vue.js 2)
+
+**Note:** AccountingModel is a class library consumed by AccountingService, not a standalone microservice.
 
 ### Infrastructure:
 - GitHub workflows (deprecated syntax, hardcoded MS config)
@@ -53,7 +55,7 @@ Transform Red Dog from a .NET-centric demo (2021) into a modern, polyglot micros
 - **Dapr 1.16** (Latest stable, September 2025)
 - **KEDA 2.17** (Latest stable)
 
-### Polyglot Services (8 services):
+### Polyglot Services (7 microservices + 1 library):
 
 **Go (2 services):**
 1. **MakeLineService** - Queue management, state operations, concurrency
@@ -66,16 +68,19 @@ Transform Red Dog from a .NET-centric demo (2021) into a modern, polyglot micros
 **Node.js (1 service):**
 5. **LoyaltyService** - Event-driven, pub/sub subscriber, async I/O
 
-**.NET (2 services):**
+**.NET (2 services + 1 library):**
 6. **OrderService** - Core REST API, business logic
 7. **AccountingService** - SQL Server, EF Core, analytics
+   - **AccountingModel** - Shared EF Core library (not a service)
 
-**Vue.js (1 service):**
+**Vue.js (1 UI):**
 8. **UI** - Dashboard (Vue 3)
 
 ### Removed Services:
-- ❌ Bootstrapper (replace with init containers/SQL scripts using Dapr secret store for credentials)
 - ❌ CorporateTransferService (Arc scenarios not needed)
+
+### Retained Services:
+- ✅ Bootstrapper (console database initializer) stays in .NET 10 until a replacement init flow is implemented.
 
 **Secret Management Decision:** All services (including init containers for database setup) will use **Dapr secret store** with Azure Key Vault backend. CSI Secrets Store driver will NOT be used to maintain consistency and avoid dual secret management solutions.
 
@@ -95,17 +100,18 @@ Transform Red Dog from a .NET-centric demo (2021) into a modern, polyglot micros
 - [x] `.devcontainer/` - ✅ Removed (Phase 1)
 - [x] `manifests/local/` - ✅ Removed (Phase 1)
 - [x] `manifests/corporate/` - ✅ Removed (Phase 1)
-- [x] `RedDog.Bootstrapper/` - ✅ Removed (Phase 2B)
 - [x] `RedDog.CorporateTransferService/` - ✅ Removed (Phase 2A)
+- [ ] `RedDog.Bootstrapper/` - ⚠️ Retained intentionally (console initializer stays on .NET 10)
 
 ### Files:
 - [ ] `.github/workflows/*` - ⚠️ SKIPPED (9 files remain - need fixing, not deletion)
 - [x] Flux-related configs (`.flux.yaml` files) - ✅ Removed (Phase 5)
-- [x] `docs/` directory - ✅ Removed (Phase 1)
+- [ ] `docs/` directory - ⚠️ Retained (hosts active research such as the .NET upgrade analysis)
 
 ### Kept:
 - ✅ `rest-samples/` (useful for content creation)
 - ✅ GitHub workflows for active services (need modernization later)
+- ✅ `docs/` research content (upgrade analysis, CI/CD plan, etc.)
 
 ---
 
@@ -116,8 +122,9 @@ Transform Red Dog from a .NET-centric demo (2021) into a modern, polyglot micros
 
 **Completed:**
 - [x] Remove unnecessary directories/services - ✅ Done (Phases 1, 2A, 2B, 3)
-  - Removed: .devcontainer/, manifests/local/, manifests/corporate/, docs/
-  - Removed: RedDog.Bootstrapper/, RedDog.CorporateTransferService/
+  - Removed: .devcontainer/, manifests/local/, manifests/corporate/
+  - Retained: `docs/` (hosts current research deliverables)
+  - Removed: RedDog.CorporateTransferService/
   - Removed: .vscode/ (broken configs referencing removed services)
 - [x] Simplify manifest structure (keep only branch/) - ✅ Done (Phase 1)
 - [x] Remove Flux v1 configs - ✅ Done (Phase 5)
@@ -138,325 +145,243 @@ Transform Red Dog from a .NET-centric demo (2021) into a modern, polyglot micros
 
 ---
 
-### Phase 1: .NET Modernization
-**Goal:** Update existing .NET services to latest LTS
+### Phase 1A: .NET 10 Upgrade (All Services)
+**Goal:** Upgrade ALL 9 .NET projects to .NET 10 LTS before language migrations
 
-**Services to update:**
-- [ ] OrderService: .NET 6 → .NET 9
-- [ ] AccountingService: .NET 6 → .NET 9
-- [ ] Update all Dockerfiles
-- [ ] Update NuGet packages (Dapr SDK, EF Core, Serilog, Swashbuckle)
-- [ ] Test services still work
+**Strategic Rationale:**
+- **Risk Isolation:** Separate framework upgrade from language migration (one variable at a time)
+- **Dapr Validation:** Test Dapr 1.16 compatibility once in .NET, then reuse for all language migrations
+- **Production Safety:** Deploy .NET 10 services immediately, removing EOL .NET 6 risk
+- **Modern Baseline:** Migrate to Go/Python/Node.js from modern .NET 10 codebase, not outdated .NET 6
+
+**Services to Upgrade (9 projects):**
+1. RedDog.OrderService (.NET 6 → .NET 10)
+2. RedDog.AccountingService (.NET 6 → .NET 10)
+3. RedDog.AccountingModel (.NET 6 → .NET 10)
+4. RedDog.MakeLineService (.NET 6 → .NET 10)
+5. RedDog.LoyaltyService (.NET 6 → .NET 10)
+6. RedDog.ReceiptGenerationService (.NET 6 → .NET 10)
+7. RedDog.VirtualWorker (.NET 6 → .NET 10)
+8. RedDog.VirtualCustomers (.NET 6 → .NET 10)
+9. RedDog.Bootstrapper (.NET 6 → .NET 10)
+
+**Key Updates:**
+- .NET 10.0 SDK and runtime
+- Dapr SDK 1.16+ (11 minor versions jump)
+- OpenTelemetry native logging (replace Serilog)
+- Scalar UI for OpenAPI documentation (replace Swashbuckle UI)
+- Entity Framework Core 10.0.x (for AccountingService/AccountingModel/Bootstrapper)
+- Remove deprecated package: `Microsoft.AspNetCore 2.2.0` (VirtualCustomers)
 
 **Deliverables:**
-- Modern .NET services
-- Updated Dockerfiles
-- Updated K8s manifests with new image tags
+- All 9 .NET projects running on .NET 10 + Dapr 1.16
+- Production-ready deployment (no EOL frameworks)
+- Validated Dapr 1.16 compatibility across all patterns (pub/sub, state, bindings, service invocation)
+- Modern .NET baseline for Phase 1B migrations
 
-**Duration:** 2-3 days
+**Duration:** 1-2 weeks
+
+---
+
+### Phase 1B: Language Migration (5 Services)
+**Goal:** Migrate 5 services from .NET 10 to target languages
+
+**Migration Strategy:**
+- Start from modern .NET 10 baseline (not EOL .NET 6)
+- Dapr 1.16 compatibility already validated in Phase 1A
+- Compare modern .NET 10 vs Go/Python/Node.js (better teaching value)
+- Keep .NET 10 versions in git history for reference
+
+**Go Migrations (2 services):**
+1. **MakeLineService** (.NET 10 → Go) - Queue management, concurrency patterns
+2. **VirtualWorker** (.NET 10 → Go) - Worker pool, performance optimization
+
+**Python Migrations (2 services):**
+3. **ReceiptGenerationService** (.NET 10 → Python) - Document generation, scripting
+4. **VirtualCustomers** (.NET 10 → Python) - Load testing, simulation
+
+**Node.js Migration (1 service):**
+5. **LoyaltyService** (.NET 10 → Node.js) - Event-driven, pub/sub, async I/O
+
+**Keeping in .NET 10 (2 services + 1 library):**
+- OrderService - Core business logic, REST API patterns
+- AccountingService - SQL Server, EF Core, relational data
+- AccountingModel - Shared library
+
+**Deliverables:**
+- 5 production-ready services in Go, Python, Node.js
+- Polyglot architecture demonstrating Dapr language-agnostic patterns
+- Side-by-side comparison of same service in .NET 10 vs target language (git history)
+
+**Duration:** 2-3 weeks
 
 ---
 
 ### Phase 2: Vue.js Modernization
-**Goal:** Upgrade UI to Vue 3
+**Goal:** Upgrade UI from Vue 2 to Vue 3
 
-- [ ] Update package.json dependencies
-- [ ] Migrate Vue 2 → Vue 3 (Composition API)
-- [ ] Update Vue Router 3 → 4
-- [ ] Update build tooling (Vite instead of Vue CLI?)
-- [ ] Update Dockerfile (Node 14 → Node 24)
-- [ ] Test UI functionality
+**Key Changes:**
+- Vue 2.6 → Vue 3.5
+- Vue Router 3 → 4
+- Node.js 14 → Node.js 24 LTS
+- Composition API adoption
+- Vite build tooling (replace Vue CLI)
 
 **Deliverables:**
-- Modern Vue 3 UI
-- Updated Dockerfile
+- Modern Vue 3 UI with TypeScript
+- Production-ready Dockerfile
 - Updated K8s manifest
 
 **Duration:** 2-3 days
 
 ---
 
-### Phase 3: Go Service Migration
-**Goal:** Rewrite services in Go
+### Phase 3: Deployment Automation (CRITICAL PATH)
+**Goal:** One-command deployment to cloud platforms
 
-**Service 1: VirtualWorker** (Easier)
-- [ ] Create new `RedDog.VirtualWorker.Go/` directory
-- [ ] Implement worker logic with Dapr Go SDK
-- [ ] Create Dockerfile
-- [ ] Update K8s manifest
-- [ ] Test against existing services
+**Azure Kubernetes Service (AKS):**
+- Provision cluster + install Dapr/KEDA
+- Deploy all services via kubectl/Helm
+- Configure ingress and output URLs
 
-**Service 2: MakeLineService** (Medium complexity)
-- [ ] Create new `RedDog.MakeLineService.Go/` directory
-- [ ] Implement REST API with Gin/Echo
-- [ ] Implement Dapr state management
-- [ ] Create Dockerfile
-- [ ] Update K8s manifest
-- [ ] Test pub/sub subscription and API endpoints
+**Azure Container Apps (ACA):**
+- Provision environment with Dapr enabled
+- Deploy services with KEDA scaling rules
+- Output application URLs
 
-**Deliverables:**
-- 2 production-ready Go services
-- Dockerfiles
-- Updated manifests
-- Example of Go + Dapr patterns
-
-**Duration:** 3-5 days
-
----
-
-### Phase 4: Python Service Migration
-**Goal:** Rewrite services in Python
-
-**Service 1: VirtualCustomers** (Easier)
-- [ ] Create new `RedDog.VirtualCustomers.Python/` directory
-- [ ] Implement load generation with Dapr Python SDK
-- [ ] Create Dockerfile
-- [ ] Update K8s manifest
-- [ ] Test order creation flow
-
-**Service 2: ReceiptGenerationService** (Easy)
-- [ ] Create new `RedDog.ReceiptGenerationService.Python/` directory
-- [ ] Implement receipt generation (JSON/PDF)
-- [ ] Implement Dapr output binding
-- [ ] Create Dockerfile
-- [ ] Update K8s manifest
-- [ ] Test pub/sub subscription and binding
+**Future Platforms:**
+- AWS EKS deployment script
+- Google GKE deployment script
 
 **Deliverables:**
-- 2 production-ready Python services
-- Dockerfiles
-- Updated manifests
-- Example of Python + Dapr patterns
-
-**Duration:** 3-4 days
-
----
-
-### Phase 5: Node.js Service Migration
-**Goal:** Rewrite LoyaltyService in Node.js
-
-- [ ] Create new `RedDog.LoyaltyService.NodeJS/` directory
-- [ ] Implement loyalty logic with Dapr Node.js SDK
-- [ ] Implement pub/sub subscription
-- [ ] Implement state management
-- [ ] Create Dockerfile
-- [ ] Update K8s manifest
-- [ ] Test event-driven flow
-
-**Deliverables:**
-- Production-ready Node.js service
-- Dockerfile
-- Updated manifest
-- Example of Node.js + Dapr patterns
-
-**Duration:** 2-3 days
-
----
-
-### Phase 6: Deployment Automation (CRITICAL PATH)
-**Goal:** One-command deployment scripts
-
-**Azure Kubernetes Service:**
-- [ ] Create `deploy-to-aks.sh` script
-  - Provision AKS cluster
-  - Install Dapr
-  - Install KEDA
-  - Apply manifests
-  - Configure ingress
-  - Output access URLs
-
-**Azure Container Apps:**
-- [ ] Create `deploy-to-aca.sh` script
-  - Provision Container Apps environment
-  - Enable Dapr
-  - Deploy services
-  - Configure scaling rules
-  - Output access URLs
-
-**Elastic Kubernetes Service (Future):**
-- [ ] Create `deploy-to-eks.sh` script
-
-**Google Kubernetes Engine (Future):**
-- [ ] Create `deploy-to-gke.sh` script
-
-**Deliverables:**
-- Working deployment scripts
-- Minimal documentation
-- Tested end-to-end deployments
+- `deploy-to-aks.sh` and `deploy-to-aca.sh` scripts
+- Tested end-to-end deployments (<10 min deployment time)
+- Minimal documentation (prerequisites, usage)
 
 **Duration:** 5-7 days
 
 ---
 
-### Phase 7: CI/CD Modernization
-**Goal:** Modern GitHub Actions workflows with GHCR
+### Phase 4: CI/CD Modernization
+**Goal:** Automate builds and publish to GitHub Container Registry
 
-- [ ] Create matrix build workflow (builds all services)
-- [ ] Push to GitHub Container Registry (GHCR) - free for public repos
-- [ ] Use latest GitHub Actions versions
-- [ ] Remove deprecated syntax
-- [ ] Implement proper tagging strategy (git SHA + latest)
-- [ ] Add automated testing (optional)
+**Key Changes:**
+- Matrix build workflow (all services, all languages)
+- Push to GHCR (free for public repos)
+- Modern tagging strategy (git SHA + latest)
+- Remove deprecated GitHub Actions syntax
+- Optional: Automated testing integration
 
 **Deliverables:**
-- Modern `.github/workflows/` setup
-- Automated image builds to GHCR
-- Public container images available
-- Proper tagging strategy
+- Modern `.github/workflows/` configuration
+- Public container images on GHCR
+- Automated builds on every push/PR
 
 **Duration:** 2-3 days
 
 ---
 
-### Phase 7b: Helm Charts (Alternative Deployment)
-**Goal:** Production-ready Helm charts as alternative to bash scripts
-
-- [ ] Create `helm-chart/` directory structure
-- [ ] Create Chart.yaml and values.yaml
-- [ ] Template K8s manifests (deployments, services, ingress)
-- [ ] Parameterize common values (image tags, replicas, resources)
-- [ ] Document Helm installation process
-- [ ] Test deployment via Helm
+### Phase 4b: Helm Charts (Optional)
+**Goal:** Production-ready Helm chart as alternative to bash scripts
 
 **Deliverables:**
-- Complete Helm chart for Red Dog
-- values.yaml with sensible defaults
+- Complete Helm chart with templated manifests
+- Parameterized values.yaml (image tags, replicas, resources)
 - Documentation for Helm-based deployment
-- Alternative to bash scripts for production-like deployments
 
 **Duration:** 2-3 days
 
-**Note:** This is optional but recommended for teaching production deployment patterns
+**Note:** Recommended for teaching production deployment patterns alongside bash scripts
 
 ---
 
-### Phase 8: Dapr & KEDA Updates + Workload Identity Migration
-**Goal:** Update infrastructure components to latest versions and migrate to modern authentication
+### Phase 5: Infrastructure Modernization
+**Goal:** Update Dapr/KEDA components and implement modern cloud patterns
 
 **Dapr & KEDA Updates:**
-- [ ] Update Dapr components to v1.16 API
-- [ ] Update KEDA manifests to v2.17
-- [ ] Test KEDA autoscaling behavior (CPU, RabbitMQ queue length)
-- [ ] Update component configs (Redis, RabbitMQ, SQL)
-- [ ] Verify Dapr 1.16 features work correctly
+- Dapr components → v1.16 API
+- KEDA manifests → v2.17
+- Test autoscaling (CPU, queue-based)
+- Update component configs (Redis, RabbitMQ, SQL)
 
-**Dapr Configuration API Implementation (NEW - Cloud-Agnostic Config):**
-- [ ] Create `reddog.config` Dapr Configuration component for each environment
-  - Local: `configuration.redis` (Redis in Docker)
-  - Azure: `configuration.azureappconfig` (Azure App Configuration)
-  - AWS: `configuration.postgresql` (RDS PostgreSQL)
-  - GCP: `configuration.postgresql` (Cloud SQL PostgreSQL)
-- [ ] Migrate OrderService to use `DaprClient.GetConfiguration()` instead of environment variables
-- [ ] Migrate AccountingService to use Dapr Configuration API
-- [ ] Add configuration subscription support for dynamic updates (feature flags, operational settings)
-- [ ] Update all service Dockerfiles to remove application config environment variables
-- [ ] Keep environment variables only for Dapr sidecar (`DAPR_HTTP_PORT`, `DAPR_GRPC_PORT`) and runtime (`ASPNETCORE_URLS`)
-- [ ] Document configuration key naming conventions (camelCase, service prefixes)
-- [ ] Test configuration updates propagate without redeployment
+**Dapr Configuration API (Cloud-Agnostic Config):**
+- Implement `reddog.config` component per environment:
+  - Local: Redis
+  - Azure: Azure App Configuration
+  - AWS/GCP: PostgreSQL
+- Migrate services to `DaprClient.GetConfiguration()`
+- Enable dynamic config updates (feature flags, settings)
+- Remove hardcoded environment variables from application config
 
-**Why Dapr Configuration API:**
-- Cloud-agnostic application code (same `GetConfiguration()` call across all platforms)
-- Dynamic configuration updates without redeployment (subscribe to changes)
-- Centralized management via cloud-native UIs (Azure Portal, AWS Console, Redis CLI)
-- Consistent with ADR-0002 (Dapr abstraction) and ADR-0004 (Configuration API standardization)
-- Read-only access for applications (security/safety)
-
-**Workload Identity Migration (HIGH PRIORITY - Security):**
-- [ ] Enable Workload Identity on AKS cluster (`--enable-oidc-issuer --enable-workload-identity`)
-- [ ] Create Managed Identity for each service (order-service, accounting-service, etc.)
-- [ ] Grant Azure Key Vault "Key Vault Secrets User" role to managed identities
-- [ ] Update `reddog.secretstore.yaml` - remove Service Principal certificate auth
-- [ ] Create Kubernetes ServiceAccounts with `azure.workload.identity/client-id` annotations
-- [ ] Update Deployments with `azure.workload.identity/use: "true"` label
-- [ ] Test secret retrieval via Dapr secret store with Workload Identity
-- [ ] Remove deprecated Service Principal certificate from K8s secrets
-
-**Why Workload Identity:**
-- Zero secrets stored in cluster (zero-trust security model)
-- Pod identity federated with Microsoft Entra ID via OIDC
-- Automatic token rotation (no manual certificate renewal)
-- Replaces deprecated Service Principal + Certificate pattern (2021)
-- Industry best practice for AKS 2025
+**Workload Identity (AKS Security):**
+- Enable Workload Identity on AKS
+- Managed identities for each service
+- Dapr secret store with Azure Key Vault via Workload Identity
+- Remove deprecated Service Principal certificates
+- Zero secrets stored in cluster (zero-trust model)
 
 **Deliverables:**
-- Modern Dapr components (1.16)
-- Modern KEDA scaled objects (2.17)
-- Tested autoscaling demos
-- Updated component manifests
-- Dapr Configuration API components for all environments (Local, Azure, AWS, GCP)
-- Services migrated to use Dapr Configuration API (OrderService, AccountingService)
-- Workload Identity configured for all services
-- Dapr secret store using Azure Key Vault with Workload Identity (no hardcoded credentials)
-- Documentation: Research/dapr-secret-store-vs-azure-key-vault-aks-comparison.md
-- Documentation: ADR-0004 (Dapr Configuration API standardization)
+- Modern Dapr 1.16 + KEDA 2.17 components
+- Cloud-agnostic configuration via Dapr API
+- Production-grade secret management (Workload Identity)
+- Reference documentation and ADRs
 
-**Duration:** 1.5 weeks (3 days Dapr/KEDA, 2 days Configuration API migration, 4 days Workload Identity migration)
+**Duration:** 1.5 weeks
 
 ---
 
-### Phase 8b: OpenTelemetry Integration (Enhanced Observability)
-**Goal:** Add distributed tracing and observability with OpenTelemetry
+### Phase 5b: OpenTelemetry Integration (Optional)
+**Goal:** Enhanced observability with distributed tracing
 
-**Why:** Dapr 1.16 has built-in OpenTelemetry support, making this easy to implement and highly valuable for teaching distributed systems observability.
-
-- [ ] Deploy OpenTelemetry Collector to cluster
-- [ ] Enable Dapr OpenTelemetry configuration
-- [ ] Deploy Jaeger or Tempo for trace visualization
-- [ ] Configure trace sampling rates
-- [ ] Add Grafana dashboards for metrics
-- [ ] Document how to view traces across services
-
-**Deliverables:**
+**Key Components:**
 - OpenTelemetry Collector deployment
-- Jaeger/Tempo for distributed tracing
-- Grafana dashboards showing:
-  - Service-to-service calls
-  - Pub/sub message flow
-  - State operations
-  - Performance metrics
-- Documentation on using observability tools
+- Jaeger/Tempo for trace visualization
+- Grafana dashboards (service calls, pub/sub flow, metrics)
+- Dapr 1.16 native OTEL support
 
 **Teaching Value:**
-- Shows distributed tracing in microservices
-- Demonstrates Dapr telemetry integration
 - Industry-standard observability stack
-- Easy to correlate requests across services
+- Distributed tracing across polyglot services
+- Demonstrates Dapr telemetry integration
 
 **Duration:** 2-3 days
 
-**Note:** This is highly recommended for teaching observability patterns
+**Note:** Highly recommended for teaching observability patterns
 
 ---
 
 ## Priority Matrix
 
 ### Critical Path (Must Have):
-1. **Phase 0** - Foundation cleanup
-2. **Phase 1** - .NET modernization (keeps existing services working)
-3. **Phase 6** - Deployment automation (teaching goal)
+1. **Phase 0** - Foundation cleanup ✅ COMPLETED
+2. **Phase 1A** - .NET 10 upgrade (all 8 projects) - **REMOVES EOL RISK**
+3. **Phase 3** - Deployment automation (teaching goal)
 
 ### High Priority (Should Have):
-4. **Phase 3** - Go services (polyglot demo)
-5. **Phase 4** - Python services (polyglot demo)
-6. **Phase 5** - Node.js service (polyglot demo)
+4. **Phase 1B** - Language migrations (polyglot architecture)
+   - Go services (MakeLineService, VirtualWorker)
+   - Python services (ReceiptGenerationService, VirtualCustomers)
+   - Node.js service (LoyaltyService)
+5. **Phase 2** - Vue 3 UI modernization
 
 ### Medium Priority (Nice to Have):
-7. **Phase 2** - Vue 3 (UI modernization)
-8. **Phase 7** - CI/CD with GHCR (development workflow)
-9. **Phase 8** - Dapr/KEDA updates (infrastructure)
+6. **Phase 4** - CI/CD with GHCR (automated builds)
+7. **Phase 5** - Infrastructure modernization (Dapr 1.16, KEDA 2.17, Workload Identity)
 
 ### Enhanced Features (Recommended):
-10. **Phase 7b** - Helm Charts (production deployment patterns)
-11. **Phase 8b** - OpenTelemetry (observability & tracing)
+8. **Phase 4b** - Helm Charts (production deployment patterns)
+9. **Phase 5b** - OpenTelemetry (observability & tracing)
 
 ---
 
 ## Success Criteria
 
 ### Technical:
-- ✅ All services run on latest LTS versions
-- ✅ 5 programming languages represented
-- ✅ One-command deployment to AKS and Container Apps
+- ✅ All .NET services upgraded to .NET 10 LTS (Phase 1A) - **Production-safe baseline**
+- ✅ Dapr 1.16 compatibility validated in .NET 10 before language migrations
+- ✅ 5 programming languages represented (.NET, Go, Python, Node.js, Vue.js)
+- ✅ Language migrations from modern .NET 10 baseline (not EOL .NET 6)
+- ✅ One-command deployment to AKS and Container Apps (<10 min)
 - ✅ KEDA autoscaling demonstrated
 - ✅ All Dapr patterns showcased (pub/sub, state, bindings, service invocation)
 - ✅ Container images published to GHCR (free for public repos)
@@ -466,22 +391,47 @@ Transform Red Dog from a .NET-centric demo (2021) into a modern, polyglot micros
 - ✅ Students can deploy in <10 minutes
 - ✅ Easy to demonstrate polyglot architecture
 - ✅ Clear service boundaries and responsibilities
-- ✅ Modern, production-like patterns
+- ✅ Modern, production-like patterns (2025 best practices)
+- ✅ Side-by-side comparison: .NET 10 vs Go/Python/Node.js (git history)
 - ✅ Extensible for adding new patterns (circuit breakers, observability, etc.)
 - ✅ Both simple (bash) and production (Helm) deployment options
+
+### Migration Strategy:
+- ✅ **Two-phase approach de-risks modernization:**
+  - Phase 1A: Framework upgrade (all .NET 6 → .NET 10)
+  - Phase 1B: Language migration (5 services .NET 10 → Go/Python/Node.js)
+- ✅ **Validates Dapr 1.16 once in .NET, reuses for all language migrations**
+- ✅ **Production runs .NET 10 (supported) while migrations proceed at own pace**
 
 ---
 
 ## Risk Mitigation
 
 ### Risk: Language migrations introduce bugs
-**Mitigation:** Keep original .NET services in git history, test thoroughly
+**Mitigation:**
+- Upgrade to .NET 10 first (Phase 1A) - creates known-good baseline
+- Migrate from .NET 10 baseline (Phase 1B) - not outdated .NET 6
+- Keep .NET 10 versions in git history for comparison
+- Test Dapr 1.16 compatibility once in .NET, reuse for all languages
+
+### Risk: Mixing framework upgrade + language migration introduces too many variables
+**Mitigation:**
+- **Two-phase strategy separates concerns:**
+  - Phase 1A: Framework upgrade only (.NET 6 → .NET 10)
+  - Phase 1B: Language migration only (.NET 10 → Go/Python/Node.js)
+- If issues arise in Phase 1B, we know it's language-specific (not framework)
+
+### Risk: Production runs EOL .NET 6 during lengthy migrations
+**Mitigation:**
+- Phase 1A deploys .NET 10 to production immediately
+- All services on supported framework before starting language migrations
+- Phase 1B can proceed at own pace (production already safe)
 
 ### Risk: Deployment scripts fail on different environments
 **Mitigation:** Test on clean subscriptions/accounts, document prerequisites
 
 ### Risk: Too much scope, takes too long
-**Mitigation:** Follow phased approach, prioritize critical path first
+**Mitigation:** Follow phased approach, prioritize critical path first (Phase 1A → Phase 3 → Phase 1B)
 
 ---
 
