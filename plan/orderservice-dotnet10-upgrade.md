@@ -14,159 +14,11 @@ tags: [upgrade, dotnet10, lts, modernization, orderservice, dapr, framework-upgr
 
 ## Introduction
 
-This implementation plan details the upgrade of the **OrderService** from .NET 6 (EOL November 12, 2024) to **.NET 10 LTS** (released November 11, 2025). The OrderService is one of two core .NET services being retained in the modernized Red Dog architecture (the other being AccountingService). This upgrade is part of the broader modernization initiative documented in `MODERNIZATION_PLAN.md`.
+This implementation plan details the upgrade of **OrderService** from .NET 6 to **.NET 10 LTS**.
 
-**Why .NET 10 LTS (Not .NET 9 STS):**
-- **.NET 6:** Already EOL (November 12, 2024) - **security risk**
-- **.NET 9 STS:** Ends November 10, 2026 - only 11 months of remaining support
-- **.NET 10 LTS:** Ends November 11, 2028 - **3 years of support**
-- **Strategic Decision:** Target LTS for long-term stability and future-proofing
+**Scope:** OrderService is one of two .NET services being retained in the modernized Red Dog architecture (see `MODERNIZATION_PLAN.md`).
 
-**Key Objectives:**
-- Upgrade target framework from `net6.0` to `net10.0`
-- Update all NuGet packages to .NET 10 compatible versions
-- Migrate from traditional Startup/Program pattern to minimal hosting model
-- Ensure full compatibility with Dapr sidecar architecture
-- Leverage .NET 10 performance improvements and C# 14 features
-- Maintain API backward compatibility for existing consumers
-- Migrate from Swashbuckle to Microsoft.AspNetCore.OpenAPI (recommended path)
-
-**Expected Outcomes:**
-- Modern, maintainable codebase using latest .NET LTS patterns
-- Improved performance from .NET 10 runtime optimizations (stack allocation, JIT enhancements, 8-20% GC improvements)
-- Enhanced security with updated dependencies
-- Better developer experience with minimal hosting model and C# 14
-- 3-year support window without another major upgrade
-- Foundation for future .NET LTS upgrades (aligned with .NET release cadence)
-
----
-
-## .NET 10 Key Features & Improvements
-
-This section highlights the key features and improvements in .NET 10 that make this upgrade valuable.
-
-### Runtime Performance Enhancements
-
-1. **Stack Allocation for Arrays**
-   - Small arrays of value types can be stack-allocated (reduces GC pressure)
-   - Small arrays of reference types can be stack-allocated
-   - Escape analysis for delegates and local struct fields
-   - **Impact:** Significant reduction in heap allocations for hot paths
-
-2. **JIT Compiler Improvements**
-   - Enhanced code generation for struct arguments (physical promotion)
-   - Improved loop inversion using graph-based loop recognition
-   - Array interface method devirtualization
-   - Better code layout optimization (3-opt TSP heuristic)
-   - Improved inlining with profile data
-   - **Impact:** 5-15% performance improvement in compute-intensive workloads
-
-3. **Garbage Collection**
-   - Arm64 write-barrier improvements: 8-20% GC pause improvements
-   - Dynamic adaptation to application size (default for Server GC)
-   - **Impact:** Lower latency for REST API responses
-
-4. **SIMD & Vectorization**
-   - AVX10.2 support for x64 processors (when hardware available)
-   - Enhanced Arm64 vectorization
-   - **Impact:** Faster data processing for order calculations
-
-### C# 14 Language Features
-
-1. **Field-Backed Properties**
-   - New `field` keyword for semi-auto properties
-   - Simplifies property implementation with custom logic
-   ```csharp
-   public string Name
-   {
-       get => field;
-       set => field = value?.Trim();
-   }
-   ```
-
-2. **Extension Blocks**
-   - Static extension methods and properties
-   - Better organization of extension functionality
-   ```csharp
-   extension StringExtensions for string
-   {
-       public static bool IsNullOrEmpty => string.IsNullOrEmpty(this);
-   }
-   ```
-
-3. **Null-Conditional Assignment**
-   - `?.=` operator for conditional assignment
-   ```csharp
-   order?.Total?.= CalculateTotal(); // Only assigns if order and Total are not null
-   ```
-
-4. **Enhanced Lambdas**
-   - Parameter modifiers without type specification
-   - Partial instance constructors and events
-
-5. **`nameof` Enhancements**
-   - Support for unbound generic types
-   - More flexible compile-time reflection
-
-### ASP.NET Core 10 Features
-
-1. **Native OpenAPI Support**
-   - `Microsoft.AspNetCore.OpenApi` built-in (replaces Swashbuckle)
-   - `IOpenApiDocumentProvider` in DI container
-   - Better performance and integration
-   - **Impact:** OrderService will migrate from Swashbuckle to native OpenAPI
-
-2. **Minimal APIs Enhancements**
-   - Record type validation support
-   - Integration with `IProblemDetailsService`
-   - Server-Sent Events (SSE) support natively
-   - **Impact:** Better developer experience for API endpoints
-
-3. **JsonPatch Performance**
-   - New `System.Text.Json` implementation
-   - 171x faster than Newtonsoft.Json
-   - 88% less memory allocation
-   - **Impact:** Potential for future PATCH endpoint optimizations
-
-### Library & Framework Improvements
-
-1. **JSON Serialization**
-   - Duplicate property disallowing (security)
-   - Strict settings for production
-   - `PipeReader` support for streaming
-   - **Impact:** Better OrderSummary serialization performance
-
-2. **Post-Quantum Cryptography**
-   - ML-DSA, HashML-DSA support
-   - Composite ML-DSA algorithms
-   - **Impact:** Future-proofing for quantum computing threats
-
-3. **Networking**
-   - `WebSocketStream` for better WebSocket handling
-   - TLS 1.3 support on macOS
-   - **Impact:** Better Dapr sidecar communication
-
-4. **Diagnostics & Observability**
-   - Enhanced tracing and metrics
-   - Better OpenTelemetry integration
-   - **Impact:** Improved monitoring with Prometheus/Grafana/Jaeger
-
-### Why These Features Matter for OrderService
-
-| Feature | OrderService Benefit |
-|---------|---------------------|
-| Stack allocation | Reduced GC pressure when processing order batches |
-| JIT improvements | Faster order total calculations |
-| GC enhancements | Lower P95/P99 latency for `/order` endpoint |
-| Native OpenAPI | Simpler dependency management, better performance |
-| C# 14 features | Cleaner, more maintainable controller/model code |
-| JSON improvements | Faster OrderSummary serialization for pub/sub |
-| Diagnostics | Better troubleshooting with enhanced telemetry |
-
-**Performance Expectations:**
-- **5-15%** faster API response times (JIT + GC improvements)
-- **10-20%** reduced memory allocation (stack allocation + JSON optimizations)
-- **8-20%** lower GC pause times (Arm64 write-barrier improvements)
+**Strategic Rationale:** See `docs/adr/adr-0001-dotnet10-lts-adoption.md` for complete context on why .NET 10 LTS was selected over .NET 8/9 alternatives.
 
 ---
 
@@ -178,33 +30,23 @@ This section highlights the key features and improvements in .NET 10 that make t
 - **REQ-002**: Dapr pub/sub integration must continue to publish `OrderSummary` to `orders` topic
 - **REQ-003**: DaprClient integration must work with both .NET 10 and Dapr 1.16+ runtime
 - **REQ-004**: Service must support deployment to Kubernetes (AKS, EKS, GKE) and Azure Container Apps
-  - **What this means:**
-    - Service must be containerized (Docker) with Ubuntu 24.04-based images (default .NET 10 base image)
-    - **Application configuration must use Dapr Configuration API** (no hardcoded values, no direct cloud SDK calls). See ADR-0004.
-    - Environment variables only for Dapr sidecar settings (`DAPR_HTTP_PORT`, `DAPR_GRPC_PORT`) and ASP.NET runtime (`ASPNETCORE_URLS`)
-    - No dependencies on cloud provider-specific features in application code (Dapr components handle platform differences)
-    - Health check endpoints (`/healthz`, `/livez`, `/readyz`) for Kubernetes probes
-    - Dapr sidecars work across all platforms (Dapr is platform-agnostic)
-    - Secrets retrieved via Dapr secret store (backend can be Azure Key Vault, AWS Secrets Manager, or Kubernetes Secrets depending on deployment target)
-    - Configuration retrieved via Dapr Configuration API (backend can be Azure App Configuration, Redis, or PostgreSQL depending on deployment target)
-  - **Why this matters:**
-    - Red Dog is a teaching demo - instructors deploy to different clouds (Azure, AWS, GCP)
-    - Azure Container Apps uses managed Dapr, Kubernetes uses Dapr extension or self-hosted
-    - Code must remain infrastructure-agnostic (Dapr handles platform differences via component configuration)
-  - **Note:** As of October 30, 2025, Microsoft changed default .NET images from Debian to Ubuntu 24.04 "Noble Numbat". Ubuntu's longer support periods align better with .NET release cycles.
+  - See ADR-0002 (cloud-agnostic via Dapr), ADR-0003 (Ubuntu 24.04 base images), ADR-0004 (Dapr Configuration API), ADR-0005 (health probes), ADR-0006 (environment variables)
 - **REQ-005**: CORS policy must remain functional for UI integration
-- **REQ-006**: Swagger/OpenAPI documentation must be preserved
+- **REQ-006**: OpenAPI documentation with Scalar UI must be available at `/scalar` endpoint (see `docs/standards/web-api-standards.md` Section 1)
 
 ### Technical Requirements
 
-- **TEC-001**: Target .NET 10.0 framework (latest LTS)
+- **TEC-001**: Use .NET 10.0 framework (latest LTS)
 - **TEC-002**: Use Dapr.AspNetCore SDK 1.16.0 or later (.NET 10 compatible)
-- **TEC-003**: Use Serilog.AspNetCore 10.0.0 or later (matches .NET version)
-- **TEC-004**: **Migrate to Microsoft.AspNetCore.OpenApi** (recommended)
-- **TEC-005**: Adopt minimal hosting model (WebApplication builder pattern)
-- **TEC-006**: Enable nullable reference types (NRT) for improved code safety
+- **TEC-003**: Use OpenTelemetry packages for native OTLP logging:
+  - OpenTelemetry.Extensions.Hosting (1.9.0+)
+  - OpenTelemetry.Exporter.OpenTelemetryProtocol (1.9.0+)
+  - OpenTelemetry.Instrumentation.AspNetCore (1.9.0+)
+- **TEC-004**: Use Microsoft.AspNetCore.OpenApi + Scalar.AspNetCore for API documentation (per ADR-0001 and web-api-standards.md)
+- **TEC-005**: Adopt minimal hosting model (single Program.cs file with `WebApplication.CreateBuilder()` - eliminates legacy Startup.cs pattern)
+- **TEC-006**: Enable nullable reference types (NRT) in .csproj (`<Nullable>enable</Nullable>`) for compile-time null safety
 - **TEC-007**: Use modern C# 14 features where applicable (field-backed properties, extension blocks, null-conditional assignment)
-- **TEC-008**: Maintain Serilog structured logging with UTC timestamps
+- **TEC-008**: Use Microsoft.Extensions.Logging (ILogger) with native OpenTelemetry OTLP exporter for structured logging (automatic trace context correlation, JSON format, UTC timestamps - see `docs/standards/web-api-standards.md` Section 10)
 
 ### Security Requirements
 
@@ -560,94 +402,7 @@ ENTRYPOINT ["dotnet", "RedDog.OrderService.dll"]
 
 ## 3. Alternatives
 
-### ALT-001: Keep .NET 6 and Only Update Dependencies
-**Description:** Upgrade NuGet packages to latest .NET 6 compatible versions without framework upgrade.
-
-**Pros:**
-- Minimal risk
-- No code changes required
-- Faster implementation
-
-**Cons:**
-- .NET 6 reached EOL November 12, 2024 (no security patches)
-- Missing .NET 10 performance improvements (JIT, GC, stack allocation)
-- Technical debt continues to accumulate
-- Not aligned with modernization goals
-
-**Decision:** ❌ Rejected - Does not address EOL risk or modernization objectives
-
----
-
-### ALT-002: Upgrade to .NET 9 STS Instead of .NET 10 LTS
-**Description:** Target .NET 9 (STS) instead of waiting for .NET 10 (LTS).
-
-**Pros:**
-- .NET 9 ecosystem more mature (released Nov 2024)
-- Faster timeline to get off EOL .NET 6
-- Package compatibility better established
-
-**Cons:**
-- .NET 9 ends support Nov 2026 (only 11 months away)
-- Would require another upgrade to .NET 10 or .NET 11 soon
-- Double migration effort and risk
-- STS not recommended for long-term production systems
-
-**Decision:** ❌ Rejected - Not strategically sound; better to wait for LTS
-
----
-
-### ALT-003: Skip Minimal Hosting Model Migration
-**Description:** Upgrade to .NET 10 but keep traditional Startup.cs/Program.cs pattern.
-
-**Pros:**
-- Less code churn
-- Familiar pattern for existing developers
-- Fully supported in .NET 10
-
-**Cons:**
-- Not aligned with modern .NET practices
-- More boilerplate code
-- Harder to read for new developers
-- Future LTS upgrades will require migration eventually
-
-**Decision:** ✅ Considered but not recommended - Minimal hosting model is the future
-
----
-
-### ALT-004: Migrate to .NET Aspire Instead of Standalone Dapr
-**Description:** Use .NET Aspire orchestration for local development with Dapr integration.
-
-**Pros:**
-- Modern .NET cloud-native development experience
-- Built-in service discovery and configuration
-- Better local development story
-
-**Cons:**
-- Major architectural change (out of scope for this task)
-- Adds new dependency (.NET Aspire)
-- Not aligned with teaching Dapr standalone
-- Requires broader team discussion
-
-**Decision:** ❌ Rejected - Out of scope; separate initiative if desired
-
----
-
-### ALT-005: Staged Migration (.NET 6 → .NET 8 → .NET 10)
-**Description:** Migrate to .NET 8 LTS first, then upgrade to .NET 10 later.
-
-**Pros:**
-- Lower risk per step
-- .NET 8 LTS has mature ecosystem
-- Faster first migration (can start immediately)
-- .NET 8 supported until November 2026
-
-**Cons:**
-- Double migration effort and cost
-- .NET 8 EOL only 1 year away (Nov 2026)
-- Team fatigue from multiple upgrades
-- Less cost-effective overall
-
-**Decision:** ❌ Rejected - Direct .NET 6 → .NET 10 more strategic
+See `docs/adr/adr-0001-dotnet10-lts-adoption.md` section "Alternatives Considered" for analysis of .NET 8 LTS, .NET 9 STS, staying on .NET 6, and staged migration approaches.
 
 ---
 

@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 The user is using voice transcription for input. If you encounter any unusual phrasing or words that don't make sense in context, please ask for clarification rather than assuming the intended meaning.
 
-## When Are We
+## Start by Finding Out When Are We
 
 Very important: The user's timezone is {datetime(.)now().strftime("%Z")}. The current date is {datetime(.)now().strftime("%Y-%m-%d")}. 
 
@@ -51,11 +51,10 @@ To understand past development work:
 
 🚧 **This project is undergoing active modernization** (Started: 2025-11-01)
 
-**Current Phase:** Phase 0 - Foundation Cleanup
+**Current Phase:** Phase 1: .NET Modernization
 
 ### Key Documents:
 - **`plan/MODERNIZATION_PLAN.md`** - Comprehensive 8-phase modernization roadmap
-- **`plan/SAFE_CLEANUP.md`** - Step-by-step guide for removing outdated components
 - **`.claude/sessions/`** - Detailed session logs of all decisions and progress
 
 ### Architectural Decisions:
