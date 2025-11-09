@@ -206,7 +206,9 @@ All HTTP APIs that are called from the Vue.js UI **must** configure CORS (Cross-
 ### Standard
 
 - **Use application-level CORS middleware** (not cloud provider CORS features)
-- **Allowed origins** configured via **Dapr Configuration API** (see ADR-0004)
+- **Allowed origins** configured via **Dapr Configuration API** (see [ADR-0004](../adr/adr-0004-dapr-configuration-api-standardization.md))
+  - ⚠️ **Note:** ADR-0004 is NOT implemented yet. Use environment variables as temporary workaround.
+  - See [Configuration Decision Tree](../adr/README.md#configuration-decision-tree) for configuration strategy
 - **Configuration key:** `allowedOrigins` (comma-separated list)
 
 ### Implementation by Language
@@ -490,7 +492,9 @@ All HTTP APIs **must** implement health check endpoints for Kubernetes probes.
 
 ### Standard: Kubernetes Health Probes
 
-**See ADR-0005 for comprehensive guidance.**
+**See [ADR-0005: Kubernetes Health Probe Standardization](../adr/adr-0005-kubernetes-health-probe-standardization.md) for comprehensive guidance.**
+
+**Implementation Status:** 🔵 Accepted (Not Fully Implemented) - Current services use `/health`, migration to `/healthz`, `/livez`, `/readyz` in progress.
 
 **Required Endpoints:**
 - `GET /healthz` - Startup probe (basic process health)
@@ -635,7 +639,7 @@ var response = await httpClient.GetAsync("/order/status/123");
 
 ### API Keys (External Clients)
 
-For **external API access**, use API keys stored in **Dapr secret store** (see ADR-0004).
+For **external API access**, use API keys stored in **Dapr secret store** (see [ADR-0002: Cloud-Agnostic Configuration via Dapr](../adr/adr-0002-cloud-agnostic-configuration-via-dapr.md)).
 
 **.NET Example:**
 ```csharp
@@ -679,7 +683,9 @@ builder.Services.Configure<IpRateLimitOptions>(options =>
 
 All HTTP APIs **must** implement structured logging, distributed tracing, and metrics using OpenTelemetry.
 
-**See ADR-0011 for complete implementation guidance:** `docs/adr/adr-0011-opentelemetry-observability-standard.md`
+**See [ADR-0011: OpenTelemetry Observability Standard](../adr/adr-0011-opentelemetry-observability-standard.md) for complete implementation guidance.**
+
+**Implementation Status:** ⚪ Planned (Not Implemented) - Services currently use Serilog 4.1.0. Migration to OpenTelemetry blocked by .NET 10 upgrade (ADR-0001).
 
 ### Quick Reference
 
@@ -714,13 +720,62 @@ All HTTP APIs **must** implement structured logging, distributed tracing, and me
 
 ---
 
-## Related Documentation
+## Related Architectural Decisions
 
-- **ADR-0002:** Cloud-Agnostic Configuration via Dapr (secret management, state management)
-- **ADR-0004:** Dapr Configuration API Standardization (application settings, CORS origins)
-- **ADR-0005:** Kubernetes Health Probe Standardization (`/healthz`, `/livez`, `/readyz`)
-- **ADR-0006:** Infrastructure Configuration via Environment Variables (ports, Dapr settings)
-- **ADR-0011:** OpenTelemetry Observability Standard (logs, traces, metrics)
+This standard is supported by the following ADRs. For complete architectural context, see [ADR Overview](../adr/README.md).
+
+### Configuration Management
+
+- **[ADR-0002: Cloud-Agnostic Configuration via Dapr](../adr/adr-0002-cloud-agnostic-configuration-via-dapr.md)** 🟢 Implemented
+  - Secret management via Dapr Secret Store (API keys, connection strings)
+  - Enables deployment to AKS, EKS, GKE without code changes
+
+- **[ADR-0004: Dapr Configuration API Standardization](../adr/adr-0004-dapr-configuration-api-standardization.md)** ⚪ NOT IMPLEMENTED
+  - Application settings (CORS origins, feature flags, business rules)
+  - **Current workaround:** Use environment variables until ADR-0004 is implemented
+  - See [Configuration Decision Tree](../adr/README.md#configuration-decision-tree)
+
+- **[ADR-0006: Infrastructure Configuration via Environment Variables](../adr/adr-0006-infrastructure-configuration-via-environment-variables.md)** 🔵 Accepted
+  - Service ports, Dapr endpoints, runtime modes
+  - Set via Helm chart values files (ADR-0009)
+
+### Operational Standards
+
+- **[ADR-0005: Kubernetes Health Probe Standardization](../adr/adr-0005-kubernetes-health-probe-standardization.md)** 🔵 Accepted
+  - Required endpoints: `/healthz`, `/livez`, `/readyz`
+  - Kubernetes probe configurations (startupProbe, livenessProbe, readinessProbe)
+  - **Current state:** Services implement `/health` (legacy pattern needs migration)
+
+- **[ADR-0011: OpenTelemetry Observability Standard](../adr/adr-0011-opentelemetry-observability-standard.md)** ⚪ Planned
+  - Logging, distributed tracing, metrics implementation
+  - Native OTLP exporters for .NET, Go, Python, Node.js
+  - **Current state:** Services use Serilog 4.1.0 (migration blocked by ADR-0001)
+
+### Platform & Deployment
+
+- **[ADR-0001: .NET 10 LTS Adoption](../adr/adr-0001-dotnet10-lts-adoption.md)** 🔵 Accepted
+  - **Prerequisite for:** ADR-0011 (OpenTelemetry requires .NET 10 APIs)
+  - **Current blocker:** Testing strategy implementation required
+
+- **[ADR-0009: Helm Multi-Environment Deployment](../adr/adr-0009-helm-multi-environment-deployment.md)** ⚪ Planned
+  - Environment-specific configuration (values-local.yaml, values-azure.yaml, etc.)
+  - Helm templates for service deployments, Ingress resources, Dapr components
+  - **Current state:** charts/ directory doesn't exist yet
+
+### Multi-Cloud Strategy
+
+- **[ADR-0007: Cloud-Agnostic Deployment Strategy](../adr/adr-0007-cloud-agnostic-deployment-strategy.md)** 🔵 Accepted
+  - Architectural principle enabling deployment to AKS, EKS, GKE
+  - Containerized infrastructure (RabbitMQ, Redis) for portability
+
+---
+
+## Additional Resources
+
+- [ADR Overview & Navigation Hub](../adr/README.md) - Complete ADR index with implementation status
+- [Configuration Decision Tree](../adr/README.md#configuration-decision-tree) - "Where should I put this setting?"
+- [CLAUDE.md: Current Development Status](../../CLAUDE.md#current-development-status) - Actual vs target state
+- [Modernization Strategy](../../plan/modernization-strategy.md) - 8-phase roadmap
 
 ---
 
