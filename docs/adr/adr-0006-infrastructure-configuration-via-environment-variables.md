@@ -14,6 +14,38 @@ superseded_by: ""
 
 **Accepted**
 
+## Implementation Status
+
+**Current State:** 🔵 Accepted (Implemented in Practice)
+
+**What's Working:**
+- Services currently use environment variables for infrastructure configuration (ports, Dapr endpoints)
+- `ASPNETCORE_URLS` pattern used in .NET services (ASP.NET convention)
+- `DAPR_HTTP_PORT`, `DAPR_GRPC_PORT` environment variables used for Dapr sidecar communication
+- Environment-driven configuration enables same Docker image across dev/staging/production
+
+**What's Not Working:**
+- Mixing of infrastructure AND application settings in environment variables (anti-pattern per ADR-0004)
+- No formal validation of required environment variables at startup (fails late, not fast)
+- Documentation scattered (no centralized environment variable reference per service)
+
+**Evidence:**
+- Service code uses Environment.GetEnvironmentVariable() for Dapr ports and service ports
+- Kubernetes manifests in manifests/branch/ show env: blocks with infrastructure settings
+- No distinction enforced between infrastructure config (this ADR) vs application config (ADR-0004)
+
+**Dependencies:**
+- **Complements:** ADR-0004 (Dapr Config API for application settings)
+- **Supports:** ADR-0009 (Helm charts set environment variables from values files)
+- **Depends On:** ADR-0002 (Dapr abstraction requires Dapr port configuration)
+
+**Next Steps:**
+1. Audit all environment variable usage: classify as infrastructure vs application config
+2. Migrate application settings from environment variables to Dapr Configuration API (ADR-0004)
+3. Implement startup validation for required infrastructure environment variables
+4. Document required environment variables per service in Helm chart README
+5. Enforce clear boundary: env vars for "how to run", Dapr Config API for "what to do"
+
 ## Context
 
 Red Dog's polyglot microservices architecture (8 services across 5 languages: .NET, Go, Python, Node.js, Vue.js) requires a clear strategy for managing two distinct types of configuration:

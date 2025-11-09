@@ -6,7 +6,6 @@ Transform Red Dog from a .NET-centric demo (2021) into a modern, polyglot micros
 
 **Key Goals:**
 - Polyglot architecture (5 languages: .NET, Go, Python, Node.js, Vue.js)
-- One-command deployment to cloud platforms (AKS, Container Apps, EKS, GKE)
 - Modern dependencies (latest LTS versions)
 - Cloud-agnostic architecture with production-parity local development (kind + Kubernetes)
 
@@ -38,9 +37,7 @@ Transform Red Dog from a .NET-centric demo (2021) into a modern, polyglot micros
 
 ### Infrastructure:
 - GitHub workflows (deprecated syntax, hardcoded MS config)
-- 3 manifest directories (branch, corporate, local)
-- VS Code heavy configuration
-- Devcontainer setup
+- Single manifest directory (`manifests/branch/` only - local and corporate removed in Phase 0)
 
 ---
 
@@ -82,73 +79,92 @@ Transform Red Dog from a .NET-centric demo (2021) into a modern, polyglot micros
 ### Retained Services:
 - ✅ Bootstrapper (console database initializer) stays in .NET 10 until a replacement init flow is implemented.
 
-**Secret Management Decision:** All services (including init containers for database setup) will use **Dapr secret store** with Azure Key Vault backend. CSI Secrets Store driver will NOT be used to maintain consistency and avoid dual secret management solutions.
-
 ### Infrastructure:
 - Modern GitHub Actions workflows (GitHub Container Registry - GHCR)
 - Single manifest directory (branch only)
 - Deployment automation scripts (Bash + Helm charts)
 - OpenTelemetry for observability
-- Minimal VS Code config (optional)
 
 ---
 
-## What to Remove
+## Historical Reference: Cleanup Completed (Phase 0 - 2025-11-02)
 
-### Directories:
-- [x] `.vscode/` - ✅ Removed (Phase 3)
-- [x] `.devcontainer/` - ✅ Removed (Phase 1)
-- [x] `manifests/local/` - ✅ Removed (Phase 1)
-- [x] `manifests/corporate/` - ✅ Removed (Phase 1)
-- [x] `RedDog.CorporateTransferService/` - ✅ Removed (Phase 2A)
-- [ ] `RedDog.Bootstrapper/` - ⚠️ Retained intentionally (console initializer stays on .NET 10)
+The following items were removed during Phase 0 cleanup:
 
-### Files:
-- [ ] `.github/workflows/*` - ⚠️ SKIPPED (9 files remain - need fixing, not deletion)
-- [x] Flux-related configs (`.flux.yaml` files) - ✅ Removed (Phase 5)
-- [ ] `docs/` directory - ⚠️ Retained (hosts active research such as the .NET upgrade analysis)
+**Directories Removed:**
+- ✅ `.vscode/` - Removed (broken configs referencing removed services)
+- ✅ `.devcontainer/` - Removed (Phase 0)
+- ✅ `manifests/local/` - Removed (Phase 0)
+- ✅ `manifests/corporate/` - Removed (Phase 0)
+- ✅ `RedDog.CorporateTransferService/` - Removed (Arc scenarios not needed)
 
-### Kept:
-- ✅ `rest-samples/` (useful for content creation)
-- ✅ GitHub workflows for active services (need modernization later)
-- ✅ `docs/` research content (upgrade analysis, CI/CD plan, etc.)
+**Files Removed:**
+- ✅ Flux v1 configs (`.flux.yaml` files) - Deprecated technology removed
+
+**Intentionally Retained:**
+- ✅ `RedDog.Bootstrapper/` - Console database initializer stays in .NET 10
+- ✅ `rest-samples/` - Useful for API testing and content creation
+- ✅ GitHub workflows - Need modernization, not deletion
+- ✅ `docs/` directory - Hosts active ADRs and research documents
+
+**Cleanup Summary:**
+- 58 files removed
+- 4,760 lines deleted
+- 2 unused services eliminated
+- Session documented: `.claude/sessions/2025-11-02-0730-safe-cleanup.md`
 
 ---
 
 ## Phased Modernization Approach
 
-### Phase 0: Foundation ✅ COMPLETED (2025-11-02)
-**Goal:** Clean up, remove bloat, establish baseline
+### ✅ HISTORICAL: Phase 0 Cleanup (Completed 2025-11-02)
 
-**Completed:**
-- [x] Remove unnecessary directories/services - ✅ Done (Phases 1, 2A, 2B, 3)
-  - Removed: .devcontainer/, manifests/local/, manifests/corporate/
-  - Retained: `docs/` (hosts current research deliverables)
-  - Removed: RedDog.CorporateTransferService/
-  - Removed: .vscode/ (broken configs referencing removed services)
-- [x] Simplify manifest structure (keep only branch/) - ✅ Done (Phase 1)
-- [x] Remove Flux v1 configs - ✅ Done (Phase 5)
+**This phase is complete.** The following cleanup was performed to establish a clean baseline:
 
-**Follow-Up (Post-Phase 0):**
-- [x] Local development strategy - ✅ COMPLETED (2025-11-09) - kind + Helm + Nginx (ADR-0008, ADR-0009, ADR-0010)
-- [x] Update CLAUDE.md with new ADRs - ✅ COMPLETED (2025-11-09) - Added ADR-0008, ADR-0009, ADR-0010
+**What Was Removed:**
+- Removed `.devcontainer/`, `manifests/local/`, `manifests/corporate/`, `.vscode/`
+- Removed `RedDog.CorporateTransferService/` (Arc scenarios not needed)
+- Removed Flux v1 configuration files
 
-**Skipped:**
-- [ ] Remove old GitHub workflows - ⚠️ SKIPPED (workflows need fixing, not deletion)
-- [ ] Document polyglot migration decisions - Deferred to implementation phases
+**What Was Retained:**
+- `manifests/branch/` - Single manifest directory for Kubernetes deployments
+- `docs/` - Hosts ADRs and research documents
+- GitHub workflows - Need modernization, not deletion
+- `RedDog.Bootstrapper/` - Database initializer
 
 **Results:**
-- 58 files removed (including cleanup guide)
-- 4,760 lines deleted
+- 58 files removed, 4,760 lines deleted
 - 2 unused services eliminated
-- 5 cleanup commits + 1 guide removal
-- Session documented: `.claude/sessions/2025-11-02-0730-safe-cleanup.md`
+- Session: `.claude/sessions/2025-11-02-0730-safe-cleanup.md`
 
-**Actual Duration:** 1 day (2025-11-02)
+**Follow-Up Documentation (2025-11-09):**
+- Created ADR-0008 (kind local development)
+- Created ADR-0009 (Helm multi-environment deployment)
+- Created ADR-0010 (Nginx Ingress Controller)
+- Updated CLAUDE.md with documentation structure
+
+---
+
+## Active Modernization Phases
+
+The phases below represent the **planned modernization work**:
+
+**Phase Roadmap:**
+1. **Infrastructure Prerequisites** - Upgrade Dapr, KEDA, infrastructure (3-4 weeks)
+2. **Phase 1A** - .NET 10 upgrade for all services (1-2 weeks) ← **NEXT PHASE**
+3. **Phase 1B** - Polyglot migration (Go, Python, Node.js) (2-3 weeks)
+4. **Phase 2** - Vue.js 3 upgrade (2-3 days)
+5. **Phase 3** - Deployment automation (varies)
+6. **Phase 4** - CI/CD modernization (varies)
+7. **Phase 5** - Infrastructure and observability enhancements (varies)
+
+**Current Blocker:** Phase 1A requires testing strategy implementation (see `plan/testing-validation-strategy.md`)
 
 ---
 
 ### Phase Dependency Matrix (Global Prerequisites)
+
+The following prerequisites must be completed before starting Phase 1A:
 
 1. **Tooling Readiness**
    - Install and verify Upgrade Assistant, API Analyzer, `dotnet workload update`, `dotnet list` scripts, and Dapr CLI per *Tool Installation Requirements* in `plan/testing-validation-strategy.md`.
@@ -158,28 +174,29 @@ Transform Red Dog from a .NET-centric demo (2021) into a modern, polyglot micros
 3. **CI/CD Modernization**
    - Execute `plan/cicd-modernization-strategy.md` together with `plan/upgrade-github-workflows-implementation-1.md` so every `.github/workflows/*.yaml` file runs the tooling-audit, build/test, and publish jobs with .NET 10 SDKs/Node 24.
 
-Only after all three prerequisites are marked complete may **Phase 0** begin. Phase 0 is a **mandatory prerequisite** for Phase 1A. Each subsequent phase references its implementation guides below.
-
 ---
 
-## Phase 0: Platform Foundation (PREREQUISITE FOR ALL PHASES)
+## Infrastructure Prerequisites (Platform Foundation)
 
-**Status:** Planned
+**Note:** This infrastructure upgrade is **optional** and can be performed later. Phase 1A (.NET 10 upgrade) can proceed with current Dapr 1.5.0 infrastructure.
+
+**Status:** Planned (Optional - can be deferred)
 **Duration:** 3-4 weeks
-**Objective:** Upgrade infrastructure platform to support .NET 10 and polyglot services
+**Objective:** Upgrade infrastructure platform to support modern Dapr features and polyglot services
 
-### Why Phase 0 is Required
+### Why Infrastructure Upgrade is Beneficial
 
-- **Dapr 1.3.0 is incompatible** with modern .NET features and 3+ years outdated
-- **All services run Dapr sidecars** - upgrading Dapr is a blocking dependency for Phase 1A
-- **KEDA 2.2.0 predates Kubernetes 1.30** API changes
-- **State stores must migrate from Redis** - Dapr 1.16 does NOT support Redis 7/8 (only 6.x)
-- **Object storage must adopt cloud-agnostic strategy** per ADR-0007
+- **Dapr 1.5.0 is 3+ years outdated** - Missing modern features and security patches
+- **KEDA 2.2.0 predates Kubernetes 1.30** - May have compatibility issues
+- **State stores need cloud-native migration** - Dapr 1.16 does NOT support Redis 7/8 (only 6.x)
+- **Object storage should use cloud-agnostic strategy** per ADR-0007
+
+However, **Phase 1A (.NET 10 upgrade) can proceed with current infrastructure** (Dapr 1.5.0). This infrastructure upgrade can be performed later.
 
 ### Scope
 
 **Platform Infrastructure:**
-- Dapr 1.3.0 → 1.16.2 (runtime platform for all services)
+- Dapr 1.5.0 → 1.16.2 (runtime platform for all services)
 - KEDA 2.2.0 → 2.18.1 (autoscaling framework)
 - cert-manager 1.3.1 → 1.19 (TLS certificate management)
 
@@ -224,8 +241,8 @@ Only after all three prerequisites are marked complete may **Phase 0** begin. Ph
 
 ### Implementation Plans
 
-1. [Phase 0: Platform Foundation (Master Plan)](./upgrade-phase0-platform-foundation-implementation-1.md)
-2. [Dapr 1.3.0 → 1.16.2 Upgrade](./upgrade-dapr-1.16-implementation-1.md)
+1. [Infrastructure Prerequisites (Master Plan)](./upgrade-phase0-platform-foundation-implementation-1.md)
+2. [Dapr 1.5.0 → 1.16.2 Upgrade](./upgrade-dapr-1.16-implementation-1.md)
 3. [KEDA 2.2.0 → 2.18.1 Upgrade](./upgrade-keda-2.18-implementation-1.md)
 4. [cert-manager 1.3.1 → 1.19 Upgrade](./upgrade-certmanager-1.19-implementation-1.md)
 5. [Infrastructure Containers Upgrade](./upgrade-infrastructure-containers-implementation-1.md)

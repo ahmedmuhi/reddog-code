@@ -14,6 +14,38 @@ superseded_by: ""
 
 **Accepted**
 
+## Implementation Status
+
+**Current State:** ⚪ Planned (NOT Implemented)
+
+**What's Working:**
+- Decision documented and approved
+- Clear distinction established between infrastructure config (env vars per ADR-0006) and application config (Dapr Config API)
+
+**What's Not Working:**
+- **ZERO** GetConfiguration() calls exist in codebase (grep confirms no implementation)
+- No Dapr configuration component YAML files created
+- Services currently use environment variables or hardcoded values for application settings
+- No dynamic configuration update capability exists
+
+**Evidence:**
+- Code search for "GetConfiguration" returns zero results across all services
+- No configuration.yaml or configuration.redis component files in manifests/
+- Services use Environment.GetEnvironmentVariable() for both infrastructure AND application settings (anti-pattern per this ADR)
+
+**Dependencies:**
+- **Depends On:** ADR-0002 (Dapr abstraction layer - implemented, foundation exists)
+- **Depends On:** ADR-0006 (Environment variables for infrastructure - provides contrast/boundary)
+- **Blocked By:** Dapr 1.16 upgrade needed for enhanced Configuration API support
+- **Blocks:** Dynamic feature flagging, runtime configuration updates
+
+**Next Steps:**
+1. Create Dapr configuration component YAML (configuration.redis for local, configuration.azureappconfig for Azure)
+2. Migrate select application settings from environment variables to Dapr Config API (storeId, feature flags)
+3. Implement GetConfiguration() calls in OrderService, MakeLineService, LoyaltyService
+4. Add SubscribeConfiguration() for runtime updates in critical services
+5. Document configuration key naming conventions
+
 ## Context
 
 Red Dog's polyglot microservices architecture (8 services across 5 languages) requires a standardized approach to application configuration management. Services must read configuration values (store IDs, timeouts, feature flags, business rules) at runtime across multiple deployment platforms (AKS, Container Apps, EKS, GKE).

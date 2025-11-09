@@ -12,6 +12,147 @@ Very important: The user's timezone is {datetime(.)now().strftime("%Z")}. The cu
 
 Any dates before this are in the past, and any dates after this are in the future. When the user asks for the 'latest', 'most recent', 'today's', etc. don't assume your knowledge is up to date;
 
+## Current Development Status
+
+**Actual State (as of 2025-11-09):**
+- ✅ Phase 0 cleanup completed (removed .devcontainer, manifests/local, manifests/corporate, CorporateTransferService, .vscode)
+- ⚠️ All services still .NET 6.0 with Dapr 1.5.0 (Phase 1A .NET 10 upgrade not started)
+- ⚠️ No automated tests exist (prerequisite for Phase 1A)
+- ⚠️ kind/Helm local dev not implemented (ADR-0008 planned but not built)
+- ⚠️ global.json specifies .NET 10 SDK, but .csproj files target net6.0
+
+**What Works Now:**
+- Building .NET 6.0 services with .NET 10 SDK
+- Running services locally with `dapr run` and Dapr 1.5.0 CLI
+- Vue.js 2 UI development (npm run serve)
+- REST API testing via samples in `rest-samples/`
+
+**What Doesn't Work Yet:**
+- kind cluster deployment (kind-config.yaml not created)
+- Helm chart deployment (charts/ directory doesn't exist)
+- .NET 10 builds (projects not retargeted)
+- Automated testing (no test projects)
+
+## Documentation Map
+
+This repository uses structured documentation to separate concerns and provide clear navigation:
+
+### 📋 Quick Reference (You Are Here)
+- **CLAUDE.md** (this file) - Development guide, current status, common commands
+
+### 🏗️ Architectural Decisions
+- **[ADR Overview & Navigation Hub](docs/adr/README.md)** - **Start here** to navigate all architectural decisions
+  - Implementation status dashboard (🟢 Implemented, 🟡 In Progress, 🔵 Accepted, ⚪ Planned)
+  - Configuration decision tree ("Where should I put this setting?")
+  - Role-based reading guides (Developer, Operator, Decision Maker)
+  - 11 ADRs organized by category (Core Platform, Configuration, Deployment, Operational, Multi-Cloud)
+- **Individual ADRs** in `docs/adr/` - Detailed decision records with implementation status
+
+### 📐 Implementation Standards
+- **[Web API Standards](docs/standards/web-api-standards.md)** - HTTP API conventions for all services
+  - OpenAPI/Scalar documentation, CORS, error handling, health endpoints, observability
+  - Cross-references to supporting ADRs (ADR-0002, 0004, 0005, 0006, 0011)
+  - **Target state** for modernized services (current .NET 6.0 services don't yet comply)
+
+### 📝 Planning Documents
+- **[Modernization Strategy](plan/modernization-strategy.md)** - 8-phase transformation roadmap
+- **[Testing & Validation Strategy](plan/testing-validation-strategy.md)** - Testing baseline (prerequisite for Phase 1A)
+- **[Documentation Improvement Plan](plan/documentation-structure-improvement-plan.md)** - This documentation structure plan
+
+### 🔍 Navigation Tips
+
+**I need to understand a decision:** → [ADR Overview](docs/adr/README.md)
+
+**I need to implement an API:** → [Web API Standards](docs/standards/web-api-standards.md)
+
+**I need to configure something:** → [Configuration Decision Tree](docs/adr/README.md#configuration-decision-tree)
+
+**I need to know what's implemented:** → [ADR Overview: Implementation Status](docs/adr/README.md#implementation-status-legend)
+
+**I need to know what's next:** → [Modernization Strategy](plan/modernization-strategy.md)
+
+**I'm confused about configuration:** → [ADR README Section: Configuration Architecture](docs/adr/README.md#configuration-architecture-overview)
+
+---
+
+## Common Development Commands
+
+### Prerequisites
+- .NET 10 SDK (per global.json) - builds .NET 6.0 projects
+- Dapr CLI 1.5.0+ for local service execution
+- Node.js 14+ and npm for Vue.js UI
+
+### Development Container Setup (Recommended)
+
+**Quick Start:**
+1. Install Docker Desktop (Windows/macOS) or Docker CE (Linux)
+2. Install VS Code and the "Dev Containers" extension
+3. Open this project in VS Code
+4. Press `F1` → "Dev Containers: Reopen in Container"
+5. Wait for setup (first time: 3-5 minutes)
+
+**What's Included:**
+- .NET 10 SDK
+- kind (Kubernetes-in-Docker)
+- kubectl, Helm, Dapr CLI
+- All necessary VS Code extensions
+- Consistent environment across team
+
+**Why Use Dev Containers?**
+- ✅ 5-minute setup for new developers
+- ✅ 100% environment parity across team
+- ✅ No "works on my machine" issues
+- ✅ Automatic tool installation and configuration
+
+**Documentation:** See `.devcontainer/README.md` for details
+
+---
+
+### Build & Restore
+```bash
+# Restore packages
+dotnet restore RedDog.sln
+
+# Build all services
+dotnet build RedDog.sln -c Release
+
+# Build individual service
+dotnet build RedDog.OrderService/RedDog.OrderService.csproj -c Release
+```
+
+### Run Services Locally (with Dapr)
+```bash
+# OrderService
+dapr run --app-id orderservice --app-port 5100 --dapr-http-port 5180 \
+  -- dotnet run --project RedDog.OrderService
+
+# MakeLineService
+dapr run --app-id makelineservice --app-port 5200 --dapr-http-port 5280 \
+  -- dotnet run --project RedDog.MakeLineService
+
+# AccountingService
+dapr run --app-id accountingservice --app-port 5700 --dapr-http-port 5780 \
+  -- dotnet run --project RedDog.AccountingService
+
+# LoyaltyService
+dapr run --app-id loyaltyservice --app-port 5400 --dapr-http-port 5480 \
+  -- dotnet run --project RedDog.LoyaltyService
+```
+
+### Vue.js UI Development
+```bash
+cd RedDog.UI
+npm install
+npm run serve    # Dev server at http://localhost:8080
+npm run build    # Production build
+npm run lint     # ESLint
+```
+
+### API Testing
+- REST samples available in `rest-samples/` directory
+- Use VS Code REST Client extension or similar tools
+- Files: `order-service.rest`, `makeline-service.rest`, `accounting-service.rest`, `ui.rest`
+
 ## Development Sessions
 
 This project uses session tracking to maintain a history of development work. Sessions are stored in `.claude/sessions/` and provide context about past changes, decisions, and progress.
@@ -47,11 +188,13 @@ To understand past development work:
 - `/project:session-update` - Update session with progress
 - `/project:session-end` - End current session
 
-## Modernization Status
+## Modernization Strategy (Target State)
 
 🚧 **This project is undergoing active modernization** (Started: 2025-11-01)
 
-**Current Phase:** Phase 1: .NET Modernization
+**Progress:** Phase 0 cleanup completed. Phase 1A (.NET 10 upgrade) not yet started.
+
+**Note:** The sections below describe the **target state** after modernization, not the current state. See "Current Development Status" above for what's actually implemented.
 
 ### Key Documents:
 - **`plan/modernization-strategy.md`** - Comprehensive 8-phase modernization roadmap
@@ -181,21 +324,24 @@ To understand past development work:
 
 ### Local Development Setup
 
-**Local development now uses kind (Kubernetes-in-Docker) per ADR-0008.**
+⚠️ **PLANNED - NOT YET IMPLEMENTED**
 
-**Setup:**
+The following describes the **target state** per ADR-0008, but is not yet built:
+
+**Planned Setup (kind + Helm):**
 1. Create kind cluster: `kind create cluster --config kind-config.yaml`
 2. Install Dapr: `dapr init --kubernetes`
 3. Deploy infrastructure: `helm install reddog-infra ./charts/infrastructure -f values/values-local.yaml`
 4. Deploy application: `helm install reddog ./charts/reddog -f values/values-local.yaml`
 
-**Dapr Components:**
-- Components deployed via Helm charts with local values (`values-local.yaml`)
-- Redis (from dapr init) provides pub/sub and state storage locally
-- SQL Server deployed as Kubernetes StatefulSet in kind cluster
-- Same Dapr component manifests used as production (cloud-agnostic per ADR-0007)
+**Status:**
+- ❌ kind-config.yaml doesn't exist yet
+- ❌ charts/ directory doesn't exist yet
+- ❌ values/values-local.yaml doesn't exist yet
+- ✅ `manifests/local/` was removed November 2, 2025 (cleanup completed)
 
-**Note:** `manifests/local/` was removed November 2, 2025. Local development now mirrors production via kind + Kubernetes manifests.
+**Current Local Development:**
+Use `dapr run` commands (see "Common Development Commands" section above) to run services individually with Dapr sidecars.
 
 ### Database Model
 

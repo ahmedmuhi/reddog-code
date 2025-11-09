@@ -14,6 +14,37 @@ superseded_by: ""
 
 **Accepted**
 
+## Implementation Status
+
+**Current State:** 🔵 Accepted (Not Implemented)
+
+**What's Working:**
+- global.json updated to specify .NET 10 SDK (buildable with SDK installed)
+- Decision documented and approved by team
+
+**What's Not Working:**
+- All .csproj files still target `<TargetFramework>net6.0</TargetFramework>` (not net10.0)
+- No .NET 10 NuGet packages installed
+- Dockerfiles not updated to use .NET 10 runtime images
+- No test coverage to validate upgrade safety
+
+**Evidence:**
+- global.json:1 - Specifies .NET 10 SDK
+- RedDog.OrderService/RedDog.OrderService.csproj:8 - Still targets net6.0
+- RedDog.AccountingService/RedDog.AccountingService.csproj:8 - Still targets net6.0
+
+**Dependencies:**
+- **Blocks:** ADR-0003 (Ubuntu 24.04 base images depend on .NET 10 upgrade)
+- **Blocks:** ADR-0011 (OpenTelemetry implementation requires .NET 10)
+- **Blocked By:** Testing strategy implementation (plan/testing-validation-strategy.md must be completed first)
+
+**Next Steps:**
+1. Implement testing baseline per plan/testing-validation-strategy.md
+2. Execute plan/orderservice-dotnet10-upgrade.md 8-phase plan
+3. Retarget .csproj files from net6.0 to net10.0
+4. Update NuGet packages to .NET 10 compatible versions
+5. Update Dockerfiles to use mcr.microsoft.com/dotnet/aspnet:10.0
+
 ## Context
 
 Red Dog's .NET services currently run on .NET 6.0, which reached End-of-Life (EOL) on November 12, 2024. This poses significant security and support risks for production deployments. The modernization effort requires selecting a target .NET version for OrderService and AccountingService (the two .NET services being retained in the polyglot architecture).
