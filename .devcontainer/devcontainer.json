@@ -1,0 +1,106 @@
+{
+  "name": "Red Dog Polyglot Development",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".",
+    "args": {
+      "VARIANT": "10.0-noble"
+    }
+  },
+
+  // VS Code customizations
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        // .NET
+        "ms-dotnettools.csharp",
+        "ms-dotnettools.csdevkit",
+
+        // Go
+        "golang.go",
+
+        // Python
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "charliermarsh.ruff",
+
+        // Node.js / JavaScript
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+
+        // Vue.js
+        "Vue.volar",
+
+        // General
+        "ms-kubernetes-tools.vscode-kubernetes-tools",
+        "ms-azuretools.vscode-dapr",
+        "ms-vscode.makefile-tools",
+        "eamodio.gitlens"
+      ],
+      "settings": {
+        "dotnet.defaultSolution": "/workspace/RedDog.sln",
+
+        // .NET
+        "[csharp]": {
+          "editor.defaultFormatter": "ms-dotnettools.csharp",
+          "editor.formatOnSave": true
+        },
+
+        // Go
+        "[go]": {
+          "editor.defaultFormatter": "golang.go",
+          "editor.formatOnSave": true
+        },
+
+        // Python
+        "[python]": {
+          "editor.defaultFormatter": "charliermarsh.ruff",
+          "editor.formatOnSave": true
+        },
+
+        // JavaScript/Vue
+        "[javascript]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode",
+          "editor.formatOnSave": true
+        },
+        "[vue]": {
+          "editor.defaultFormatter": "Vue.volar",
+          "editor.formatOnSave": true
+        }
+      }
+    }
+  },
+
+  // Port forwarding (for kind cluster access and all services)
+  "forwardPorts": [
+    80, 443,      // Nginx Ingress HTTP/HTTPS
+    5100, 5180,   // OrderService
+    5200, 5280,   // MakeLineService
+    5300, 5380,   // ReceiptGenerationService
+    5400, 5480,   // LoyaltyService
+    5700, 5780,   // AccountingService
+    8080          // UI
+  ],
+
+  // Container setup
+  "remoteUser": "vscode",
+  "postCreateCommand": "bash .devcontainer/scripts/postCreateCommand.sh",
+
+  // Features (language runtimes)
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+      "version": "latest",
+      "enableNonRootDocker": "true"
+    },
+    "ghcr.io/devcontainers/features/go:1": {
+      "version": "1.23"
+    },
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "3.12",
+      "installTools": true
+    },
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "24"
+    }
+  }
+}

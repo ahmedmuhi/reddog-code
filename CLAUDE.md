@@ -82,6 +82,32 @@ This repository uses structured documentation to separate concerns and provide c
 - Dapr CLI 1.5.0+ for local service execution
 - Node.js 14+ and npm for Vue.js UI
 
+### Development Container Setup (Recommended)
+
+**Quick Start:**
+1. Install Docker Desktop (Windows/macOS) or Docker CE (Linux)
+2. Install VS Code and the "Dev Containers" extension
+3. Open this project in VS Code
+4. Press `F1` → "Dev Containers: Reopen in Container"
+5. Wait for setup (first time: 3-5 minutes)
+
+**What's Included:**
+- .NET 10 SDK
+- kind (Kubernetes-in-Docker)
+- kubectl, Helm, Dapr CLI
+- All necessary VS Code extensions
+- Consistent environment across team
+
+**Why Use Dev Containers?**
+- ✅ 5-minute setup for new developers
+- ✅ 100% environment parity across team
+- ✅ No "works on my machine" issues
+- ✅ Automatic tool installation and configuration
+
+**Documentation:** See `.devcontainer/README.md` for details
+
+---
+
 ### Build & Restore
 ```bash
 # Restore packages
