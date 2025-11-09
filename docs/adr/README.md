@@ -451,6 +451,19 @@ This ADR hub connects to other key documentation:
 - Check that cross-reference links are valid
 - Ensure role-based reading guides match team structure
 
+### Update Checklist for New ADRs
+
+When creating ADR-00XX:
+
+1. ☐ Add to category index in README.md
+2. ☐ Add implementation status section to ADR
+3. ☐ Update implementation dashboard counts
+4. ☐ Add cross-references to related ADRs
+5. ☐ Update web-api-standards.md if relevant
+6. ☐ Add to role-based reading guides if applicable
+7. ☐ Update configuration decision tree if it affects configuration
+8. ☐ Add to quick reference cards if it's a common operation
+
 ### ADR Lifecycle
 
 ```
@@ -478,6 +491,13 @@ for adr in adr-*.md; do
   fi
 done
 ```
+
+### Ownership
+
+- **ADR Hub (README.md):** Architecture team maintains
+- **Individual ADRs:** Decision author maintains
+- **Implementation Status:** Engineering team updates during sprints
+- **Dashboard Metrics:** Updated by tech lead at phase boundaries
 
 ---
 
