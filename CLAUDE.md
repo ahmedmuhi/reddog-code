@@ -33,6 +33,48 @@ Any dates before this are in the past, and any dates after this are in the futur
 - .NET 10 builds (projects not retargeted)
 - Automated testing (no test projects)
 
+## Documentation Map
+
+This repository uses structured documentation to separate concerns and provide clear navigation:
+
+### 📋 Quick Reference (You Are Here)
+- **CLAUDE.md** (this file) - Development guide, current status, common commands
+
+### 🏗️ Architectural Decisions
+- **[ADR Overview & Navigation Hub](docs/adr/README.md)** - **Start here** to navigate all architectural decisions
+  - Implementation status dashboard (🟢 Implemented, 🟡 In Progress, 🔵 Accepted, ⚪ Planned)
+  - Configuration decision tree ("Where should I put this setting?")
+  - Role-based reading guides (Developer, Operator, Decision Maker)
+  - 11 ADRs organized by category (Core Platform, Configuration, Deployment, Operational, Multi-Cloud)
+- **Individual ADRs** in `docs/adr/` - Detailed decision records with implementation status
+
+### 📐 Implementation Standards
+- **[Web API Standards](docs/standards/web-api-standards.md)** - HTTP API conventions for all services
+  - OpenAPI/Scalar documentation, CORS, error handling, health endpoints, observability
+  - Cross-references to supporting ADRs (ADR-0002, 0004, 0005, 0006, 0011)
+  - **Target state** for modernized services (current .NET 6.0 services don't yet comply)
+
+### 📝 Planning Documents
+- **[Modernization Strategy](plan/modernization-strategy.md)** - 8-phase transformation roadmap
+- **[Testing & Validation Strategy](plan/testing-validation-strategy.md)** - Testing baseline (prerequisite for Phase 1A)
+- **[Documentation Improvement Plan](plan/documentation-structure-improvement-plan.md)** - This documentation structure plan
+
+### 🔍 Navigation Tips
+
+**I need to understand a decision:** → [ADR Overview](docs/adr/README.md)
+
+**I need to implement an API:** → [Web API Standards](docs/standards/web-api-standards.md)
+
+**I need to configure something:** → [Configuration Decision Tree](docs/adr/README.md#configuration-decision-tree)
+
+**I need to know what's implemented:** → [ADR Overview: Implementation Status](docs/adr/README.md#implementation-status-legend)
+
+**I need to know what's next:** → [Modernization Strategy](plan/modernization-strategy.md)
+
+**I'm confused about configuration:** → [ADR README Section: Configuration Architecture](docs/adr/README.md#configuration-architecture-overview)
+
+---
+
 ## Common Development Commands
 
 ### Prerequisites
