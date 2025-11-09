@@ -392,6 +392,50 @@ This ADR hub connects to other key documentation:
 
 ---
 
+## Quick Reference Cards
+
+### Configuration Quick Reference
+
+| I need to... | Use | ADR | Status |
+|--------------|-----|-----|--------|
+| Store a secret | Dapr Secret Store | ADR-0002 | 🟢 Implemented |
+| Set service port | Environment Variable | ADR-0006 | 🔵 Accepted |
+| Deploy to Azure | Helm values-aks.yaml | ADR-0009 | ⚪ Planned |
+| Add feature flag | Dapr Configuration API | ADR-0004 | ⚪ NOT IMPLEMENTED |
+
+### Deployment Quick Reference
+
+| Environment | Tool | Configuration | Status |
+|-------------|------|---------------|--------|
+| Local Dev | kind + Helm | values-local.yaml | ⚪ Planned (ADR-0008) |
+| Azure (AKS) | Helm | values-aks.yaml | ⚪ Planned (ADR-0009) |
+| Azure (ACA) | Helm | values-aks-aca.yaml | ⚪ Planned (ADR-0009) |
+| AWS (EKS) | Helm | values-eks.yaml | ⚪ Planned (ADR-0009) |
+| GCP (GKE) | Helm | values-gke.yaml | ⚪ Planned (ADR-0009) |
+
+### Observability Quick Reference
+
+| Component | Technology | Export Target | Status |
+|-----------|-----------|---------------|--------|
+| Logging | OpenTelemetry OTLP | Console (dev), Cloud (prod) | ⚪ Planned (ADR-0011) |
+| Tracing | OpenTelemetry OTLP | Dapr tracing config | ⚪ Planned (ADR-0011) |
+| Metrics | OpenTelemetry OTLP | Prometheus/Cloud | ⚪ Planned (ADR-0011) |
+| Current | Serilog 4.1.0 | Console only | 🟢 Implemented (Legacy) |
+
+**Note:** Current services use Serilog. ADR-0011 prescribes migration to native OpenTelemetry.
+
+### Health Check Quick Reference
+
+| Endpoint | Purpose | Use Case | Status |
+|----------|---------|----------|--------|
+| `/healthz` | Overall health | Manual health checks | 🔵 Accepted (ADR-0005) |
+| `/livez` | Liveness | Kubernetes restart decision | 🔵 Accepted (ADR-0005) |
+| `/readyz` | Readiness | Kubernetes traffic routing | 🔵 Accepted (ADR-0005) |
+
+**Current State:** MakeLineService and AccountingService implement `/health`. Migration to ADR-0005 endpoints not yet started.
+
+---
+
 ## Maintaining This Hub
 
 ### When to Update This Document
