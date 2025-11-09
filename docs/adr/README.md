@@ -129,6 +129,45 @@ High-level architectural approach to cloud portability:
 
 ---
 
+## Implementation Dashboard
+
+Track progress across all architectural decisions:
+
+| Category | Total ADRs | Implemented | In Progress | Planned |
+|----------|-----------|-------------|-------------|---------|
+| Core Platform | 3 | 0 | 0 | 3 |
+| Configuration | 3 | 1 (ADR-0002) | 0 | 2 |
+| Deployment | 3 | 0 | 1 (ADR-0010) | 2 |
+| Operational | 2 | 0 | 0 | 2 |
+| **TOTAL** | **11** | **1 (9%)** | **1 (9%)** | **9 (82%)** |
+
+### Completion Milestones
+
+- ✅ **Phase 0 (Cleanup):** Completed 2025-11-02
+  - Removed .devcontainer, manifests/local, manifests/corporate, CorporateTransferService
+
+- ⚠️ **Phase 1A (.NET 10 Upgrade):** Blocked
+  - Blocker: Testing strategy implementation required
+  - ADRs affected: ADR-0001, ADR-0003, ADR-0011
+
+- ⚪ **Phase 1B (Polyglot Migration):** Not Started
+  - Prerequisites: Phase 1A completion
+  - ADRs affected: All operational standards (0005, 0011)
+
+- ⚪ **Phase 2 (Local Development):** Not Started
+  - Prerequisites: Phase 1A completion
+  - ADRs affected: ADR-0008, ADR-0009, ADR-0010
+
+### Critical Path
+
+1. Implement testing strategy (plan/testing-validation-strategy.md)
+2. Execute .NET 10 upgrade (ADR-0001)
+3. Build Helm charts (ADR-0009)
+4. Create kind local dev (ADR-0008)
+5. Implement remaining operational standards (ADR-0005, ADR-0011)
+
+---
+
 ## Configuration Architecture Overview
 
 Red Dog uses a **4-layer configuration hierarchy** to separate concerns and enable cloud portability:
