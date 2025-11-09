@@ -654,5 +654,5 @@ components/local/
 
 secrets.json
 
-# Claude Code session tracking
-.claude/sessions/
+# Claude Code session tracking (sessions are now tracked in git for documentation)
+# .claude/sessions/ - REMOVED to track development history

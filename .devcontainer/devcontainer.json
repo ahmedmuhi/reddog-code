@@ -86,6 +86,11 @@
   "remoteUser": "vscode",
   "postCreateCommand": "bash .devcontainer/scripts/postCreateCommand.sh",
 
+  // Mount Claude Code authentication from host
+  "mounts": [
+    "source=${localEnv:HOME}/.claude,target=/home/vscode/.claude,type=bind,consistency=cached"
+  ],
+
   // Features (language runtimes)
   "features": {
     "ghcr.io/devcontainers/features/docker-in-docker:2": {

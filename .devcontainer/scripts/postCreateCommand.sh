@@ -3,6 +3,12 @@ set -e
 
 echo "🚀 Setting up Red Dog polyglot development environment..."
 
+# Fix Claude Code credentials permissions (bind mount preserves host ownership)
+if [ -f "$HOME/.claude/.credentials.json" ]; then
+  echo "🔑 Fixing Claude Code credentials permissions..."
+  chmod 600 "$HOME/.claude/.credentials.json" 2>/dev/null || echo "⚠️  Could not fix credentials permissions (mount is read-only)"
+fi
+
 # Restore .NET packages
 echo "📦 Restoring .NET packages..."
 dotnet restore RedDog.sln 2>/dev/null || echo "⚠️  No .NET solution found (expected during initial setup)"
