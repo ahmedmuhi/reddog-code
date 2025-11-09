@@ -8,7 +8,7 @@ Transform Red Dog from a .NET-centric demo (2021) into a modern, polyglot micros
 - Polyglot architecture (5 languages: .NET, Go, Python, Node.js, Vue.js)
 - One-command deployment to cloud platforms (AKS, Container Apps, EKS, GKE)
 - Modern dependencies (latest LTS versions)
-- Cloud-first approach (remove local dev complexity)
+- Cloud-agnostic architecture with production-parity local development (kind + Kubernetes)
 
 ---
 
@@ -129,9 +129,12 @@ Transform Red Dog from a .NET-centric demo (2021) into a modern, polyglot micros
 - [x] Simplify manifest structure (keep only branch/) - ✅ Done (Phase 1)
 - [x] Remove Flux v1 configs - ✅ Done (Phase 5)
 
+**Follow-Up (Post-Phase 0):**
+- [x] Local development strategy - ✅ COMPLETED (2025-11-09) - kind + Helm + Nginx (ADR-0008, ADR-0009, ADR-0010)
+- [x] Update CLAUDE.md with new ADRs - ✅ COMPLETED (2025-11-09) - Added ADR-0008, ADR-0009, ADR-0010
+
 **Skipped:**
 - [ ] Remove old GitHub workflows - ⚠️ SKIPPED (workflows need fixing, not deletion)
-- [ ] Update CLAUDE.md with new architecture - Deferred (CLAUDE.md already current)
 - [ ] Document polyglot migration decisions - Deferred to implementation phases
 
 **Results:**
