@@ -68,6 +68,9 @@ To understand past development work:
   - `adr-0005-kubernetes-health-probe-standardization.md` - Kubernetes health probes (/healthz, /livez, /readyz)
   - `adr-0006-infrastructure-configuration-via-environment-variables.md` - Environment variables for infrastructure config
   - `adr-0007-cloud-agnostic-deployment-strategy.md` - Containerized infrastructure for multi-cloud portability
+  - `adr-0008-kind-local-development-environment.md` - kind (Kubernetes-in-Docker) for local development
+  - `adr-0009-helm-multi-environment-deployment.md` - Helm charts with environment-specific values for multi-cloud deployment
+  - `adr-0010-nginx-ingress-controller-cloud-agnostic.md` - Nginx Ingress Controller for cloud-agnostic HTTP routing
 
 ### Technical Standards:
 - **`docs/standards/`** - Implementation standards for consistent development practices
@@ -176,16 +179,23 @@ To understand past development work:
 - **Bootstrapper**: One-time database initialization via EF migrations
 - **RedDog.UI** (port 8080): Vue.js dashboard consuming MakeLineService and AccountingService APIs
 
-### Dapr Components (Local Development)
+### Local Development Setup
 
-Located in `manifests/local/branch/`:
-- `reddog.pubsub.yaml` - Redis pub/sub component
-- `reddog.state.makeline.yaml` - Redis state for MakeLineService
-- `reddog.state.loyalty.yaml` - Redis state for LoyaltyService
-- `reddog.binding.receipt.yaml` - Output binding for receipts
-- `reddog.binding.virtualworker.yaml` - Output binding for order completion
-- `reddog.secretstore.yaml` - Local secret store
-- `secrets.json` - Local secrets file
+**Local development now uses kind (Kubernetes-in-Docker) per ADR-0008.**
+
+**Setup:**
+1. Create kind cluster: `kind create cluster --config kind-config.yaml`
+2. Install Dapr: `dapr init --kubernetes`
+3. Deploy infrastructure: `helm install reddog-infra ./charts/infrastructure -f values/values-local.yaml`
+4. Deploy application: `helm install reddog ./charts/reddog -f values/values-local.yaml`
+
+**Dapr Components:**
+- Components deployed via Helm charts with local values (`values-local.yaml`)
+- Redis (from dapr init) provides pub/sub and state storage locally
+- SQL Server deployed as Kubernetes StatefulSet in kind cluster
+- Same Dapr component manifests used as production (cloud-agnostic per ADR-0007)
+
+**Note:** `manifests/local/` was removed November 2, 2025. Local development now mirrors production via kind + Kubernetes manifests.
 
 ### Database Model
 
