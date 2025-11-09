@@ -14,6 +14,37 @@ superseded_by: ""
 
 **Accepted**
 
+## Implementation Status
+
+**Current State:** 🔵 Accepted (Not Fully Implemented)
+
+**What's Working:**
+- Decision documented with comprehensive implementation patterns for all languages
+- Health check pattern specified for .NET, Go, Python, Node.js
+
+**What's Not Working:**
+- Current services implement `/health` endpoint (legacy pattern), not `/healthz`, `/livez`, `/readyz`
+- No separation between startup, liveness, and readiness probes
+- Kubernetes Deployment manifests not configured with standardized probe definitions
+- Dependency checks (Dapr, database, configuration) not implemented in readiness probes
+
+**Evidence:**
+- MakeLineService likely implements `/health` (legacy pattern needs migration)
+- AccountingService likely implements `/health` (legacy pattern needs migration)
+- No Kubernetes manifests with startupProbe, livenessProbe, readinessProbe configurations found
+
+**Dependencies:**
+- **Depends On:** ADR-0001 (.NET 10 upgrade provides better health check APIs)
+- **Depends On:** ADR-0009 (Helm charts will include probe configurations)
+- **Blocks:** Production reliability, automatic failure recovery
+
+**Next Steps:**
+1. Implement `/healthz`, `/livez`, `/readyz` endpoints in OrderService and AccountingService (.NET)
+2. Add dependency checks to `/readyz`: Dapr sidecar health, database connectivity
+3. Migrate from `/health` to new endpoints in all polyglot services (Go, Python, Node.js)
+4. Update Helm chart templates to include probe configurations with appropriate timeouts
+5. Test probe behavior: simulate Dapr failure, database failure, slow startup scenarios
+
 ## Context
 
 Red Dog's polyglot microservices architecture (8 services across 5 languages: .NET, Go, Python, Node.js, Vue.js) must deploy reliably to multiple container orchestration platforms (AKS, EKS, GKE, Azure Container Apps). Container orchestrators need mechanisms to determine service health and make automated decisions about traffic routing and container lifecycle management.

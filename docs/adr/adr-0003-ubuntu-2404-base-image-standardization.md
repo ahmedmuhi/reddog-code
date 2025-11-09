@@ -14,6 +14,36 @@ superseded_by: ""
 
 **Accepted**
 
+## Implementation Status
+
+**Current State:** 🔵 Accepted (Not Implemented)
+
+**What's Working:**
+- Decision documented and approved
+- Microsoft's .NET 10 default images already use Ubuntu 24.04 (upstream alignment confirmed)
+
+**What's Not Working:**
+- No Dockerfiles exist for any services yet (neither .NET, Go, Python, nor Node.js)
+- Services still run on .NET 6.0, not migrated to polyglot architecture
+- No validation of Canonical ubuntu/* images for Go/Python/Node.js
+
+**Evidence:**
+- Repository search shows no Dockerfile files in service directories
+- .NET services still target net6.0 (not net10.0), so Ubuntu 24.04 images not yet applicable
+- Go, Python, Node.js service migrations not started (plan/modernization-strategy.md Phase 2-7)
+
+**Dependencies:**
+- **Blocked By:** ADR-0001 (.NET 10 upgrade must complete first for .NET services)
+- **Blocked By:** Service polyglot migrations (Go, Python, Node.js services don't exist yet)
+- **Blocks:** Container image builds for all services
+
+**Next Steps:**
+1. Complete ADR-0001 (.NET 10 upgrade) for OrderService and AccountingService
+2. Create Dockerfiles using mcr.microsoft.com/dotnet/aspnet:10.0 for .NET services
+3. During polyglot migrations (Phase 2-7), create Dockerfiles using ubuntu/go:24.04, ubuntu/python:24.04, ubuntu/node:24.04
+4. Validate image sizes and performance vs official language images
+5. Document Dockerfile patterns in service migration plans
+
 ## Context
 
 Red Dog's modernization strategy migrates from a .NET-only architecture (10 services) to a polyglot architecture (8 services across 5 languages):

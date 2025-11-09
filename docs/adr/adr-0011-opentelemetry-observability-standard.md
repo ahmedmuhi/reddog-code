@@ -14,6 +14,43 @@ superseded_by: ""
 
 **Accepted**
 
+## Implementation Status
+
+**Current State:** ⚪ Planned (Not Implemented)
+
+**What's Working:**
+- Decision documented with comprehensive implementation guidance for .NET, Go, Python, Node.js
+- Native OTLP exporter pattern specified (not third-party sinks)
+- OpenTelemetry Collector configuration designed
+
+**What's Not Working:**
+- All services currently use **Serilog 4.1.0** with console logging (legacy approach)
+- **Zero** OpenTelemetry packages installed in any service
+- No OpenTelemetry Collector deployed
+- No distributed tracing infrastructure (Jaeger, Zipkin)
+- No centralized logging (Loki, Elasticsearch)
+- TraceId/SpanId not injected into logs (no trace correlation)
+
+**Evidence:**
+- Service .csproj files reference Serilog 4.1.0 (not OpenTelemetry packages)
+- Code search for "OpenTelemetry" or "OTLP" returns zero results
+- No otel-collector deployment in manifests/branch/dependencies/
+- Logs go to console only (kubectl logs required to view)
+
+**Dependencies:**
+- **Blocked By:** ADR-0001 (.NET 10 upgrade required for modern OpenTelemetry APIs)
+- **Depends On:** ADR-0009 (Helm charts will deploy OpenTelemetry Collector, Loki, Jaeger)
+- **Supports:** Production observability, distributed debugging
+
+**Next Steps:**
+1. Complete ADR-0001 (.NET 10 upgrade) for OrderService and AccountingService
+2. Replace Serilog with native OpenTelemetry logging (Microsoft.Extensions.Logging + OTLP exporter)
+3. Deploy OpenTelemetry Collector via Helm chart with Loki/Prometheus/Jaeger exporters
+4. Implement distributed tracing: AddAspNetCoreInstrumentation(), AddHttpClientInstrumentation()
+5. Configure log export to OTLP collector (OTEL_EXPORTER_OTLP_ENDPOINT environment variable)
+6. Implement for polyglot services: slog (Go), structlog (Python), pino (Node.js)
+7. Validate trace correlation: Create order → observe TraceId across OrderService, MakeLineService, LoyaltyService logs
+
 ## Context
 
 Red Dog's polyglot microservices architecture (8 services across 5 languages: .NET, Go, Python, Node.js, Vue.js) requires unified observability to debug distributed transactions, monitor system health, and troubleshoot production issues across multiple cloud platforms (AKS, EKS, GKE, Azure Container Apps).

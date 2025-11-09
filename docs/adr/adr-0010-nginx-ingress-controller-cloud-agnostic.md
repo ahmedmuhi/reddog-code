@@ -14,6 +14,40 @@ superseded_by: ""
 
 **Accepted**
 
+## Implementation Status
+
+**Current State:** 🟡 In Progress (Partially Implemented)
+
+**What's Working:**
+- Nginx Ingress Controller deployed via Helm chart: manifests/branch/dependencies/nginx/nginx.yaml
+- HelmRelease configured with ingress-nginx chart
+- LoadBalancer Service type configured (cloud load balancer auto-provisioned)
+
+**What's Not Working:**
+- Helm chart version 3.31.0 is **severely outdated** (from 2021), current is 4.10.0+
+- No Ingress resources created for Red Dog services (no path-based routing configured)
+- No kind-specific deployment (kind requires special manifest, not standard Helm chart)
+- Prometheus metrics not enabled (controller.metrics.enabled: false)
+- Resource limits not configured (unbounded CPU/memory usage)
+
+**Evidence:**
+- manifests/branch/dependencies/nginx/nginx.yaml:1 - Helm chart version 3.31.0 (2021)
+- No Ingress YAML files found in manifests/ for Red Dog services
+- Azure-specific annotation present (service.beta.kubernetes.io/azure-dns-label-name)
+
+**Dependencies:**
+- **Depends On:** ADR-0009 (Helm charts will include Ingress resources)
+- **Supports:** ADR-0008 (kind local dev needs Nginx Ingress for localhost:80 access)
+- **Implements:** Cloud-agnostic HTTP routing per ADR-0007
+
+**Next Steps:**
+1. Upgrade Nginx Ingress Helm chart from 3.31.0 to 4.10.0+
+2. Enable Prometheus metrics (controller.metrics.enabled: true)
+3. Add resource limits (controller.resources.requests/limits)
+4. Create Ingress resources in Helm charts for UI (`/`), OrderService (`/api/orders`), MakeLineService (`/queue`)
+5. Document kind-specific installation in ADR-0008 setup script
+6. Test path-based routing: curl http://localhost/ and curl http://localhost/api/orders
+
 ## Context
 
 Red Dog Coffee requires external HTTP/HTTPS access to microservices and UI across four deployment environments (local kind, Azure AKS, AWS EKS, GCP GKE). Kubernetes provides the Ingress API resource for defining HTTP routing rules, but does NOT include a default Ingress Controller implementation.
