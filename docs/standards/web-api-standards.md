@@ -675,32 +675,7 @@ builder.Services.Configure<IpRateLimitOptions>(options =>
 
 ---
 
-## 9. Distributed Tracing
-
-All HTTP APIs **should** propagate distributed tracing headers for observability.
-
-### Standard: OpenTelemetry via Dapr
-
-Dapr 1.16+ provides **built-in OpenTelemetry support**. No manual instrumentation needed.
-
-**Automatic Trace Propagation:**
-- Dapr automatically adds `traceparent` header (W3C Trace Context)
-- Trace IDs propagate across service-to-service calls
-- Integrates with Jaeger, Zipkin, Application Insights
-
-**Manual Instrumentation (if needed):**
-```csharp
-// .NET with OpenTelemetry
-builder.Services.AddOpenTelemetry()
-    .WithTracing(tracing => tracing
-        .AddAspNetCoreInstrumentation()
-        .AddHttpClientInstrumentation()
-        .AddOtlpExporter());
-```
-
----
-
-## 10. Observability (Logging, Tracing, Metrics)
+## 9. Observability (Logging, Tracing, Metrics)
 
 All HTTP APIs **must** implement structured logging, distributed tracing, and metrics using OpenTelemetry.
 
@@ -715,6 +690,7 @@ All HTTP APIs **must** implement structured logging, distributed tracing, and me
 - JSON format with automatic trace correlation (TraceId, SpanId)
 - Export to OpenTelemetry Collector → Loki/Prometheus/Jaeger
 - Structured logging with contextual properties (OrderId, CustomerId, ServiceName)
+- **Dapr 1.16+ provides automatic trace propagation** (W3C Trace Context headers) across service-to-service calls
 
 **Implementations:**
 - **.NET**: `Microsoft.Extensions.Logging` + `OpenTelemetry.Exporter.OpenTelemetryProtocol`
