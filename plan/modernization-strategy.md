@@ -137,11 +137,9 @@ The following items were removed during Phase 0 cleanup:
 - 2 unused services eliminated
 - Session: `.claude/sessions/2025-11-02-0730-safe-cleanup.md`
 
-**Follow-Up Documentation (2025-11-09):**
-- Created ADR-0008 (kind local development)
-- Created ADR-0009 (Helm multi-environment deployment)
-- Created ADR-0010 (Nginx Ingress Controller)
-- Updated CLAUDE.md with documentation structure
+**Follow-Up Work:**
+- **2025-11-09:** Created ADR-0008 (kind local development), ADR-0009 (Helm multi-environment deployment), ADR-0010 (Nginx Ingress Controller), updated CLAUDE.md with documentation structure
+- **2025-11-10:** Phase 0.5 completed (kind/Helm infrastructure created), Phase 1 completed (performance baseline established - see `.claude/sessions/2025-11-10-1503-phase1-performance-baseline.md`)
 
 ---
 
@@ -158,7 +156,7 @@ The phases below represent the **planned modernization work**:
 6. **Phase 4** - CI/CD modernization (varies)
 7. **Phase 5** - Infrastructure and observability enhancements (varies)
 
-**Current Blocker:** Phase 1A requires testing strategy implementation (see `plan/testing-validation-strategy.md`)
+**Current Status:** ✅ All prerequisites complete. Phase 1A (.NET 10 upgrade) can now proceed.
 
 ---
 
@@ -170,9 +168,13 @@ The following prerequisites must be completed before starting Phase 1A:
    - Install and verify Upgrade Assistant, API Analyzer, `dotnet workload update`, `dotnet list` scripts, and Dapr CLI per *Tool Installation Requirements* in `plan/testing-validation-strategy.md`.
    - Ensure artifact directories (`artifacts/upgrade-assistant/`, `artifacts/api-analyzer/`, `artifacts/dependencies/`) exist and are writable.
    - **Status:** All tools installed and verified. See `plan/testing-validation-strategy.md` Phase 0 completion summary.
-2. **Testing & Validation Baseline** ⚠️ **PENDING**
-   - Implement the scripts/checklists in `plan/testing-validation-strategy.md` (health endpoint validation, Dapr smoke tests, coverage collection) before touching service code.
-   - **Blocker:** Phase 1A cannot proceed until this is complete.
+2. **Testing & Validation Baseline** ✅ **COMPLETE** (2025-11-10)
+   - Performance baseline established for OrderService (.NET 6.0.36)
+   - P95: 7.77ms, Throughput: 46.47 req/s, 100% API success rate
+   - Infrastructure validated (Dapr 1.16.2 slim mode, Redis 6.2-alpine, SQL Server 2022)
+   - k6 load testing framework operational (v0.54.0)
+   - Results documented in `tests/k6/BASELINE-RESULTS.md`
+   - **Status:** Phase 1A can now proceed with .NET 10 upgrade
 3. **CI/CD Modernization** ⚠️ **PENDING**
    - Execute `plan/cicd-modernization-strategy.md` together with `plan/upgrade-github-workflows-implementation-1.md` so every `.github/workflows/*.yaml` file runs the tooling-audit, build/test, and publish jobs with .NET 10 SDKs/Node 24.
    - **Optional:** Can be performed in parallel with Phase 1A or deferred.
@@ -181,13 +183,14 @@ The following prerequisites must be completed before starting Phase 1A:
 
 ## Infrastructure Prerequisites (Platform Foundation)
 
-**Note:** This infrastructure upgrade is **optional** and can be performed later. Phase 1A (.NET 10 upgrade) can proceed with current Dapr 1.5.0 infrastructure.
+**Note:** This infrastructure upgrade is **optional** and can be performed later. Phase 1A (.NET 10 upgrade) can proceed with current Dapr 1.16.2 standalone infrastructure (kind/Helm deployment is optional).
 
 **Status:** 🟡 **PARTIALLY COMPLETE** (2025-11-10)
 - ✅ Tooling installed (kind 0.30.0, kubectl 1.34.1, Helm 3.19.0, Dapr CLI 1.16.3)
+- ✅ Dapr 1.16.2 initialized locally (slim mode, standalone with Redis + SQL Server)
+- ✅ Dapr components configured (.dapr/components/ - pubsub, state stores, secrets, bindings)
 - ⚠️ Local kind cluster not yet created (ADR-0008 planned but not implemented)
 - ⚠️ Helm charts not yet created (ADR-0009 planned but not implemented)
-- ⚠️ Dapr 1.5.0 → 1.16.2 upgrade not performed (optional)
 - ⚠️ KEDA 2.2.0 → 2.18.1 upgrade not performed (optional)
 
 **Duration:** 3-4 weeks

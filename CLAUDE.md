@@ -14,12 +14,14 @@ Any dates before this are in the past, and any dates after this are in the futur
 
 ## Current Development Status
 
-**Actual State (as of 2025-11-10):**
+**Actual State (as of 2025-11-10 18:24 NZDT):**
 - ✅ Phase 0 cleanup completed (removed manifests/local, manifests/corporate, CorporateTransferService, .vscode)
 - ✅ Phase 0 tooling installed (Go 1.25.4, kind 0.30.0, kubectl 1.34.1, Helm 3.19.0, upgrade-assistant, ApiCompat)
-- ⚠️ All services still .NET 6.0 with Dapr 1.5.0 (Phase 1A .NET 10 upgrade not started)
-- ⚠️ No automated tests exist (prerequisite for Phase 1A)
-- ⚠️ kind/Helm local dev not implemented (ADR-0008 planned but not built)
+- ✅ Phase 0.5 local environment infrastructure (kind + Helm charts created, ready for deployment)
+- ✅ Phase 1 baseline complete (.NET 6 performance baseline established - see `tests/k6/BASELINE-RESULTS.md`)
+- ✅ Dapr 1.16.2 initialized locally (slim mode, standalone with Redis + SQL Server)
+- ✅ .NET 6.0.36 + ASP.NET Core 6.0.36 runtimes installed
+- ⚠️ All services still .NET 6.0 (Phase 1A .NET 10 upgrade not started)
 - ⚠️ global.json specifies .NET 10 SDK RC2, but .csproj files target net6.0
 
 **📅 Upcoming Upgrade (November 11, 2025):**
@@ -29,15 +31,19 @@ Any dates before this are in the past, and any dates after this are in the futur
 
 **What Works Now:**
 - Building .NET 6.0 services with .NET 10 SDK
-- Running services locally with `dapr run` and Dapr 1.5.0 CLI
+- Running services locally with `dapr run` and Dapr 1.16.2 CLI (slim mode)
+- OrderService validated and load tested (P95: 7.77ms, 46.47 req/s)
+- Performance baseline established (k6 load testing framework)
+- Dapr components configured (.dapr/components/ - Redis pub/sub + state stores)
+- Infrastructure running (Redis 6.2-alpine, SQL Server 2022)
 - Vue.js 2 UI development (npm run serve)
 - REST API testing via samples in `rest-samples/`
 
 **What Doesn't Work Yet:**
-- kind cluster deployment (kind-config.yaml not created)
-- Helm chart deployment (charts/ directory doesn't exist)
+- kind cluster deployment (kind-config.yaml created but not deployed)
+- Helm chart deployment (charts/ created but not deployed)
 - .NET 10 builds (projects not retargeted)
-- Automated testing (no test projects)
+- Automated unit/integration tests (load testing only)
 
 ## Documentation Map
 
@@ -85,8 +91,10 @@ This repository uses structured documentation to separate concerns and provide c
 
 ### Prerequisites
 - .NET 10 SDK (per global.json) - builds .NET 6.0 projects
-- Dapr CLI 1.5.0+ for local service execution
-- Node.js 14+ and npm for Vue.js UI
+- .NET 6.0.36 runtime + ASP.NET Core 6.0.36 runtime (for running .NET 6 services)
+- Dapr CLI 1.16.2+ for local service execution (slim mode)
+- Node.js 24+ and npm 11+ for Vue.js UI
+- k6 v0.54.0+ for load testing (installed to ~/bin/)
 
 ### Build & Restore
 ```bash
@@ -101,22 +109,29 @@ dotnet build RedDog.OrderService/RedDog.OrderService.csproj -c Release
 ```
 
 ### Run Services Locally (with Dapr)
+
+**Note:** Requires Dapr components in `.dapr/components/` and infrastructure running (Redis + SQL Server).
+
 ```bash
-# OrderService
+# OrderService (validated and load tested - P95: 7.77ms)
 dapr run --app-id orderservice --app-port 5100 --dapr-http-port 5180 \
-  -- dotnet run --project RedDog.OrderService
+  --resources-path .dapr/components \
+  -- dotnet run --project RedDog.OrderService/RedDog.OrderService.csproj
 
 # MakeLineService
 dapr run --app-id makelineservice --app-port 5200 --dapr-http-port 5280 \
-  -- dotnet run --project RedDog.MakeLineService
+  --resources-path .dapr/components \
+  -- dotnet run --project RedDog.MakeLineService/RedDog.MakeLineService.csproj
 
 # AccountingService
 dapr run --app-id accountingservice --app-port 5700 --dapr-http-port 5780 \
-  -- dotnet run --project RedDog.AccountingService
+  --resources-path .dapr/components \
+  -- dotnet run --project RedDog.AccountingService/RedDog.AccountingService.csproj
 
 # LoyaltyService
 dapr run --app-id loyaltyservice --app-port 5400 --dapr-http-port 5480 \
-  -- dotnet run --project RedDog.LoyaltyService
+  --resources-path .dapr/components \
+  -- dotnet run --project RedDog.LoyaltyService/RedDog.LoyaltyService.csproj
 ```
 
 ### Vue.js UI Development
@@ -132,6 +147,29 @@ npm run lint     # ESLint
 - REST samples available in `rest-samples/` directory
 - Use VS Code REST Client extension or similar tools
 - Files: `order-service.rest`, `makeline-service.rest`, `accounting-service.rest`, `ui.rest`
+
+### Load Testing
+```bash
+# Run k6 baseline test (requires OrderService running with Dapr)
+k6 run tests/k6/orderservice-baseline.js
+
+# View baseline results
+cat tests/k6/BASELINE-RESULTS.md
+```
+
+### Infrastructure Management
+```bash
+# Start Redis and SQL Server (required for Dapr components)
+docker run --name reddog-redis -d -p 6379:6379 redis:6.2-alpine
+docker run --name reddog-sql -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=RedDog123!' \
+  -p 1433:1433 -d mcr.microsoft.com/mssql/server:2022-latest
+
+# Check infrastructure status
+docker ps --filter name=reddog
+
+# Stop infrastructure
+docker stop reddog-redis reddog-sql
+```
 
 ## Development Sessions
 
