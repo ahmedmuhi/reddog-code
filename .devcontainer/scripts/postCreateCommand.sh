@@ -13,6 +13,11 @@ fi
 echo "📦 Restoring .NET packages..."
 dotnet restore RedDog.sln 2>/dev/null || echo "⚠️  No .NET solution found (expected during initial setup)"
 
+# Install .NET upgrade tools (Phase 0 requirement)
+echo "🔧 Installing .NET upgrade tools..."
+dotnet tool install -g upgrade-assistant || echo "⚠️  upgrade-assistant already installed"
+dotnet tool install -g Microsoft.DotNet.ApiCompat.Tool || echo "⚠️  ApiCompat already installed"
+
 # Install Node.js dependencies for UI (if package.json exists)
 if [ -f "RedDog.UI/package.json" ]; then
   echo "📦 Installing Node.js dependencies for UI..."
@@ -32,16 +37,22 @@ echo "  npm version: $(npm --version)"
 echo ""
 echo "✅ Verifying Kubernetes & Dapr tools..."
 echo "  kind version: $(kind version)"
-echo "  kubectl version: $(kubectl version --client --short 2>/dev/null || echo 'not connected')"
+echo "  kubectl version: $(kubectl version --client 2>/dev/null | head -1 || echo 'not connected')"
 echo "  Helm version: $(helm version --short)"
 echo "  Dapr version: $(dapr version --client 2>/dev/null || echo 'CLI only')"
+
+echo ""
+echo "✅ Verifying .NET upgrade tools..."
+echo "  upgrade-assistant: $(upgrade-assistant --version 2>/dev/null | head -1 || echo 'not found')"
+echo "  ApiCompat: $(dotnet tool list -g 2>/dev/null | grep apicompat || echo 'not found')"
 
 echo ""
 echo "✨ Polyglot development environment ready!"
 echo ""
 echo "📝 Next steps:"
-echo "   1. Create kind cluster: ./scripts/setup-local-dev.sh (when ADR-0008 implemented)"
-echo "   2. Build .NET services: dotnet build RedDog.sln"
-echo "   3. Build UI: cd RedDog.UI && npm run build"
-echo "   4. Deploy to kind: helm install reddog ./charts/reddog -f values/values-local.yaml"
+echo "   1. Verify Phase 0 prerequisites: bash ci/scripts/verify-prerequisites.sh"
+echo "   2. Create kind cluster: ./scripts/setup-local-dev.sh (when ADR-0008 implemented)"
+echo "   3. Build .NET services: dotnet build RedDog.sln"
+echo "   4. Build UI: cd RedDog.UI && npm run build"
+echo "   5. Deploy to kind: helm install reddog ./charts/reddog -f values/values-local.yaml"
 echo ""
