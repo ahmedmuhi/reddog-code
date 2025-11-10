@@ -14,12 +14,18 @@ Any dates before this are in the past, and any dates after this are in the futur
 
 ## Current Development Status
 
-**Actual State (as of 2025-11-09):**
+**Actual State (as of 2025-11-10):**
 - ✅ Phase 0 cleanup completed (removed manifests/local, manifests/corporate, CorporateTransferService, .vscode)
+- ✅ Phase 0 tooling installed (Go 1.25.4, kind 0.30.0, kubectl 1.34.1, Helm 3.19.0, upgrade-assistant, ApiCompat)
 - ⚠️ All services still .NET 6.0 with Dapr 1.5.0 (Phase 1A .NET 10 upgrade not started)
 - ⚠️ No automated tests exist (prerequisite for Phase 1A)
 - ⚠️ kind/Helm local dev not implemented (ADR-0008 planned but not built)
-- ⚠️ global.json specifies .NET 10 SDK, but .csproj files target net6.0
+- ⚠️ global.json specifies .NET 10 SDK RC2, but .csproj files target net6.0
+
+**📅 Upcoming Upgrade (November 11, 2025):**
+- ⏰ **.NET 10 GA Release** - Upgrade from 10.0.100-rc.2 to 10.0.0 (GA)
+- Update `global.json` to `10.0.0` after official release at .NET Conf 2025
+- Verify with `dotnet --version` after upgrade
 
 **What Works Now:**
 - Building .NET 6.0 services with .NET 10 SDK
