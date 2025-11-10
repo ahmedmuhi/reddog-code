@@ -38,7 +38,10 @@ spec:
         dapr.io/app-id: {{ .Values.services.receiptgenerationservice.dapr.appId | quote }}
         dapr.io/app-port: {{ .Values.services.receiptgenerationservice.dapr.appPort | quote }}
         dapr.io/log-level: {{ .Values.services.common.dapr.logLevel | quote }}
+        dapr.io/volume-mounts-rw: "receipts:/tmp/receipts"
     spec:
+      securityContext:
+        fsGroup: 65532
       containers:
       - name: receipt-generation-service
         image: {{ .Values.services.receiptgenerationservice.image.repository }}:{{ .Values.services.common.image.tag }}
@@ -46,6 +49,9 @@ spec:
         ports:
         - containerPort: 80
           protocol: TCP
+        volumeMounts:
+        - name: receipts
+          mountPath: /tmp/receipts
         resources:
           requests:
             cpu: {{ .Values.services.common.resources.requests.cpu }}
@@ -53,4 +59,7 @@ spec:
           limits:
             cpu: {{ .Values.services.common.resources.limits.cpu }}
             memory: {{ .Values.services.common.resources.limits.memory }}
+      volumes:
+      - name: receipts
+        emptyDir: {}
 {{- end }}

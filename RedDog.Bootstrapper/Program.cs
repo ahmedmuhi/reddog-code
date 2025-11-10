@@ -41,15 +41,28 @@ namespace RedDog.Bootstrapper
 
         private async Task EnsureDaprOrTerminate()
         {
-            try
+            int maxRetries = 30;
+            int retryDelayMs = 1000;
+
+            for (int i = 0; i < maxRetries; i++)
             {
-                var response = await _httpClient.GetAsync($"http://localhost:{DaprHttpPort}/v1.0/healthz");
-                response.EnsureSuccessStatusCode();
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine("Error communicating with Dapr sidecar. Exiting...", e.InnerException?.Message ?? e.Message);
-                Environment.Exit(1);
+                try
+                {
+                    var response = await _httpClient.GetAsync($"http://localhost:{DaprHttpPort}/v1.0/healthz");
+                    response.EnsureSuccessStatusCode();
+                    Console.WriteLine("Successfully connected to Dapr sidecar.");
+                    return;
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine($"Waiting for Dapr sidecar... Attempt {i + 1}/{maxRetries}");
+                    if (i == maxRetries - 1)
+                    {
+                        Console.WriteLine("Error communicating with Dapr sidecar. Exiting...", e.InnerException?.Message ?? e.Message);
+                        Environment.Exit(1);
+                    }
+                    await Task.Delay(retryDelayMs);
+                }
             }
         }
 

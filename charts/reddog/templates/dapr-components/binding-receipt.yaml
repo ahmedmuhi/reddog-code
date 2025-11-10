@@ -1,4 +1,4 @@
-{{- if .Values.dapr.enabled }}
+{{- if and .Values.dapr.enabled (.Values.services.receiptgenerationservice.binding.enabled | default false) }}
 apiVersion: dapr.io/v1alpha1
 kind: Component
 metadata:
@@ -11,5 +11,5 @@ spec:
   - name: rootPath
     value: /tmp/receipts
 scopes:
-  - receipt-generation-service
+  - receiptgenerationservice
 {{- end }}

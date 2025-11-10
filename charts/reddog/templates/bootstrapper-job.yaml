@@ -1,0 +1,35 @@
+{{- if .Values.bootstrapper.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: reddog-bootstrapper
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: reddog-bootstrapper
+  {{- with .Values.bootstrapper.jobAnnotations }}
+  annotations:
+{{ toYaml . | indent 4 }}
+  {{- end }}
+spec:
+  ttlSecondsAfterFinished: 300
+  template:
+    metadata:
+      labels:
+        app: reddog-bootstrapper
+      annotations:
+        dapr.io/enabled: "true"
+        dapr.io/app-id: {{ .Values.bootstrapper.dapr.appId | quote }}
+        dapr.io/log-level: {{ .Values.services.common.dapr.logLevel | quote }}
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: bootstrapper
+          image: {{ .Values.bootstrapper.image.repository }}:{{ .Values.services.common.image.tag }}
+          imagePullPolicy: {{ .Values.services.common.image.pullPolicy }}
+          env:
+            - name: DAPR_HTTP_PORT
+              value: {{ .Values.bootstrapper.dapr.httpPort | quote }}
+            - name: DAPR_GRPC_PORT
+              value: {{ .Values.bootstrapper.dapr.grpcPort | quote }}
+  backoffLimit: 1
+{{- end }}

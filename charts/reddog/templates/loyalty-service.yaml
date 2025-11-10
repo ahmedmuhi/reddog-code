@@ -55,18 +55,18 @@ spec:
             memory: {{ .Values.services.common.resources.limits.memory }}
         startupProbe:
           httpGet:
-            path: /probes/healthz
+            path: /probes/ready
             port: 80
           failureThreshold: 6
           periodSeconds: 10
         livenessProbe:
           httpGet:
-            path: /probes/livez
+            path: /probes/ready
             port: 80
           periodSeconds: 10
         readinessProbe:
           httpGet:
-            path: /probes/readyz
+            path: /probes/ready
             port: 80
           periodSeconds: 5
 {{- end }}

@@ -34,6 +34,13 @@ command -v docker >/dev/null 2>&1 || { print_error "docker is not installed"; ex
 print_status "All prerequisites installed"
 echo ""
 
+# Ensure local values file exists
+if [ ! -f values/values-local.yaml ]; then
+    print_error "values/values-local.yaml not found."
+    echo "Create it by copying values/values-local.yaml.sample and setting local secrets (e.g., SQL password)."
+    exit 1
+fi
+
 # 1. Create kind cluster
 echo "Step 1: Creating kind cluster..."
 if kind get clusters | grep -q "reddog-local"; then
@@ -52,10 +59,12 @@ helm repo update
 helm install dapr dapr/dapr \
     --namespace dapr-system \
     --create-namespace \
-    --version 1.16.0 \
+    --version 1.16.2 \
     --wait \
     --timeout 5m
 print_status "Dapr installed"
+print_warning "Known Issue: Dapr 1.16.x sidecars will show 1/2 Ready due to probe port bug (port 3501 vs 3500)"
+print_warning "This is cosmetic only - services are functional. See docs/known-issues.md for details."
 echo ""
 
 # Verify Dapr installation

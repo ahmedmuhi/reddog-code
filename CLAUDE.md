@@ -95,6 +95,8 @@ This repository uses structured documentation to separate concerns and provide c
 - Dapr CLI 1.16.2+ for local service execution (slim mode)
 - Node.js 24+ and npm 11+ for Vue.js UI
 - k6 v0.54.0+ for load testing (installed to ~/bin/)
+- Copy `.env.local.sample` → `.env.local`, set `SQLSERVER_SA_PASSWORD`, and keep the real file untracked.
+- Copy `values/values-local.yaml.sample` → `values/values-local.yaml` before running kind/Helm scripts.
 
 ### Build & Restore
 ```bash
@@ -159,9 +161,12 @@ cat tests/k6/BASELINE-RESULTS.md
 
 ### Infrastructure Management
 ```bash
+# Load local env vars once per shell
+set -a; source .env.local; set +a
+
 # Start Redis and SQL Server (required for Dapr components)
 docker run --name reddog-redis -d -p 6379:6379 redis:6.2-alpine
-docker run --name reddog-sql -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=RedDog123!' \
+docker run --name reddog-sql -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD='"${SQLSERVER_SA_PASSWORD}"' \
   -p 1433:1433 -d mcr.microsoft.com/mssql/server:2022-latest
 
 # Check infrastructure status
