@@ -1,0 +1,15 @@
+{{- if .Values.dapr.enabled }}
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: reddog.binding.receipt
+  namespace: {{ .Values.global.namespace }}
+spec:
+  type: bindings.localstorage
+  version: v1
+  metadata:
+  - name: rootPath
+    value: /tmp/receipts
+scopes:
+  - receipt-generation-service
+{{- end }}

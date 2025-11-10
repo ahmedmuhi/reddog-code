@@ -92,6 +92,65 @@ This involves:
 - `CLAUDE.md` - Local development commands for running services with Dapr
 - Expected improvements documented: P95 latency 5-15% faster, throughput 10-20% higher, memory 10-15% lower (post-upgrade)
 
+### Update - 2025-11-10 15:40 NZDT
+
+**Summary:** Phase 0.5 local environment setup completed
+
+**Accomplishments:**
+1. ✅ Created Phase 0.5 plan document (`plan/phase-0.5-local-environment-setup.md`)
+2. ✅ Created `kind-config.yaml` per ADR-0008 specification
+3. ✅ Created Helm chart structure:
+   - `charts/reddog/Chart.yaml` (application chart)
+   - `charts/infrastructure/Chart.yaml` (infrastructure chart)
+   - `values/values-local.yaml` (Redis-based local configuration)
+4. ✅ Recovered 6 Dapr component configs from git history
+5. ✅ Converted Dapr components to Helm templates (6 components):
+   - pubsub.yaml (Redis, not RabbitMQ)
+   - statestore-makeline.yaml (Redis)
+   - statestore-loyalty.yaml (Redis)
+   - secretstore.yaml (Kubernetes secrets)
+   - binding-receipt.yaml (local storage)
+   - binding-virtualworker.yaml (cron)
+6. ✅ Created infrastructure Helm templates:
+   - Redis StatefulSet + Service
+   - SQL Server StatefulSet + Service + Secret
+7. ✅ Created application Helm templates (8 services):
+   - OrderService, MakeLineService, LoyaltyService, AccountingService
+   - ReceiptGenerationService, VirtualCustomers, VirtualWorker, UI
+   - Ingress configuration
+8. ✅ Created setup/teardown/status scripts:
+   - `scripts/setup-local-dev.sh` (automated cluster setup)
+   - `scripts/teardown-local-dev.sh` (cluster cleanup)
+   - `scripts/status-local-dev.sh` (health check)
+9. ✅ Validated kind cluster creation (successful test)
+
+**Status:**
+- Phase 0.5 foundation complete
+- kind cluster configuration validated (ports 80/443 mapped correctly)
+- Helm charts structured per ADR-0009
+- Ready to deploy infrastructure and application
+
+**Blockers Identified:**
+- ⚠️ Docker images don't exist yet (need to build all 8 services)
+- ⚠️ Bootstrapper strategy needed (SQL database initialization via EF migrations)
+- ⚠️ Dapr 1.16 API compatibility needs validation (recovered configs are Dapr 1.5.0)
+
+**Next Steps:**
+1. Build Docker images for all 8 services
+2. Test infrastructure deployment (Redis + SQL Server)
+3. Test application deployment
+4. Resolve any Helm template issues
+5. Once environment is running, proceed with k6 setup for performance baseline
+
+**Files Created:**
+- `kind-config.yaml`
+- `plan/phase-0.5-local-environment-setup.md`
+- `charts/reddog/Chart.yaml` + 10 templates
+- `charts/infrastructure/Chart.yaml` + 3 templates
+- `values/values-local.yaml`
+- `scripts/setup-local-dev.sh`, `scripts/teardown-local-dev.sh`, `scripts/status-local-dev.sh`
+- `manifests/local/branch/` (7 files recovered from git)
+
 ---
 
 ## Notes
@@ -105,5 +164,11 @@ This involves:
 - Memory usage: 10-15% lower (GC improvements)
 
 These baselines will be used in Phase 6 to validate upgrade success.
+
+**Phase 0.5 Decision:**
+- Discovered that local development infrastructure was deleted in Phase 0 cleanup
+- Created new kind + Helm-based local environment per ADR-0008 and ADR-0009
+- Local uses Redis for both state stores and pub/sub (NOT RabbitMQ - cloud only)
+- SQL Server runs in Kubernetes (StatefulSet), not docker-compose
 
 ---

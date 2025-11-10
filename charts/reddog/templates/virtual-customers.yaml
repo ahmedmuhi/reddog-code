@@ -1,0 +1,36 @@
+{{- if .Values.services.virtualcustomers.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: virtual-customers
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: virtual-customers
+spec:
+  replicas: {{ .Values.services.virtualcustomers.replicas }}
+  selector:
+    matchLabels:
+      app: virtual-customers
+  template:
+    metadata:
+      labels:
+        app: virtual-customers
+    spec:
+      containers:
+      - name: virtual-customers
+        image: {{ .Values.services.virtualcustomers.image.repository }}:{{ .Values.services.common.image.tag }}
+        imagePullPolicy: {{ .Values.services.common.image.pullPolicy }}
+        env:
+        - name: ORDER_SERVICE_URL
+          value: {{ .Values.services.virtualcustomers.env.ORDER_SERVICE_URL | quote }}
+        - name: ORDERS_PER_HOUR
+          value: {{ .Values.services.virtualcustomers.env.ORDERS_PER_HOUR | quote }}
+        resources:
+          requests:
+            cpu: {{ .Values.services.common.resources.requests.cpu }}
+            memory: {{ .Values.services.common.resources.requests.memory }}
+          limits:
+            cpu: {{ .Values.services.common.resources.limits.cpu }}
+            memory: {{ .Values.services.common.resources.limits.memory }}
+{{- end }}

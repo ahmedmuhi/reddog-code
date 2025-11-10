@@ -1,0 +1,21 @@
+{{- if .Values.dapr.enabled }}
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: reddog.state.loyalty
+  namespace: {{ .Values.global.namespace }}
+spec:
+  type: state.{{ .Values.dapr.stateStore.type }}
+  version: v1
+  metadata:
+  - name: redisHost
+    value: {{ .Values.dapr.stateStore.host }}:{{ .Values.dapr.stateStore.port }}
+  {{- if .Values.dapr.stateStore.password }}
+  - name: redisPassword
+    secretKeyRef:
+      name: redis-secret
+      key: password
+  {{- end }}
+scopes:
+  - loyalty-service
+{{- end }}

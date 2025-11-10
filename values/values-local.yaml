@@ -1,0 +1,244 @@
+# Red Dog - Local Development Configuration
+# Environment: kind (Kubernetes-in-Docker)
+# Per ADR-0008 (kind local development) and ADR-0009 (Helm multi-environment)
+
+global:
+  environment: local
+  domain: localhost
+  namespace: default
+
+# Dapr Configuration
+# Local uses Redis for both state stores and pub/sub (NOT RabbitMQ - cloud only)
+dapr:
+  enabled: true
+  version: "1.16.0"
+
+  # State Stores (Redis-based for local development)
+  stateStore:
+    type: redis
+    # Dapr init provides Redis at localhost:6379
+    # In-cluster: redis-master.default.svc.cluster.local:6379
+    host: redis-master.default.svc.cluster.local
+    port: 6379
+    password: ""  # No password for local dev
+
+  # Pub/Sub (Redis-based for local - NOT RabbitMQ)
+  pubsub:
+    type: redis
+    host: redis-master.default.svc.cluster.local
+    port: 6379
+    password: ""
+
+  # Secret Store (Kubernetes secrets for local)
+  secretStore:
+    type: kubernetes
+    # Cloud alternatives: azurekeyvault, aws.secretsmanager, gcp.secretmanager
+
+# Database Configuration
+database:
+  enabled: true
+  type: sqlserver
+  # In-cluster DNS: sqlserver.default.svc.cluster.local
+  host: sqlserver.default.svc.cluster.local
+  port: 1433
+  name: reddog
+  username: sa
+  # Password stored in Kubernetes secret (created by infrastructure chart)
+  passwordSecret:
+    name: sqlserver-secret
+    key: SA_PASSWORD
+  # Connection string template (used by services)
+  connectionString: "Server=sqlserver.default.svc.cluster.local,1433;Database=reddog;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=True;Encrypt=False;"
+
+# Ingress Configuration
+ingress:
+  enabled: true
+  className: nginx
+  # Local development: no TLS
+  tls:
+    enabled: false
+  annotations: {}
+  hosts:
+    - host: localhost
+      paths:
+        - path: /
+          pathType: Prefix
+          service: ui
+          port: 80
+        - path: /api/orders
+          pathType: Prefix
+          service: orderservice
+          port: 80
+
+# Infrastructure Components
+infrastructure:
+  # Redis (for Dapr state stores and pub/sub)
+  redis:
+    enabled: true
+    architecture: standalone  # Standalone for local (not replication)
+    auth:
+      enabled: false  # No auth for local dev
+    master:
+      persistence:
+        enabled: false  # No persistence needed locally
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+
+  # SQL Server (Developer Edition - free, full-featured)
+  sqlserver:
+    enabled: true
+    image:
+      repository: mcr.microsoft.com/mssql/server
+      tag: "2022-latest"
+      pullPolicy: IfNotPresent
+    acceptEula: true
+    edition: Developer
+    saPassword: "RedDog123!"  # Local dev password (NOT for production)
+    persistence:
+      enabled: true
+      size: 5Gi
+      storageClass: standard  # kind default storage class
+    resources:
+      requests:
+        cpu: 500m
+        memory: 2Gi
+      limits:
+        cpu: 2000m
+        memory: 4Gi
+
+# Application Services Configuration
+services:
+  # Common settings for all services
+  common:
+    image:
+      pullPolicy: IfNotPresent  # Use local images (loaded via kind load)
+      tag: latest
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+    # Dapr sidecar annotations (auto-injected)
+    dapr:
+      enabled: true
+      appPort: 80
+      logLevel: info
+
+  # OrderService
+  orderservice:
+    enabled: true
+    replicas: 1
+    image:
+      repository: ghcr.io/ahmedmuhi/reddog-orderservice
+    port: 5100
+    dapr:
+      appId: orderservice
+      appPort: 5100
+
+  # MakeLineService
+  makelineservice:
+    enabled: true
+    replicas: 1
+    image:
+      repository: ghcr.io/ahmedmuhi/reddog-makelineservice
+    port: 5200
+    dapr:
+      appId: makelineservice
+      appPort: 5200
+
+  # LoyaltyService
+  loyaltyservice:
+    enabled: true
+    replicas: 1
+    image:
+      repository: ghcr.io/ahmedmuhi/reddog-loyaltyservice
+    port: 5400
+    dapr:
+      appId: loyaltyservice
+      appPort: 5400
+
+  # AccountingService
+  accountingservice:
+    enabled: true
+    replicas: 1
+    image:
+      repository: ghcr.io/ahmedmuhi/reddog-accountingservice
+    port: 5700
+    dapr:
+      appId: accountingservice
+      appPort: 5700
+
+  # ReceiptGenerationService
+  receiptgenerationservice:
+    enabled: true
+    replicas: 1
+    image:
+      repository: ghcr.io/ahmedmuhi/reddog-receiptgenerationservice
+    port: 5300
+    dapr:
+      appId: receiptgenerationservice
+      appPort: 5300
+
+  # VirtualCustomers (load generator)
+  virtualcustomers:
+    enabled: true
+    replicas: 1
+    image:
+      repository: ghcr.io/ahmedmuhi/reddog-virtualcustomers
+    env:
+      ORDER_SERVICE_URL: http://localhost:5100
+      ORDERS_PER_HOUR: 10  # Low rate for local dev
+
+  # VirtualWorker (order completion simulator)
+  virtualworker:
+    enabled: true
+    replicas: 1
+    image:
+      repository: ghcr.io/ahmedmuhi/reddog-virtualworker
+    port: 5500
+    dapr:
+      appId: virtualworker
+      appPort: 5500
+
+  # UI (Vue.js frontend)
+  ui:
+    enabled: true
+    replicas: 1
+    image:
+      repository: ghcr.io/ahmedmuhi/reddog-ui
+    port: 8080
+    env:
+      VUE_APP_MAKELINE_BASE_URL: http://localhost/api/makeline
+      VUE_APP_ACCOUNTING_BASE_URL: http://localhost/api/accounting
+
+# Bootstrapper (database initialization via EF migrations)
+bootstrapper:
+  enabled: true
+  image:
+    repository: ghcr.io/ahmedmuhi/reddog-bootstrapper
+  # Run as Kubernetes Job (one-time execution)
+  jobAnnotations:
+    helm.sh/hook: post-install
+    helm.sh/hook-weight: "0"
+    helm.sh/hook-delete-policy: before-hook-creation
+
+# Observability (optional for local dev)
+observability:
+  # Jaeger tracing (Dapr provides Zipkin by default)
+  jaeger:
+    enabled: false  # Skip for Phase 0.5 (add later)
+
+  # Prometheus metrics
+  prometheus:
+    enabled: false  # Skip for Phase 0.5 (add later)
+
+  # Grafana dashboards
+  grafana:
+    enabled: false  # Skip for Phase 0.5 (add later)

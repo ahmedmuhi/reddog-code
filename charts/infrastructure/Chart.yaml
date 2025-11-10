@@ -1,0 +1,16 @@
+apiVersion: v2
+name: reddog-infrastructure
+description: Infrastructure components for Red Dog Coffee (SQL Server, Redis, Dapr components)
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+  - infrastructure
+  - sql-server
+  - redis
+  - dapr
+maintainers:
+  - name: Red Dog Team
+home: https://github.com/ahmedmuhi/reddog-code
+sources:
+  - https://github.com/ahmedmuhi/reddog-code

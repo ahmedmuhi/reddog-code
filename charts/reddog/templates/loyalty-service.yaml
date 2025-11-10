@@ -1,0 +1,72 @@
+{{- if .Values.services.loyaltyservice.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: loyaltyservice
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: loyalty-service
+spec:
+  ports:
+  - port: 80
+    targetPort: 80
+    protocol: TCP
+    name: http
+  selector:
+    app: loyalty-service
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: loyalty-service
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: loyalty-service
+spec:
+  replicas: {{ .Values.services.loyaltyservice.replicas }}
+  selector:
+    matchLabels:
+      app: loyalty-service
+  template:
+    metadata:
+      labels:
+        app: loyalty-service
+      annotations:
+        dapr.io/enabled: "true"
+        dapr.io/app-id: {{ .Values.services.loyaltyservice.dapr.appId | quote }}
+        dapr.io/app-port: {{ .Values.services.loyaltyservice.dapr.appPort | quote }}
+        dapr.io/log-level: {{ .Values.services.common.dapr.logLevel | quote }}
+    spec:
+      containers:
+      - name: loyalty-service
+        image: {{ .Values.services.loyaltyservice.image.repository }}:{{ .Values.services.common.image.tag }}
+        imagePullPolicy: {{ .Values.services.common.image.pullPolicy }}
+        ports:
+        - containerPort: 80
+          protocol: TCP
+        resources:
+          requests:
+            cpu: {{ .Values.services.common.resources.requests.cpu }}
+            memory: {{ .Values.services.common.resources.requests.memory }}
+          limits:
+            cpu: {{ .Values.services.common.resources.limits.cpu }}
+            memory: {{ .Values.services.common.resources.limits.memory }}
+        startupProbe:
+          httpGet:
+            path: /probes/healthz
+            port: 80
+          failureThreshold: 6
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /probes/livez
+            port: 80
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /probes/readyz
+            port: 80
+          periodSeconds: 5
+{{- end }}

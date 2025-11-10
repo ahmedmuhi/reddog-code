@@ -1,0 +1,80 @@
+{{- if .Values.services.accountingservice.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: accountingservice
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: accounting-service
+spec:
+  ports:
+  - port: 80
+    targetPort: 80
+    protocol: TCP
+    name: http
+  selector:
+    app: accounting-service
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: accounting-service
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: accounting-service
+spec:
+  replicas: {{ .Values.services.accountingservice.replicas }}
+  selector:
+    matchLabels:
+      app: accounting-service
+  template:
+    metadata:
+      labels:
+        app: accounting-service
+      annotations:
+        dapr.io/enabled: "true"
+        dapr.io/app-id: {{ .Values.services.accountingservice.dapr.appId | quote }}
+        dapr.io/app-port: {{ .Values.services.accountingservice.dapr.appPort | quote }}
+        dapr.io/log-level: {{ .Values.services.common.dapr.logLevel | quote }}
+    spec:
+      containers:
+      - name: accounting-service
+        image: {{ .Values.services.accountingservice.image.repository }}:{{ .Values.services.common.image.tag }}
+        imagePullPolicy: {{ .Values.services.common.image.pullPolicy }}
+        ports:
+        - containerPort: 80
+          protocol: TCP
+        env:
+        - name: SA_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.database.passwordSecret.name }}
+              key: {{ .Values.database.passwordSecret.key }}
+        - name: ConnectionStrings__RedDog
+          value: {{ .Values.database.connectionString }}
+        resources:
+          requests:
+            cpu: {{ .Values.services.common.resources.requests.cpu }}
+            memory: {{ .Values.services.common.resources.requests.memory }}
+          limits:
+            cpu: {{ .Values.services.common.resources.limits.cpu }}
+            memory: {{ .Values.services.common.resources.limits.memory }}
+        startupProbe:
+          httpGet:
+            path: /probes/healthz
+            port: 80
+          failureThreshold: 6
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /probes/livez
+            port: 80
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /probes/readyz
+            port: 80
+          periodSeconds: 5
+{{- end }}

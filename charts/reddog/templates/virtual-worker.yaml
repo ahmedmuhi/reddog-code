@@ -1,0 +1,56 @@
+{{- if .Values.services.virtualworker.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: virtualworker
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: virtual-worker
+spec:
+  ports:
+  - port: 80
+    targetPort: 80
+    protocol: TCP
+    name: http
+  selector:
+    app: virtual-worker
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: virtual-worker
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: virtual-worker
+spec:
+  replicas: {{ .Values.services.virtualworker.replicas }}
+  selector:
+    matchLabels:
+      app: virtual-worker
+  template:
+    metadata:
+      labels:
+        app: virtual-worker
+      annotations:
+        dapr.io/enabled: "true"
+        dapr.io/app-id: {{ .Values.services.virtualworker.dapr.appId | quote }}
+        dapr.io/app-port: {{ .Values.services.virtualworker.dapr.appPort | quote }}
+        dapr.io/log-level: {{ .Values.services.common.dapr.logLevel | quote }}
+    spec:
+      containers:
+      - name: virtual-worker
+        image: {{ .Values.services.virtualworker.image.repository }}:{{ .Values.services.common.image.tag }}
+        imagePullPolicy: {{ .Values.services.common.image.pullPolicy }}
+        ports:
+        - containerPort: 80
+          protocol: TCP
+        resources:
+          requests:
+            cpu: {{ .Values.services.common.resources.requests.cpu }}
+            memory: {{ .Values.services.common.resources.requests.memory }}
+          limits:
+            cpu: {{ .Values.services.common.resources.limits.cpu }}
+            memory: {{ .Values.services.common.resources.limits.memory }}
+{{- end }}
