@@ -12,6 +12,21 @@ Development Containers (Dev Containers) are containerized development environmen
 
 ---
 
+**⚠️ PROJECT-SPECIFIC NOTE - 2025-11-10**
+
+While this research document provides comprehensive information about dev containers in general, the **Red Dog project has decided NOT to use dev containers** after implementation and testing revealed technical blockers.
+
+**Reasons:**
+- kind has bugs when running inside containers (nested Docker complexity - cluster recreation fails)
+- k3d lacks production parity with AKS/EKS/GKE (removes cloud providers, uses SQLite)
+- Native kind clusters on WSL2/macOS/Linux are simpler and more reliable for teaching authentic Kubernetes
+
+**Current Approach:** Local development uses native kind clusters per ADR-0008.
+
+**Status:** This document is preserved for educational purposes and future reference. See `.claude/sessions/2025-11-10-1030-dev-container-local-implementation.md` for full exploration history.
+
+---
+
 ## Section 1: What Are Development Containers?
 
 ### Definition

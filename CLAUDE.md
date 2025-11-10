@@ -15,7 +15,7 @@ Any dates before this are in the past, and any dates after this are in the futur
 ## Current Development Status
 
 **Actual State (as of 2025-11-09):**
-- ✅ Phase 0 cleanup completed (removed .devcontainer, manifests/local, manifests/corporate, CorporateTransferService, .vscode)
+- ✅ Phase 0 cleanup completed (removed manifests/local, manifests/corporate, CorporateTransferService, .vscode)
 - ⚠️ All services still .NET 6.0 with Dapr 1.5.0 (Phase 1A .NET 10 upgrade not started)
 - ⚠️ No automated tests exist (prerequisite for Phase 1A)
 - ⚠️ kind/Helm local dev not implemented (ADR-0008 planned but not built)
@@ -81,32 +81,6 @@ This repository uses structured documentation to separate concerns and provide c
 - .NET 10 SDK (per global.json) - builds .NET 6.0 projects
 - Dapr CLI 1.5.0+ for local service execution
 - Node.js 14+ and npm for Vue.js UI
-
-### Development Container Setup (Recommended)
-
-**Quick Start:**
-1. Install Docker Desktop (Windows/macOS) or Docker CE (Linux)
-2. Install VS Code and the "Dev Containers" extension
-3. Open this project in VS Code
-4. Press `F1` → "Dev Containers: Reopen in Container"
-5. Wait for setup (first time: 3-5 minutes)
-
-**What's Included:**
-- .NET 10 SDK
-- kind (Kubernetes-in-Docker)
-- kubectl, Helm, Dapr CLI
-- All necessary VS Code extensions
-- Consistent environment across team
-
-**Why Use Dev Containers?**
-- ✅ 5-minute setup for new developers
-- ✅ 100% environment parity across team
-- ✅ No "works on my machine" issues
-- ✅ Automatic tool installation and configuration
-
-**Documentation:** See `.devcontainer/README.md` for details
-
----
 
 ### Build & Restore
 ```bash

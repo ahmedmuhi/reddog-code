@@ -1,10 +1,25 @@
 # Red Dog Development Container Implementation Plan
 
-**Date:** 2025-11-09  
-**Status:** Draft  
-**Version:** 1.0  
-**Related ADRs:** ADR-0008 (kind local dev), ADR-0009 (Helm), ADR-0010 (Nginx Ingress)  
+**Date:** 2025-11-09
+**Status:** ~~Draft~~ **DEPRECATED**
+**Version:** 1.0
+**Related ADRs:** ADR-0008 (kind local dev), ADR-0009 (Helm), ADR-0010 (Nginx Ingress)
 **Research Reference:** `docs/research/development-containers-comprehensive-guide-2025.md`
+
+---
+
+**⚠️ DEPRECATION NOTICE - 2025-11-10**
+
+This implementation plan is **NO LONGER ACTIVE** and is preserved for historical reference only.
+
+**Decision:** Dev containers have been removed from the project after implementation and testing revealed technical blockers:
+- kind has bugs when running inside containers (nested Docker complexity - [GitHub Issue #3695](https://github.com/kubernetes-sigs/kind/issues/3695))
+- k3d lacks production parity with AKS/EKS/GKE (removes cloud providers, uses SQLite vs etcd)
+- Native kind setup on WSL2/macOS/Linux is simpler and more reliable for teaching Kubernetes fundamentals
+
+**Current Approach:** Follow ADR-0008 for local development using native kind clusters.
+
+**Status:** Archived for reference - do not implement. See `.claude/sessions/2025-11-10-1030-dev-container-local-implementation.md` for full exploration history.
 
 ---
 

@@ -253,7 +253,54 @@ docker ps       # Lists containers successfully
 
 - [ADR-0008: kind Local Development Environment](../docs/adr/adr-0008-kind-local-development-environment.md)
 - [Dev Containers Comprehensive Guide 2025](../docs/research/development-containers-comprehensive-guide-2025.md)
-- [Dev Container Implementation Plan](../plan/devcontainer-implementation-plan.md)
-- `.devcontainer/README.md` - Quick start guide
+- [Dev Container Implementation Plan](../plan/done/devcontainer-implementation-plan-deprecated.md) - **DEPRECATED**
+- ~~`.devcontainer/README.md`~~ - Removed
+
+---
+
+## Session Closure - 2025-11-10 14:28 NZDT
+
+**Summary:** Dev container configuration removed - decision reversed after implementation testing
+
+**Rationale:**
+After completing implementation and testing, the decision was made to remove dev containers due to:
+1. **kind has critical bugs** when running inside containers - cluster recreation fails (nested Docker issues - [GitHub Issue #3695](https://github.com/kubernetes-sigs/kind/issues/3695))
+2. **k3d lacks production parity** with AKS/EKS/GKE (removes cloud providers, uses SQLite vs etcd, different defaults)
+3. **Teaching goal requires authentic Kubernetes** - kind with full K8s is better for instructor-led workshops
+4. **Simpler architecture** - developers run kind natively on WSL2/macOS/Linux without container overhead
+
+**Research Findings:**
+- Launched search-specialist agent to investigate kind vs k3d in dev containers
+- k3d is 3x faster and more reliable in containers BUT lacks production parity
+- kind provides authentic K8s experience BUT has recreation bugs in nested containers
+- For teaching scenarios, production parity outweighs performance benefits
+
+**Files Removed:**
+- Entire `.devcontainer/` directory (7 files: Dockerfile, devcontainer.json, README.md, postCreateCommand.sh, workflow templates)
+- Dev container section from CLAUDE.md (lines 85-109)
+- Dev container reference from Phase 0 cleanup status
+
+**Files Updated:**
+- `CLAUDE.md`: Removed dev container section and updated status
+- `plan/devcontainer-implementation-plan.md`: Moved to `plan/done/` with deprecation notice
+- This session file: Documented reversal decision and full exploration
+
+**Files Preserved (Historical Value):**
+- All session history files (`.claude/sessions/`)
+- Research documents (`docs/research/development-containers-*.md`)
+- Git commit history (no reverts - all work preserved)
+
+**Outcome:**
+- Local development will use **native kind clusters** per ADR-0008
+- Dev containers deemed unnecessary complexity for this project's teaching focus
+- Git history preserved completely - this session documents the full exploration and learning
+- Lessons learned: Thorough testing revealed technical blockers early (kind recreation bug, k3d production parity gap)
+
+**Next Steps:**
+- Focus on implementing ADR-0008 with native kind setup
+- Create kind-config.yaml and Helm charts for local deployment
+- Update local development prerequisites documentation
+
+**Status:** Session closed - work preserved as valuable exploration history demonstrating due diligence in technology evaluation
 
 ---
