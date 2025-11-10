@@ -14,12 +14,12 @@ Any dates before this are in the past, and any dates after this are in the futur
 
 ## Current Development Status
 
-**Actual State (as of 2025-11-10 18:24 NZDT):**
+**Actual State (as of 2025-11-11 10:58 NZDT):**
 - ✅ Phase 0 cleanup completed (removed manifests/local, manifests/corporate, CorporateTransferService, .vscode)
 - ✅ Phase 0 tooling installed (Go 1.25.4, kind 0.30.0, kubectl 1.34.1, Helm 3.19.0, upgrade-assistant, ApiCompat)
-- ✅ Phase 0.5 local environment infrastructure (kind + Helm charts created, ready for deployment)
+- ✅ **Phase 0.5 COMPLETE** - kind cluster operational, all services deployed via Helm, end-to-end smoke tests passing
 - ✅ Phase 1 baseline complete (.NET 6 performance baseline established - see `tests/k6/BASELINE-RESULTS.md`)
-- ✅ Dapr 1.16.2 initialized locally (slim mode, standalone with Redis + SQL Server)
+- ✅ Dapr 1.16.2 running in-cluster (Kubernetes mode with Redis + SQL Server)
 - ✅ .NET 6.0.36 + ASP.NET Core 6.0.36 runtimes installed
 - ⚠️ All services still .NET 6.0 (Phase 1A .NET 10 upgrade not started)
 - ⚠️ global.json specifies .NET 10 SDK RC2, but .csproj files target net6.0
@@ -31,19 +31,22 @@ Any dates before this are in the past, and any dates after this are in the futur
 
 **What Works Now:**
 - Building .NET 6.0 services with .NET 10 SDK
+- **kind cluster deployment** - Operational with Dapr 1.16.2 in Kubernetes mode
+- **Helm chart deployment** - All services deployed and healthy via `charts/reddog/` and `charts/infrastructure/`
 - Running services locally with `dapr run` and Dapr 1.16.2 CLI (slim mode)
 - OrderService validated and load tested (P95: 7.77ms, 46.47 req/s)
 - Performance baseline established (k6 load testing framework)
-- Dapr components configured (.dapr/components/ - Redis pub/sub + state stores)
-- Infrastructure running (Redis 6.2-alpine, SQL Server 2022)
+- Dapr components configured (pub/sub, state stores, bindings, secret stores)
+- Infrastructure running (Redis, SQL Server, Nginx Ingress)
+- Receipt generation service with working localstorage binding (emptyDir + fsGroup)
+- End-to-end pub/sub flow verified (OrderService → all subscribers)
 - Vue.js 2 UI development (npm run serve)
 - REST API testing via samples in `rest-samples/`
 
 **What Doesn't Work Yet:**
-- kind cluster deployment (kind-config.yaml created but not deployed)
-- Helm chart deployment (charts/ created but not deployed)
 - .NET 10 builds (projects not retargeted)
 - Automated unit/integration tests (load testing only)
+- Production-ready observability (Jaeger, Prometheus, Grafana - disabled for Phase 0.5)
 
 ## Documentation Map
 
@@ -347,24 +350,77 @@ To understand past development work:
 
 ### Local Development Setup
 
-⚠️ **PLANNED - NOT YET IMPLEMENTED**
+✅ **IMPLEMENTED - Phase 0.5 Complete**
 
-The following describes the **target state** per ADR-0008, but is not yet built:
+**Quick Start (kind + Helm):**
 
-**Planned Setup (kind + Helm):**
-1. Create kind cluster: `kind create cluster --config kind-config.yaml`
-2. Install Dapr: `dapr init --kubernetes`
-3. Deploy infrastructure: `helm install reddog-infra ./charts/infrastructure -f values/values-local.yaml`
-4. Deploy application: `helm install reddog ./charts/reddog -f values/values-local.yaml`
+1. **Prerequisites:**
+   ```bash
+   # Verify tooling installed
+   kind version        # v0.30.0+
+   kubectl version     # v1.34.1+
+   helm version        # v3.19.0+
+   dapr version        # v1.16.2+
+   ```
 
-**Status:**
-- ❌ kind-config.yaml doesn't exist yet
-- ❌ charts/ directory doesn't exist yet
-- ❌ values/values-local.yaml doesn't exist yet
-- ✅ `manifests/local/` was removed November 2, 2025 (cleanup completed)
+2. **Configure local values:**
+   ```bash
+   # Copy sample config and customize
+   cp values/values-local.yaml.sample values/values-local.yaml
+   cp .env.local.sample .env.local
+   # Edit values/values-local.yaml and .env.local with your settings
+   ```
 
-**Current Local Development:**
-Use `dapr run` commands (see "Common Development Commands" section above) to run services individually with Dapr sidecars.
+3. **Run setup script:**
+   ```bash
+   ./scripts/setup-local-dev.sh
+   ```
+
+   This script will:
+   - Create kind cluster with Nginx Ingress and port mappings
+   - Install Dapr 1.16.2 in Kubernetes mode
+   - Deploy Redis and SQL Server infrastructure via Helm
+   - Deploy all application services via Helm
+   - Run bootstrapper job for database migrations
+   - Verify all pods are healthy
+
+4. **Access services:**
+   ```bash
+   # Port-forward to services
+   kubectl port-forward svc/orderservice 5100:80
+   kubectl port-forward svc/ui 8080:80
+
+   # Or use ingress (if configured)
+   curl http://localhost/api/orders
+   ```
+
+5. **View logs:**
+   ```bash
+   # Application logs
+   kubectl logs -l app=orderservice -c orderservice
+
+   # Dapr sidecar logs
+   kubectl logs -l app=orderservice -c daprd
+   ```
+
+6. **Teardown:**
+   ```bash
+   helm uninstall reddog
+   helm uninstall reddog-infra
+   kind delete cluster
+   ```
+
+**Deployment Status:**
+- ✅ kind cluster with Nginx Ingress
+- ✅ Dapr 1.16.2 in Kubernetes mode
+- ✅ Helm charts: `charts/infrastructure/` and `charts/reddog/`
+- ✅ Environment-specific values: `values/values-local.yaml`
+- ✅ All services deployed and healthy (2/2 Running with Dapr sidecars)
+- ✅ Receipt binding working (localstorage with emptyDir + fsGroup)
+- ✅ End-to-end smoke tests passing
+
+**Alternative: Standalone Dapr (Legacy):**
+If you prefer running services individually outside Kubernetes, use `dapr run` commands (see "Run Services Locally" section above).
 
 ### Database Model
 
