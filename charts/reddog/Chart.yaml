@@ -1,0 +1,16 @@
+apiVersion: v2
+name: reddog
+description: Red Dog Coffee - Cloud-native microservices demo application
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+  - microservices
+  - dapr
+  - kubernetes
+  - demo
+maintainers:
+  - name: Red Dog Team
+home: https://github.com/ahmedmuhi/reddog-code
+sources:
+  - https://github.com/ahmedmuhi/reddog-code

@@ -1,0 +1,25 @@
+{{- if .Values.dapr.enabled }}
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: reddog.pubsub
+  namespace: {{ .Values.global.namespace }}
+spec:
+  type: pubsub.{{ .Values.dapr.pubsub.type }}
+  version: v1
+  metadata:
+  - name: redisHost
+    value: {{ .Values.dapr.pubsub.host }}:{{ .Values.dapr.pubsub.port }}
+  {{- if .Values.dapr.pubsub.password }}
+  - name: redisPassword
+    secretKeyRef:
+      name: redis-secret
+      key: password
+  {{- end }}
+scopes:
+  - order-service
+  - make-line-service
+  - loyalty-service
+  - receipt-generation-service
+  - accounting-service
+{{- end }}

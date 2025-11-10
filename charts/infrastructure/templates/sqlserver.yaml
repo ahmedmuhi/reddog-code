@@ -1,0 +1,81 @@
+{{- if .Values.infrastructure.sqlserver.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sqlserver
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: sqlserver
+spec:
+  ports:
+  - port: 1433
+    targetPort: 1433
+    protocol: TCP
+    name: mssql
+  selector:
+    app: sqlserver
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: sqlserver
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: sqlserver
+spec:
+  serviceName: sqlserver
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sqlserver
+  template:
+    metadata:
+      labels:
+        app: sqlserver
+    spec:
+      containers:
+      - name: mssql
+        image: {{ .Values.infrastructure.sqlserver.image.repository }}:{{ .Values.infrastructure.sqlserver.image.tag }}
+        imagePullPolicy: {{ .Values.infrastructure.sqlserver.image.pullPolicy }}
+        ports:
+        - containerPort: 1433
+          name: mssql
+          protocol: TCP
+        env:
+        - name: ACCEPT_EULA
+          value: "Y"
+        - name: MSSQL_SA_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.database.passwordSecret.name }}
+              key: {{ .Values.database.passwordSecret.key }}
+        - name: MSSQL_PID
+          value: {{ .Values.infrastructure.sqlserver.edition }}
+        resources:
+          requests:
+            cpu: {{ .Values.infrastructure.sqlserver.resources.requests.cpu }}
+            memory: {{ .Values.infrastructure.sqlserver.resources.requests.memory }}
+          limits:
+            cpu: {{ .Values.infrastructure.sqlserver.resources.limits.cpu }}
+            memory: {{ .Values.infrastructure.sqlserver.resources.limits.memory }}
+        volumeMounts:
+        - name: mssql-data
+          mountPath: /var/opt/mssql
+  {{- if .Values.infrastructure.sqlserver.persistence.enabled }}
+  volumeClaimTemplates:
+  - metadata:
+      name: mssql-data
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      storageClassName: {{ .Values.infrastructure.sqlserver.persistence.storageClass }}
+      resources:
+        requests:
+          storage: {{ .Values.infrastructure.sqlserver.persistence.size }}
+  {{- else }}
+        - name: mssql-data
+          emptyDir: {}
+  {{- end }}
+{{- end }}

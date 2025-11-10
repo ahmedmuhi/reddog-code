@@ -1,0 +1,56 @@
+{{- if .Values.services.ui.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ui
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: ui
+spec:
+  ports:
+  - port: 80
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  selector:
+    app: ui
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ui
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: ui
+spec:
+  replicas: {{ .Values.services.ui.replicas }}
+  selector:
+    matchLabels:
+      app: ui
+  template:
+    metadata:
+      labels:
+        app: ui
+    spec:
+      containers:
+      - name: ui
+        image: {{ .Values.services.ui.image.repository }}:{{ .Values.services.common.image.tag }}
+        imagePullPolicy: {{ .Values.services.common.image.pullPolicy }}
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+        env:
+        - name: VUE_APP_MAKELINE_BASE_URL
+          value: {{ .Values.services.ui.env.VUE_APP_MAKELINE_BASE_URL | quote }}
+        - name: VUE_APP_ACCOUNTING_BASE_URL
+          value: {{ .Values.services.ui.env.VUE_APP_ACCOUNTING_BASE_URL | quote }}
+        resources:
+          requests:
+            cpu: {{ .Values.services.common.resources.requests.cpu }}
+            memory: {{ .Values.services.common.resources.requests.memory }}
+          limits:
+            cpu: {{ .Values.services.common.resources.limits.cpu }}
+            memory: {{ .Values.services.common.resources.limits.memory }}
+{{- end }}
