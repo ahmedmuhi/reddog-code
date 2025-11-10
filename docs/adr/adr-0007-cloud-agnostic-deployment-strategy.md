@@ -113,9 +113,11 @@ In May 2021 (commit `3d91853`), Red Dog migrated from Azure Service Bus (`pubsub
 This ADR applies to **infrastructure containers** (third-party dependencies we consume):
 - RabbitMQ, Redis, SQL Server, PostgreSQL, Nginx (UI runtime), message brokers, databases
 
-This ADR does **NOT** apply to **application containers** (services we build):
-- OrderService, AccountingService, MakeLineService, etc.
-- See ADR-0003 for application container base image standardization (Ubuntu 24.04)
+This ADR does **NOT** apply to:
+- **Application containers** (services we build): OrderService, AccountingService, MakeLineService, etc.
+  - See ADR-0003 for application container base image standardization (Ubuntu 24.04)
+- **Object storage / blob storage**: Receipts, documents, media files
+  - See ADR-0012 for Dapr bindings strategy (uses cloud-native blob storage instead of containerized MinIO)
 
 ## Consequences
 

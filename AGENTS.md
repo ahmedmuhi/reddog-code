@@ -238,6 +238,7 @@ To understand past development work:
   - `adr-0008-kind-local-development-environment.md` - kind (Kubernetes-in-Docker) for local development
   - `adr-0009-helm-multi-environment-deployment.md` - Helm charts with environment-specific values for multi-cloud deployment
   - `adr-0010-nginx-ingress-controller-cloud-agnostic.md` - Nginx Ingress Controller for cloud-agnostic HTTP routing
+  - `adr-0012-dapr-bindings-object-storage.md` - Cloud-native blob storage for production (Azure Blob/S3/GCS), emptyDir for local dev
 
 ### Technical Standards:
 - **`docs/standards/`** - Implementation standards for consistent development practices

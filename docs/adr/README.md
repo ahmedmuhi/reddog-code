@@ -80,6 +80,11 @@ How settings, secrets, and runtime behavior are configured:
   - **Status:** Accepted (pattern used in current services)
   - **Why it matters:** Standard Kubernetes/container pattern for infrastructure settings
 
+- 🟢 [ADR-0012: Dapr Bindings for Object Storage](adr-0012-dapr-bindings-object-storage.md)
+  - **Decision:** Use cloud-native blob storage (Azure Blob/S3/GCS) for production, emptyDir for local dev
+  - **Status:** Implemented (local), Accepted (production)
+  - **Why it matters:** Object storage strategy distinct from containerized infrastructure (ADR-0007)
+
 **See also:** [Configuration Decision Tree](#configuration-decision-tree) below for guidance on where to put settings
 
 ### Deployment & Infrastructure
@@ -136,10 +141,10 @@ Track progress across all architectural decisions:
 | Category | Total ADRs | Implemented | In Progress | Planned |
 |----------|-----------|-------------|-------------|---------|
 | Core Platform | 3 | 0 | 0 | 3 |
-| Configuration | 3 | 1 (ADR-0002) | 0 | 2 |
+| Configuration | 4 | 2 (ADR-0002, 0012) | 0 | 2 |
 | Deployment | 3 | 0 | 1 (ADR-0010) | 2 |
 | Operational | 2 | 0 | 0 | 2 |
-| **TOTAL** | **11** | **1 (9%)** | **1 (9%)** | **9 (82%)** |
+| **TOTAL** | **12** | **2 (17%)** | **1 (8%)** | **9 (75%)** |
 
 ### Completion Milestones
 
@@ -476,7 +481,7 @@ Proposed → Accepted → Implemented
 
 **Template:** Use `adr-template.md` when creating new ADRs
 
-**Numbering:** Next ADR will be ADR-0012 (zero-padded, 4 digits)
+**Numbering:** Next ADR will be ADR-0013 (zero-padded, 4 digits)
 
 ### Cross-Reference Validation
 
@@ -501,6 +506,6 @@ done
 
 ---
 
-**Last Updated:** 2025-11-09
+**Last Updated:** 2025-11-11
 **Document Owner:** Architecture Team
 **Questions?** See [CLAUDE.md](../../CLAUDE.md) for development guidance or ask in team channel
