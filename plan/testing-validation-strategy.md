@@ -111,8 +111,6 @@ mkdir -p artifacts/performance
 
 Run the following verification script before proceeding to Phase 1:
 
-**Script:** `ci/scripts/verify-prerequisites.sh`
-
 ```bash
 #!/bin/bash
 set -e
@@ -285,6 +283,8 @@ After .NET 10 upgrade (Phase 6), run same load test and compare against baseline
 
 ### 1.2 API Endpoint Inventory & OpenAPI Export
 
+**Status:** ⚠️ **NOT STARTED** (Optional - can skip if not needed for Phase 1A)
+
 **Reference:** `docs/research/testing-strategy-gap-analysis.md` Gap 9 (REST API Endpoint Inventory)
 
 **Reference:** `docs/research/dotnet-upgrade-analysis.md` Section 3.3 (REST API Endpoint Inventory) - lines 1523-1565
@@ -321,6 +321,8 @@ curl http://localhost:5700/swagger/v1/swagger.json > artifacts/api-baseline/acco
 
 ### 1.3 Database Schema Baseline
 
+**Status:** ⚠️ **NOT STARTED** (Optional - will be captured during Phase 1A EF Core upgrade validation)
+
 **Purpose:** Capture current .NET 6 database schema for comparison after EF Core 10 migrations.
 
 **Validation Steps:**
@@ -349,6 +351,8 @@ sqlcmd -S localhost -d RedDog -Q "SELECT 'Orders', COUNT(*) FROM Orders" -o arti
 ---
 
 ### 1.4 Service Health Check Baseline
+
+**Status:** ⚠️ **NOT STARTED** (Will be performed during Phase 2 - Breaking Changes Refactoring)
 
 **Purpose:** Document current health endpoint paths BEFORE migration to ADR-0005 standard.
 
@@ -381,12 +385,12 @@ curl http://localhost:5500/probes/healthz  # VirtualWorker
 **Total Effort:** 8-12 hours
 
 **Deliverables:**
-- [ ] .NET 6 performance baseline captured (`artifacts/performance/dotnet6-baseline.json`)
-- [ ] 18 REST API endpoints documented with priority matrix
-- [ ] OpenAPI schemas exported for all 4 services
-- [ ] Database schema baseline captured
-- [ ] Migration history recorded
-- [ ] Health endpoint audit completed
+- [x] .NET 6 performance baseline captured (`tests/k6/BASELINE-RESULTS.md`) - ✅ COMPLETE
+- [ ] 18 REST API endpoints documented with priority matrix - ⚠️ OPTIONAL (deferred)
+- [ ] OpenAPI schemas exported for all 4 services - ⚠️ OPTIONAL (deferred)
+- [ ] Database schema baseline captured - ⚠️ OPTIONAL (will capture during Phase 1A EF Core upgrade)
+- [ ] Migration history recorded - ⚠️ OPTIONAL (will capture during Phase 1A EF Core upgrade)
+- [ ] Health endpoint audit completed - ⚠️ OPTIONAL (will perform during Phase 2 refactoring)
 
 **Success Criteria:**
 - ✅ Performance baseline includes P50/P95/P99 latency, throughput, CPU, memory

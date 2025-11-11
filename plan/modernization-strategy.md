@@ -37,7 +37,9 @@ Transform Red Dog from a .NET-centric demo (2021) into a modern, polyglot micros
 
 ### Infrastructure:
 - GitHub workflows (deprecated syntax, hardcoded MS config)
-- Single manifest directory (`manifests/branch/` only - local and corporate removed in Phase 0)
+- Kubernetes manifests in `manifests/branch/` (AKS/production configs)
+- Helm charts in `charts/` (reddog app services, infrastructure components)
+- kind cluster config in root (`kind-config.yaml`)
 
 ---
 
@@ -140,6 +142,7 @@ The following items were removed during Phase 0 cleanup:
 **Follow-Up Work:**
 - **2025-11-09:** Created ADR-0008 (kind local development), ADR-0009 (Helm multi-environment deployment), ADR-0010 (Nginx Ingress Controller), updated CLAUDE.md with documentation structure
 - **2025-11-10:** Phase 0.5 completed (kind/Helm infrastructure created), Phase 1 completed (performance baseline established - see `.claude/sessions/2025-11-10-1503-phase1-performance-baseline.md`)
+- **2025-11-11:** Repository cleanup completed - archived 8 devcontainer research docs to `docs/research/archive/`, removed API tracking infrastructure (PublicApiBaseline tool + 18 tracking files), reorganized .env files to `.env/` directory, removed obsolete `ci/scripts/verify-prerequisites.sh` and devcontainer tooling script, fixed critical port documentation bug in CLAUDE.md/AGENTS.md
 
 ---
 
@@ -156,7 +159,7 @@ The phases below represent the **planned modernization work**:
 6. **Phase 4** - CI/CD modernization (varies)
 7. **Phase 5** - Infrastructure and observability enhancements (varies)
 
-**Current Status:** ✅ All prerequisites complete. Phase 1A (.NET 10 upgrade) can now proceed.
+**Current Status:** ✅ Phase 0 cleanup complete, Phase 0 tooling complete (Nov 10), Phase 0.5 complete (kind cluster operational, Nov 10-11), Phase 1 baseline complete (performance baseline established, Nov 10). Phase 1A (.NET 10 upgrade) can now proceed.
 
 ---
 
@@ -183,27 +186,44 @@ The following prerequisites must be completed before starting Phase 1A:
 
 ## Infrastructure Prerequisites (Platform Foundation)
 
-**Note:** This infrastructure upgrade is **optional** and can be performed later. Phase 1A (.NET 10 upgrade) can proceed with current Dapr 1.16.2 standalone infrastructure (kind/Helm deployment is optional).
-
-**Status:** 🟡 **PARTIALLY COMPLETE** (2025-11-10)
+**Status:** 🟢 **COMPLETE** (2025-11-11)
 - ✅ Tooling installed (kind 0.30.0, kubectl 1.34.1, Helm 3.19.0, Dapr CLI 1.16.3)
-- ✅ Dapr 1.16.2 initialized locally (slim mode, standalone with Redis + SQL Server)
+- ✅ Dapr 1.16.2 operational in Kubernetes mode (in-cluster deployment)
 - ✅ Dapr components configured (.dapr/components/ - pubsub, state stores, secrets, bindings)
-- ⚠️ Local kind cluster not yet created (ADR-0008 planned but not implemented)
-- ⚠️ Helm charts not yet created (ADR-0009 planned but not implemented)
-- ⚠️ KEDA 2.2.0 → 2.18.1 upgrade not performed (optional)
+- ✅ kind cluster created and operational (ADR-0008 implemented)
+- ✅ Helm charts created and deployed (`charts/reddog/`, `charts/infrastructure/`)
+- ✅ All services deployed via Helm and healthy (2/2 Running with Dapr sidecars)
+- ✅ Infrastructure running (Redis 6.2-alpine, SQL Server 2022, Nginx Ingress)
+- ✅ Receipt service Dapr binding working (localstorage with emptyDir + fsGroup per ADR-0012)
+- ✅ End-to-end smoke tests passing (OrderService → all subscribers)
+- ⚠️ KEDA 2.2.0 → 2.18.1 upgrade not performed (optional, deferred)
 
-**Duration:** 3-4 weeks
-**Objective:** Upgrade infrastructure platform to support modern Dapr features and polyglot services
+**Session Documentation:**
+- `.claude/sessions/2025-11-10-1030-dev-container-local-implementation.md` (infrastructure planning)
+- `.claude/sessions/2025-11-11-0657-phase0-5-completion.md` (implementation and validation)
+
+**Note:** Phase 0.5 provided production-parity local development environment using kind + Kubernetes + Helm, replacing the deprecated devcontainer approach (ADR-0008). Phase 1A (.NET 10 upgrade) will leverage this Kubernetes-based infrastructure.
 
 ### Why Infrastructure Upgrade is Beneficial
 
-- **Dapr 1.5.0 is 3+ years outdated** - Missing modern features and security patches
-- **KEDA 2.2.0 predates Kubernetes 1.30** - May have compatibility issues
-- **State stores need cloud-native migration** - Dapr 1.16 does NOT support Redis 7/8 (only 6.x)
-- **Object storage should use cloud-agnostic strategy** per ADR-0007
+- **Kubernetes-native development** - Production parity between local (kind) and cloud (AKS/EKS/GKE)
+- **Dapr 1.16.2 in Kubernetes mode** - Modern Dapr features and security patches (vs. deprecated 1.5.0)
+- **Helm-based deployment** - Multi-environment configuration per ADR-0009
+- **Cloud-agnostic architecture** - Nginx Ingress Controller per ADR-0010, Dapr bindings per ADR-0012
 
-However, **Phase 1A (.NET 10 upgrade) can proceed with current infrastructure** (Dapr 1.5.0). This infrastructure upgrade can be performed later.
+This infrastructure IS operational and Phase 1A (.NET 10 upgrade) will use it for testing and validation.
+
+---
+
+## Future Production Hardening (OPTIONAL)
+
+**Note:** The infrastructure upgrades described below represent **optional future enhancements** for multi-cloud production deployments (Azure/AWS/GCP). The current Phase 0.5 implementation uses:
+- Redis 6.2-alpine (state stores + pub/sub) - acceptable for local/dev
+- SQL Server 2022 (accounting database)
+- Localstorage binding with emptyDir (receipt generation)
+- Nginx Ingress Controller
+
+These components satisfy Phase 1A (.NET 10 upgrade) requirements. The upgrades below can be performed **after Phase 1A completion** if multi-cloud production deployment is desired.
 
 ### Scope
 
@@ -284,7 +304,7 @@ However, **Phase 1A (.NET 10 upgrade) can proceed with current infrastructure** 
 
 ### Phase 1A: .NET 10 Upgrade (All Services)
 **Goal:** Upgrade ALL 9 .NET projects to .NET 10 LTS before language migrations
-**Prerequisite:** Phase 0 must complete successfully
+**Prerequisite:** Phase 0, Phase 0.5, and Phase 1 baseline must complete successfully (all ✅ COMPLETE as of 2025-11-11)
 
 **Reference:** See `docs/research/dotnet-upgrade-analysis.md` for the detailed Platform Upgrade Implementation Guide and Breaking Change Analysis.
 
