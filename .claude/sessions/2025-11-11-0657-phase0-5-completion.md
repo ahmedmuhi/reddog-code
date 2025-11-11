@@ -494,3 +494,295 @@ Successfully shutdown Dapr sidecar.
 - Infrastructure: Redis + SQL Server running
 
 **Next Steps**: Ready for Phase 1A (.NET 10 upgrade)
+
+---
+
+## Session End Summary - 2025-11-11 11:15 AM NZDT
+
+**Session Duration**: ~4.5 hours (06:57 - 11:15)
+
+### Git Summary
+
+**Total Changes**: 32 files changed (+1855, -259 lines)
+
+**Commits Made**: 4 commits
+1. `132dc6d` - feat: Complete Phase 0.5 - Fix receipt service Dapr volume mounts
+2. `232a8da` - docs: Move Phase 0.5 plan to done
+3. `53aee08` - docs: Update CLAUDE.md and AGENTS.md with Phase 0.5 completion status
+4. `b29cfd7` - docs: Add ADR-0012 for Dapr bindings object storage strategy
+
+**Files Added** (3):
+- `.claude/sessions/2025-11-11-0657-phase0-5-completion.md` - This session log
+- `docs/adr/adr-0012-dapr-bindings-object-storage.md` - New ADR for object storage strategy
+- `docs/research/dapr-volume-mounts-configuration.md` - Research on Dapr volume mounts
+
+**Files Modified** (27):
+- CLAUDE.md, AGENTS.md - Updated with Phase 0.5 completion status
+- All service Dockerfiles (8 files) - Updated GHCR references
+- Helm templates (9 files) - Receipt service volume mounts, Dapr annotations, port fixes
+- ADR documentation (2 files) - ADR-0007 scope, ADR README dashboard
+- Configuration files - values-local.yaml, .gitignore, setup script
+
+**Files Deleted** (2):
+- `docs/claude-code-devcontainer-environment.md` - Obsolete
+- Temporary troubleshooting files (bootstrapper-dapr.yaml, bootstrapper-job.yaml)
+
+**Final Git Status**: Clean working directory, all changes committed and pushed
+
+---
+
+### Key Accomplishments
+
+#### 1. **Phase 0.5 FULLY COMPLETE** ✅
+- kind cluster operational with all services healthy (2/2 Running)
+- Helm deployment validated and working
+- End-to-end smoke tests passing
+- Receipt generation service fully operational
+
+#### 2. **Receipt Service Binding Fixed** ✅
+**Problem**: Receipt service crashing with "read-only file system" error
+
+**Root Cause** (discovered via search specialist agent):
+- Wrong Dapr annotation: `dapr.io/volume-mounts` (read-only)
+- Missing security context: `fsGroup: 65532` required for Dapr UID
+
+**Solution Implemented**:
+- Changed to `dapr.io/volume-mounts-rw` annotation
+- Added `securityContext.fsGroup: 65532` to pod spec
+- Fixed component scope: `receiptgenerationservice` (not hyphenated)
+
+**Verification**:
+- 8 receipt files successfully written to `/tmp/receipts/`
+- File ownership: UID 65532 (correct permissions)
+- No errors in Dapr sidecar logs
+
+#### 3. **ADR-0012 Created** ✅
+**Title**: "Dapr Bindings for Object Storage"
+
+**Decision**: Cloud-native blob storage for production (Strategy B)
+- Local dev: emptyDir + localstorage binding
+- Production: Azure Blob Storage / AWS S3 / GCP Cloud Storage
+- Rejected: MinIO (operational complexity without significant benefit)
+
+**Documentation Updated**:
+- ADR-0007: Added scope exclusion for object storage
+- ADR README: Added ADR-0012, updated dashboard (12 ADRs, 2 implemented)
+- CLAUDE.md & AGENTS.md: Added ADR-0012 to architectural decisions list
+
+#### 4. **Documentation Updates** ✅
+- Updated Current Development Status (Phase 0.5 complete)
+- Updated "What Works Now" section (kind cluster, Helm deployment)
+- Rewrote "Local Development Setup" from "NOT YET IMPLEMENTED" to complete guide
+- Moved `plan/phase-0.5-local-environment-setup.md` to `plan/done/`
+
+---
+
+### Features Implemented
+
+1. **Receipt Service Dapr Volume Mounts** (charts/reddog/templates/receipt-generation-service.yaml):
+   - `dapr.io/volume-mounts-rw: "receipts:/tmp/receipts"` annotation
+   - `securityContext.fsGroup: 65532` for Dapr write permissions
+   - emptyDir volume for ephemeral local storage
+
+2. **Dapr Component Scope Fixes**:
+   - Fixed binding-receipt.yaml scope: `receiptgenerationservice` (not hyphenated)
+   - Validated scope matches Dapr app-id in all components
+
+3. **Helm Chart Improvements**:
+   - Added bootstrapper-job.yaml template
+   - Added secret-dapr-sql.yaml for infrastructure
+   - Updated service templates with correct port configurations
+
+4. **Configuration Templates**:
+   - Created `.env.local.sample` with environment variable documentation
+   - Created `values/values-local.yaml.sample` with comprehensive Helm values
+
+5. **Research Documentation**:
+   - Comprehensive Dapr volume mounts guide (docs/research/dapr-volume-mounts-configuration.md)
+   - Production recommendations (Azure Blob, S3, MinIO)
+   - All reference links and known issues
+
+---
+
+### Problems Encountered and Solutions
+
+#### Problem 1: Receipt Service CrashLoopBackOff
+**Error**: `mkdir /tmp/receipts: read-only file system`
+
+**Failed Attempts**:
+1. Added emptyDir only to app container (Dapr sidecar also needs access)
+2. Disabled receipt service entirely (user strongly objected)
+
+**Correct Solution** (from search specialist research):
+- Use `dapr.io/volume-mounts-rw` annotation (not `dapr.io/volume-mounts`)
+- Add `fsGroup: 65532` to match Dapr's UID for emptyDir permissions
+
+#### Problem 2: Component Scope Mismatch
+**Error**: `couldn't find output binding reddog.binding.receipt`
+
+**Root Cause**: Scope set to `receipt-generation-service` (hyphenated) but Dapr app-id is `receiptgenerationservice`
+
+**Solution**: Fixed scope in binding-receipt.yaml, restarted deployment
+
+#### Problem 3: Wrong Annotation Syntax
+**Error**: Dapr didn't mount volume when using `:rw` suffix
+
+**Root Cause**: Tried `dapr.io/volume-mounts: "receipts:/tmp/receipts:rw"` (invalid syntax)
+
+**Solution**: Use separate annotation `dapr.io/volume-mounts-rw` (not suffix)
+
+---
+
+### Breaking Changes / Important Findings
+
+1. **Dapr Volume Mount Annotations**:
+   - `dapr.io/volume-mounts` = read-only (DEFAULT)
+   - `dapr.io/volume-mounts-rw` = read-write (REQUIRED for bindings)
+   - Do NOT use `:rw` suffix syntax (doesn't work)
+
+2. **fsGroup Requirement**:
+   - emptyDir volumes owned by root (UID 0) by default
+   - Dapr sidecar runs as UID 65532
+   - MUST set `securityContext.fsGroup: 65532` for write access
+
+3. **Component Scoping Pattern**:
+   - Kubernetes deployment names: hyphenated (e.g., `receipt-generation-service`)
+   - Dapr app-ids: non-hyphenated (e.g., `receiptgenerationservice`)
+   - Component scopes MUST use non-hyphenated app-id format
+
+4. **Object Storage Strategy**:
+   - Local dev: emptyDir is appropriate (ephemeral, Kubernetes-managed)
+   - Production: Cloud-native blob storage preferred over MinIO
+   - Dapr binding abstraction keeps application code portable
+
+---
+
+### Configuration Changes
+
+1. **values/values-local.yaml**:
+   - Enabled receipt service binding: `binding.enabled: true`
+   - Updated all service configurations with correct ports and app-ids
+
+2. **Helm Templates**:
+   - All service templates: Updated Dapr annotations and port configurations
+   - Receipt service: Added volume mounts, security context, emptyDir volume
+   - Binding component: Fixed scope to match app-id
+
+3. **Dockerfiles**:
+   - Updated all service Dockerfiles with GHCR image repository references
+
+---
+
+### Deployment Steps Taken
+
+1. **Receipt Service Fix**:
+   ```bash
+   # Updated Helm template with volume-mounts-rw + fsGroup
+   helm upgrade reddog ./charts/reddog -f values/values-local.yaml
+   
+   # Verified deployment
+   kubectl get pods -l app=receipt-generation-service
+   # Result: 2/2 Running
+   
+   # Tested receipt generation
+   kubectl exec deploy/receipt-generation-service -- ls -lh /tmp/receipts/
+   # Result: 8 receipt files written successfully
+   ```
+
+2. **Documentation Commits**:
+   ```bash
+   git add -A
+   git commit -m "feat: Complete Phase 0.5..."
+   git push
+   # 4 commits total, all pushed successfully
+   ```
+
+---
+
+### Lessons Learned
+
+1. **Always Use Search Specialist for Complex Issues**:
+   - The receipt service volume mount issue was solved by spawning a search specialist agent
+   - Discovered correct annotation syntax and fsGroup requirement from official docs
+
+2. **Dapr Annotations Are Type-Specific**:
+   - Different annotations for read-only vs read-write mounts
+   - Syntax is strict (no `:rw` suffixes)
+   - Always check Dapr documentation for correct annotation format
+
+3. **Component Naming Consistency Matters**:
+   - Hyphenated Kubernetes names vs non-hyphenated Dapr app-ids
+   - Component scopes must match exact app-id
+   - Document this pattern for future services
+
+4. **emptyDir Is Valid for Local Dev**:
+   - Kubernetes-managed, works on any machine
+   - Appropriate for ephemeral data (receipts in demos)
+   - No pre-existing paths or volumes required
+
+5. **Object Storage Deserves Its Own ADR**:
+   - Different trade-offs than message brokers (ADR-0007)
+   - Cloud-native storage acceptable for non-critical data
+   - MinIO adds complexity without clear benefit for this use case
+
+---
+
+### What Wasn't Completed
+
+**None** - Phase 0.5 is fully complete. All planned features implemented and verified.
+
+**Next Phase**: Phase 1A - .NET 10 Upgrade (not started)
+
+---
+
+### Tips for Future Developers
+
+1. **Dapr Volume Mounts**:
+   - Always use `dapr.io/volume-mounts-rw` for writable volumes
+   - Always add `securityContext.fsGroup: 65532` when using emptyDir
+   - Test volume mount permissions after pod restart
+
+2. **Dapr Component Scoping**:
+   - Component scopes use non-hyphenated app-id format
+   - Check `dapr.io/app-id` annotation to find correct scope value
+   - Pod restart may be required after component changes
+
+3. **Helm Deployment Verification**:
+   ```bash
+   # Always check pod status after deployment
+   kubectl get pods
+   
+   # Check Dapr sidecar logs for component loading
+   kubectl logs -l app=SERVICE_NAME -c daprd | grep "Component loaded"
+   
+   # Check application logs for errors
+   kubectl logs -l app=SERVICE_NAME -c SERVICE_NAME
+   ```
+
+4. **Production Blob Storage Migration**:
+   - When migrating to production, swap Dapr binding component
+   - Application code remains unchanged (Dapr abstraction works)
+   - Test with MinIO in staging for S3 API compatibility
+
+5. **Session Documentation**:
+   - Use `/project:session-update` frequently during long sessions
+   - Document problems AND solutions for future reference
+   - Update session at major milestones (not just end)
+
+---
+
+## Final Status
+
+**Phase 0.5**: ✅ **COMPLETE**
+
+All services operational:
+- kind cluster running
+- All pods 2/2 Running (app + Dapr sidecar)
+- Receipt generation working
+- End-to-end pub/sub verified
+- Infrastructure healthy (Redis, SQL Server)
+
+**Ready for**: Phase 1A - .NET 10 Upgrade
+
+**Session Closed**: 2025-11-11 11:15 AM NZDT
+

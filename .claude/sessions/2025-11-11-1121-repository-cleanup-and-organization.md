@@ -129,3 +129,84 @@ Directories to Review:
 - Consider `manifests/` directory organization
 - Streamline CLAUDE.md from 431 to ~350 lines
 
+
+### Update - 2025-11-11 15:05 NZDT
+
+**Summary:** Reorganized .env files into .env/ directory structure to reduce root-level clutter and improve organization.
+
+**Accomplishments:**
+
+1. **Created .env/ Directory Structure:**
+   - Moved `.env.local.sample` → `.env/local.sample`
+   - Future-proof structure supports multiple environments (`.env/local`, `.env/dev`, `.env/staging`)
+   - Clean separation between git-tracked templates and gitignored secrets
+
+2. **Updated .gitignore:**
+   - Removed generic `.env` pattern (was blocking the directory)
+   - Added specific patterns: `.env/local`, `.env/dev`, `.env/staging`
+   - Added comments explaining purpose of each pattern
+
+3. **Comprehensive Documentation Updates (8 files):**
+   - **CLAUDE.md** - Updated 3 references (lines 101, 168, 373-374)
+   - **AGENTS.md** - Updated 3 references (lines 99, 166, 371-372)
+   - **ADR-0006** - Updated 5 references to reflect `.env/` directory pattern
+   - **Current session file** - Updated 2 references for accuracy
+   - **Phase 0.5 session file** - Historical accuracy updates
+   - **Archived devcontainer plan** - Updated for completeness
+   - **Archived development guide** - Updated for completeness
+   - **`.env/local.sample` comment** - Updated to reference new path
+
+4. **Verification Tests:**
+   - ✅ Confirmed `.env/local.sample` exists in new location
+   - ✅ Tested copy command: `cp .env/local.sample .env/local`
+   - ✅ Verified sample file content preserved
+   - ✅ Confirmed `.env/local` would be gitignored if created
+
+**Git Changes:**
+- Modified: `.gitignore`, `CLAUDE.md`, `AGENTS.md`, `Directory.Build.props`
+- Modified: `docs/adr/adr-0006-infrastructure-configuration-via-environment-variables.md`
+- Modified: `plan/done/devcontainer-implementation-plan-deprecated.md`
+- Modified: `.claude/sessions/2025-11-11-0657-phase0-5-completion.md`
+- Modified: `.claude/sessions/2025-11-11-1121-repository-cleanup-and-organization.md`
+- Deleted: `.env.local.sample` (root location)
+- Added: `.env/local.sample` (new location in .env/ directory)
+- Added: `docs/research/archive/` (8 archived research files from earlier)
+- Deleted: 18 PublicAPI.*.txt files, 2 tools/PublicApiBaseline/ files, 8 research docs
+- Branch: master (commit b29cfd7)
+
+**Todo Progress:** 8 completed, 0 in progress, 0 pending
+- ✓ Completed: Stage .env/local.sample in git
+- ✓ Completed: Update .gitignore for .env/ directory
+- ✓ Completed: Update CLAUDE.md references
+- ✓ Completed: Update AGENTS.md references
+- ✓ Completed: Update session files
+- ✓ Completed: Update ADR-0006
+- ✓ Completed: Update archived documentation (low priority)
+- ✓ Completed: Verify changes and test
+
+**Key Decisions:**
+1. **Used Planning Agent** - Spawned Haiku 4.5 Plan agent to create comprehensive reorganization plan before execution
+2. **Removed generic .env gitignore** - Was blocking the entire .env/ directory; replaced with specific file patterns
+3. **Updated historical session files** - Maintained accuracy in past session records for future reference
+4. **Updated archived documentation** - Even deprecated docs updated for completeness
+
+**Issues Encountered:**
+- Initial `git add .env/local.sample` failed because `.gitignore` had `.env` pattern blocking entire directory
+- Solution: Updated `.gitignore` first to use specific file patterns instead of directory-level ignore
+
+**Solutions Implemented:**
+- Removed `.env` from gitignore (line 567)
+- Added specific patterns: `.env/local`, `.env/dev`, `.env/staging`
+- This allows tracking `.env/local.sample` while ignoring actual secret files
+
+**Benefits Achieved:**
+1. **Cleaner Root Directory** - One less file at root level
+2. **Logical Organization** - All environment files grouped in `.env/` directory
+3. **Scalable Structure** - Easy to add `.env/dev`, `.env/staging` in future
+4. **Clear Documentation** - All references consistently updated across 8 files
+5. **Zero Breaking Changes** - Same functionality, just cleaner structure
+
+**Next Steps:**
+- Ready to commit all changes
+- Continue repository cleanup (remaining items from original goals)
+
