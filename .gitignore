@@ -564,9 +564,11 @@ typings/
 .yarn-integrity
 
 # dotenv environment variables file
-.env
 .env.test
 .env.local
+.env/local          # Local secrets (use .env/local.sample as template)
+.env/dev            # Development environment secrets
+.env/staging        # Staging environment secrets
 values/values-local.yaml
 
 # parcel-bundler cache (https://parceljs.org/)

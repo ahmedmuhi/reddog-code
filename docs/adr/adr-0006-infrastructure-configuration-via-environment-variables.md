@@ -136,7 +136,7 @@ Without clear guidelines, developers might:
 - **NEG-004**: **Type Safety Loss**: Environment variables are strings. Must parse/validate (`int.Parse(PORT)`, `bool(ENABLE_DEBUG)`). Runtime errors if invalid values.
 - **NEG-005**: **Secret Exposure Risk**: If developers mistakenly put secrets in environment variables (vs Dapr secret store), visible in `kubectl describe pod`. Requires developer education.
 - **NEG-006**: **Documentation Overhead**: Must document which environment variables each service requires. Deployment guides need comprehensive env var tables.
-- **NEG-007**: **Local Development Configuration**: Developers need `.env` files, shell export scripts, or IDE launch configurations to set environment variables locally.
+- **NEG-007**: **Local Development Configuration**: Developers need `.env/` directory files, shell export scripts, or IDE launch configurations to set environment variables locally.
 
 ## Alternatives Considered
 
@@ -387,10 +387,10 @@ services:
       - sqlserver
 ```
 
-- **IMP-006**: **Local Development (.env file)**:
+- **IMP-006**: **Local Development (.env/ directory)**:
 
 ```bash
-# .env (for local development - NOT committed to Git)
+# .env/local (for local development - NOT committed to Git)
 ASPNETCORE_URLS=http://localhost:5100
 DAPR_HTTP_PORT=5180
 DAPR_GRPC_PORT=5181
@@ -399,7 +399,7 @@ LOG_LEVEL=Debug
 ```
 
 ```bash
-# Load .env and run
+# Load .env/local and run
 dotnet run --project RedDog.OrderService
 ```
 
@@ -430,7 +430,7 @@ var app = builder.Build();
   - Each service README.md must include "Required Environment Variables" table
   - Deployment guides must specify environment variables per platform (AKS, Container Apps, EKS, GKE)
   - Example Kubernetes YAML manifests with all required environment variables
-  - Local development setup instructions with `.env` file examples
+  - Local development setup instructions with `.env/` directory examples
 
 - **IMP-009**: **Testing Strategy**:
   - **Unit Tests**: Mock environment variables using test frameworks (`Environment.SetEnvironmentVariable` in .NET, `os.environ` in Python)

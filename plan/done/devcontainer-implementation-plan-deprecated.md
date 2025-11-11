@@ -2018,12 +2018,12 @@ ghcr.io/org/repo/devcontainer:1
 **Example:**
 
 ```bash
-# .env.local (gitignored)
+# .env/local (gitignored)
 DATABASE_PASSWORD=secret123
 API_KEY=abc123
 
 # Load in dev container
-export $(cat .env.local | grep -v '^#' | xargs)
+export $(cat .env/local | grep -v '^#' | xargs)
 ```
 
 ---

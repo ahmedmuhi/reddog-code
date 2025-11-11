@@ -1,0 +1,4 @@
+# Local secrets for Red Dog development (git-tracked sample)
+# Copy to .env/local and fill in real values. Do NOT commit .env/local.
+
+SQLSERVER_SA_PASSWORD=CHANGE_ME

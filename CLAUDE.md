@@ -98,7 +98,7 @@ This repository uses structured documentation to separate concerns and provide c
 - Dapr CLI 1.16.2+ for local service execution (slim mode)
 - Node.js 24+ and npm 11+ for Vue.js UI
 - k6 v0.54.0+ for load testing (installed to ~/bin/)
-- Copy `.env.local.sample` → `.env.local`, set `SQLSERVER_SA_PASSWORD`, and keep the real file untracked.
+- Copy `.env/local.sample` → `.env/local`, set `SQLSERVER_SA_PASSWORD`, and keep the real file untracked.
 - Copy `values/values-local.yaml.sample` → `values/values-local.yaml` before running kind/Helm scripts.
 
 ### Build & Restore
@@ -165,7 +165,7 @@ cat tests/k6/BASELINE-RESULTS.md
 ### Infrastructure Management
 ```bash
 # Load local env vars once per shell
-set -a; source .env.local; set +a
+set -a; source .env/local; set +a
 
 # Start Redis and SQL Server (required for Dapr components)
 docker run --name reddog-redis -d -p 6379:6379 redis:6.2-alpine
@@ -339,15 +339,17 @@ To understand past development work:
 
 ### Service Responsibilities
 
-- **OrderService** (port 5100): REST API for order CRUD, publishes orders to pub/sub
-- **MakeLineService** (port 5200): Queue management using Redis state, exposes order status API
-- **LoyaltyService** (port 5400): Manages customer loyalty points in Redis state
-- **ReceiptGenerationService** (port 5300): Generates receipts via output binding
-- **AccountingService** (port 5700): Aggregates order data in SQL Server, exposes analytics API
-- **VirtualCustomers**: Simulates order creation (no app port, Dapr-only)
-- **VirtualWorker** (port 5500): Simulates order completion
-- **Bootstrapper**: One-time database initialization via EF migrations
-- **RedDog.UI** (port 8080): Vue.js dashboard consuming MakeLineService and AccountingService APIs
+**Note:** All services listen on **port 80** inside containers (Kubernetes/Helm deployment). The ports shown below are for standalone `dapr run` CLI mode only.
+
+- **OrderService** (standalone: 5100, container: 80): REST API for order CRUD, publishes orders to pub/sub
+- **MakeLineService** (standalone: 5200, container: 80): Queue management using Redis state, exposes order status API
+- **LoyaltyService** (standalone: 5400, container: 80): Manages customer loyalty points in Redis state
+- **ReceiptGenerationService** (standalone: 5300, container: 80): Generates receipts via output binding
+- **AccountingService** (standalone: 5700, container: 80): Aggregates order data in SQL Server, exposes analytics API
+- **VirtualCustomers** (container: 80): Simulates order creation (Dapr pub/sub client)
+- **VirtualWorker** (standalone: 5500, container: 80): Simulates order completion
+- **Bootstrapper** (container: 80): One-time database initialization via EF migrations (console app, no HTTP listener)
+- **RedDog.UI** (standalone: 8080, container: 80): Vue.js dashboard consuming MakeLineService and AccountingService APIs
 
 ### Local Development Setup
 
@@ -368,8 +370,8 @@ To understand past development work:
    ```bash
    # Copy sample config and customize
    cp values/values-local.yaml.sample values/values-local.yaml
-   cp .env.local.sample .env.local
-   # Edit values/values-local.yaml and .env.local with your settings
+   cp .env/local.sample .env/local
+   # Edit values/values-local.yaml and .env/local with your settings
    ```
 
 3. **Run setup script:**
