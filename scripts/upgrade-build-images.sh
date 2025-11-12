@@ -67,9 +67,14 @@ echo ""
 
 BUILD_START=$(date +%s)
 
+DOCKER_BUILD_FLAGS=()
+if docker build --help 2>&1 | grep -q -- "--progress"; then
+  DOCKER_BUILD_FLAGS+=(--progress=plain)
+fi
+
 for TAG in "${TAGS[@]}"; do
   echo "Building: $TAG"
-  if docker build -t "$TAG" -f "$DOCKERFILE" . 2>&1 | grep -E "(Step|Successfully|Error|error)"; then
+  if docker build "${DOCKER_BUILD_FLAGS[@]}" -t "$TAG" -f "$DOCKERFILE" .; then
     echo "  ✓ Built: $TAG"
   else
     echo "  ❌ FAILED to build: $TAG"
@@ -106,7 +111,7 @@ echo ""
 LOAD_START=$(date +%s)
 
 echo "Loading ${#TAGS[@]} images into kind cluster 'reddog-local'..."
-if kind load docker-image "${TAGS[@]}" --name reddog-local 2>&1 | grep -E "(Image|Loaded|Error|error)"; then
+if kind load docker-image "${TAGS[@]}" --name reddog-local; then
   echo "✓ All images loaded into kind cluster"
 else
   echo "❌ FAILED to load images into kind cluster"

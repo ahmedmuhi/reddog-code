@@ -18,6 +18,7 @@ fi
 
 SERVICE_NAME="$1"
 SERVICE_LOWER=$(echo "$SERVICE_NAME" | tr '[:upper:]' '[:lower:]')
+SERVICE_LABEL=$(echo "$SERVICE_NAME" | sed -E 's/([a-z0-9])([A-Z])/\1-\2/g' | tr '[:upper:]' '[:lower:]')
 
 echo "╔════════════════════════════════════════════════════════════════╗"
 echo "║       Deployment Validation for $SERVICE_NAME"
@@ -28,9 +29,9 @@ FAILED=0
 
 # 1. Get pod name
 echo "✓ Finding pod..."
-POD_NAME=$(kubectl get pods -l app=${SERVICE_LOWER}-service --no-headers 2>/dev/null | head -1 | awk '{print $1}' || echo "")
+POD_NAME=$(kubectl get pods -l app=${SERVICE_LABEL} --no-headers 2>/dev/null | head -1 | awk '{print $1}' || echo "")
 if [ -z "$POD_NAME" ]; then
-  echo "  ❌ FAILED - No pod found for label app=${SERVICE_LOWER}-service"
+  echo "  ❌ FAILED - No pod found for label app=${SERVICE_LABEL}"
   echo ""
   echo "Available pods:"
   kubectl get pods
@@ -76,7 +77,7 @@ fi
 
 # 4. Check image version
 echo "✓ Verifying deployed image..."
-APP_CONTAINER_NAME="${SERVICE_LOWER}-service"
+APP_CONTAINER_NAME="${SERVICE_LABEL}"
 DEPLOYED_IMAGE=$(kubectl get pod $POD_NAME -o jsonpath="{.spec.containers[?(@.name=='$APP_CONTAINER_NAME')].image}" 2>/dev/null || echo "UNKNOWN")
 echo "  Image: $DEPLOYED_IMAGE"
 
@@ -123,8 +124,8 @@ echo ""
 
 # 6. Check for probe failures in events
 echo "✓ Checking for probe failures..."
-PROBE_FAILURES=$(kubectl get events --field-selector involvedObject.name=$POD_NAME 2>/dev/null | grep -i "probe.*failed" | wc -l || echo "0")
-if [ "$PROBE_FAILURES" -gt 0 ]; then
+PROBE_FAILURES=$(kubectl get events --field-selector involvedObject.name=$POD_NAME 2>/dev/null | grep -ci "probe.*failed" || true)
+if [ "${PROBE_FAILURES:-0}" -gt 0 ]; then
   echo "  ⚠️  WARNING - $PROBE_FAILURES probe failures detected in events"
   kubectl get events --field-selector involvedObject.name=$POD_NAME | grep -i "probe"
   FAILED=1
@@ -153,8 +154,8 @@ echo ""
 
 # 8. Check application logs for errors
 echo "✓ Checking application logs for errors..."
-ERROR_COUNT=$(kubectl logs $POD_NAME -c $APP_CONTAINER_NAME --tail=50 2>/dev/null | grep -iE "(error|exception|fatal)" | wc -l || echo "0")
-if [ "$ERROR_COUNT" -gt 0 ]; then
+ERROR_COUNT=$(kubectl logs $POD_NAME -c $APP_CONTAINER_NAME --tail=50 2>/dev/null | grep -ciE "(error|exception|fatal)" || true)
+if [ "${ERROR_COUNT:-0}" -gt 0 ]; then
   echo "  ⚠️  WARNING - Found $ERROR_COUNT error/exception entries in recent logs"
   echo "  Recent errors:"
   kubectl logs $POD_NAME -c $APP_CONTAINER_NAME --tail=50 | grep -iE "(error|exception|fatal)" | head -5 | sed 's/^/    /'

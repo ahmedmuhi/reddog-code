@@ -34,12 +34,120 @@ command -v docker >/dev/null 2>&1 || { print_error "docker is not installed"; ex
 print_status "All prerequisites installed"
 echo ""
 
+# Check WSL2 memory configuration (Windows users only)
+echo "Checking WSL2 configuration..."
+if grep -qi microsoft /proc/version 2>/dev/null; then
+    print_status "Running on WSL2"
+
+    # Check if .wslconfig exists
+    WSLCONFIG_PATH="/mnt/c/Users/$(whoami)/.wslconfig"
+    if [ ! -f "$WSLCONFIG_PATH" ]; then
+        print_warning "No .wslconfig file found"
+        echo ""
+        echo "  WSL2 can consume significant memory (up to 50% of RAM or 8GB by default)."
+        echo "  Without limits, VMMEMWSL may consume 14GB+ RAM, leaving only 2GB for Windows."
+        echo ""
+        echo "  Recommended: Create C:\\Users\\$(whoami)\\.wslconfig with:"
+        echo ""
+        echo "  [wsl2]"
+        echo "  memory=4GB           # Hard limit (adjust based on your RAM)"
+        echo "  processors=4         # CPU core limit"
+        echo "  swap=2GB"
+        echo "  pageReporting=true   # Return memory to Windows"
+        echo ""
+        echo "  [experimental]"
+        echo "  autoMemoryReclaim=dropcache  # Docker-compatible mode"
+        echo "  sparseVhd=true"
+        echo ""
+        echo "  After creating .wslconfig, run 'wsl --shutdown' and restart Docker Desktop."
+        echo ""
+        echo "  For more details, see: https://learn.microsoft.com/en-us/windows/wsl/wsl-config#wslconfig"
+        echo ""
+        read -p "Press Enter to continue without .wslconfig (or Ctrl+C to exit and configure)..."
+        echo ""
+    else
+        print_status ".wslconfig exists at $WSLCONFIG_PATH"
+
+        # Check if memory limit is set
+        if grep -q "memory=" "$WSLCONFIG_PATH" 2>/dev/null; then
+            MEMORY_LIMIT=$(grep "memory=" "$WSLCONFIG_PATH" | cut -d= -f2 | tr -d ' ')
+            print_status "WSL2 memory limit: $MEMORY_LIMIT"
+        else
+            print_warning ".wslconfig exists but no memory limit set"
+            echo "  Consider adding 'memory=4GB' to limit WSL2 memory usage."
+        fi
+    fi
+else
+    print_status "Not running on WSL2, skipping .wslconfig check"
+fi
+echo ""
+
 # Ensure local values file exists
 if [ ! -f values/values-local.yaml ]; then
     print_error "values/values-local.yaml not found."
     echo "Create it by copying values/values-local.yaml.sample and setting local secrets (e.g., SQL password)."
     exit 1
 fi
+
+# Validate Dapr sidecar resource configuration
+echo "Validating Dapr sidecar resource configuration..."
+DAPR_CPU_LIMIT=$(grep -A 10 "services:" values/values-local.yaml | grep -A 5 "dapr:" | grep -A 4 "resources:" | grep -A 2 "limits:" | grep "cpu:" | head -1 | sed 's/.*cpu:[[:space:]]*//' | tr -d '"' | tr -d "'" | tr -d ' ')
+
+if [ -z "$DAPR_CPU_LIMIT" ]; then
+    print_error "CRITICAL: Dapr sidecar CPU limit not found in values-local.yaml!"
+    echo ""
+    echo "  Dapr sidecars default to 2000m (2 vCPU) CPU limit when not explicitly set."
+    echo "  With 6 services using Dapr, this results in 12 vCPU consumed by sidecars alone."
+    echo ""
+    echo "  This will cause severe performance issues on typical development machines."
+    echo ""
+    echo "  Required configuration in values-local.yaml:"
+    echo ""
+    echo "  services:"
+    echo "    common:"
+    echo "      dapr:"
+    echo "        resources:"
+    echo "          requests:"
+    echo "            cpu: 50m"
+    echo "            memory: 64Mi"
+    echo "          limits:"
+    echo "            cpu: 200m      # Critical: prevents 2000m default!"
+    echo "            memory: 256Mi"
+    echo ""
+    echo "  Your values-local.yaml may be outdated. Compare with values-local.yaml.sample."
+    echo ""
+    read -p "Continue anyway? (y/N): " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        print_error "Setup aborted. Please update values-local.yaml and try again."
+        exit 1
+    fi
+    echo ""
+elif [ "$DAPR_CPU_LIMIT" == "2000m" ] || [ "$DAPR_CPU_LIMIT" == "2" ]; then
+    print_error "CRITICAL: Dapr sidecar CPU limit is set to 2000m (2 vCPU)!"
+    echo ""
+    echo "  This is the default value and will cause severe performance issues."
+    echo "  Recommended: Set cpu limit to 200m in values-local.yaml"
+    echo ""
+    read -p "Continue anyway? (y/N): " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        print_error "Setup aborted. Please update values-local.yaml and try again."
+        exit 1
+    fi
+    echo ""
+else
+    print_status "Dapr sidecar CPU limit: $DAPR_CPU_LIMIT"
+
+    # Validate it's a reasonable value (should be <= 500m)
+    CPU_NUM=$(echo "$DAPR_CPU_LIMIT" | sed 's/m//')
+    if [ "$CPU_NUM" -gt 500 ] 2>/dev/null; then
+        print_warning "Dapr sidecar CPU limit ($DAPR_CPU_LIMIT) seems high for local dev"
+        echo "  Recommended: 200m or less"
+        echo ""
+    fi
+fi
+echo ""
 
 # 1. Create kind cluster
 echo "Step 1: Creating kind cluster..."

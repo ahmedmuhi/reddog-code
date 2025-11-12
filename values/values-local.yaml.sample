@@ -132,6 +132,17 @@ services:
       enabled: true
       appPort: 80
       logLevel: info
+      # CRITICAL: Dapr sidecar resource limits
+      # Without these explicit limits, Dapr defaults to 2000m (2 vCPU) per sidecar!
+      # With 6 services using Dapr, this results in 12 vCPU consumed by sidecars alone.
+      # This will severely degrade performance on typical development machines.
+      resources:
+        requests:
+          cpu: 50m       # Minimal CPU request for local dev
+          memory: 64Mi   # Minimal memory request for local dev
+        limits:
+          cpu: 200m      # CRITICAL: Prevents 2000m (2 vCPU) default!
+          memory: 256Mi  # Prevents 512Mi default
 
   # OrderService
   orderservice:

@@ -17,5 +17,5 @@ spec:
       key: password
   {{- end }}
 scopes:
-  - make-line-service
+  - {{ .Values.services.makelineservice.dapr.appId | quote }}
 {{- end }}

@@ -1,135 +1,145 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net;
-using System.Threading.Tasks;
-using Dapr;
 using Dapr.Client;
-using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using RedDog.MakeLineService.Configuration;
 using RedDog.MakeLineService.Models;
+using RedDog.MakeLineService.Services;
 
-namespace RedDog.MakeLineService.Controllers
+namespace RedDog.MakeLineService.Controllers;
+
+/// <summary>
+/// MakeLineController manages the order queue for coffee orders.
+/// Subscribes to incoming orders via Dapr pub/sub and provides REST API for order queue management.
+/// Per ADR-0004: Configuration values will migrate to Dapr Configuration API in future iteration.
+/// </summary>
+[ApiController]
+[Route("[controller]")]
+public partial class MakelineController(
+    IMakelineQueueProcessor makelineQueueProcessor,
+    IOptions<DaprOptions> daprOptions,
+    ILogger<MakelineController> logger) : ControllerBase
 {
-    [ApiController]
-    [Route("[controller]")]
-    public class MakelineController : ControllerBase
+    private readonly DaprOptions _daprOptions = daprOptions?.Value ?? throw new ArgumentNullException(nameof(daprOptions));
+    private readonly ILogger<MakelineController> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    private readonly IMakelineQueueProcessor _makelineQueueProcessor = makelineQueueProcessor ?? throw new ArgumentNullException(nameof(makelineQueueProcessor));
+
+    /// <summary>
+    /// Receives incoming orders from Dapr pub/sub and adds them to the store's order queue.
+    /// Implements optimistic concurrency control with retry loop for high-volume scenarios.
+    /// </summary>
+    /// <param name="orderSummary">Order details including store ID, customer info, and order items.</param>
+    /// <returns>HTTP 200 OK if order successfully queued, HTTP 500 if error occurs.</returns>
+    [HttpPost("/orders")]
+    public async Task<IActionResult> AddOrderToMakeLine(OrderSummary orderSummary, CancellationToken cancellationToken)
     {
-        private const string OrderTopic = "orders";
-        private const string OrderCompletedTopic = "ordercompleted";
-        private const string PubSubName = "reddog.pubsub";
-        private const string MakeLineStateStoreName = "reddog.state.makeline";
-        private readonly ILogger<MakelineController> _logger;
-        private readonly DaprClient _daprClient;
-        private readonly StateOptions _stateOptions = new StateOptions(){ Concurrency = ConcurrencyMode.FirstWrite, Consistency = ConsistencyMode.Eventual };
-
-        public MakelineController(ILogger<MakelineController> logger, DaprClient daprClient)
+        if (orderSummary == null)
         {
-            _logger = logger;
-            _daprClient = daprClient;
+            return BadRequest("OrderSummary cannot be null");
         }
 
-        [Topic(PubSubName, OrderTopic)]
-        [HttpPost("/orders")]
-        public async Task<IActionResult> AddOrderToMakeLine(OrderSummary orderSummary)
+        LogReceivedOrder(orderSummary.OrderId, orderSummary.StoreId, orderSummary.OrderTotal);
+
+        try
         {
-            _logger.LogInformation("Received Order: {@OrderSummary}", orderSummary);
-
-            StateEntry<List<OrderSummary>> state = null;
-            try
-            {
-                bool isSuccess;
-
-                do
-                {
-                    state = await GetAllOrdersAsync(orderSummary.StoreId);
-                    state.Value ??= new List<OrderSummary>();
-                    state.Value.Add(orderSummary);
-                    isSuccess = await state.TrySaveAsync(_stateOptions);
-                } while(!isSuccess);
-
-                _logger.LogInformation("Successfully added Order to Make Line: {OrderId}", orderSummary.OrderId);
-            }
-            catch(Exception e)
-            {
-                _logger.LogError("Error saving order summaries. Message: {Content}", e.InnerException?.Message ?? e.Message);
-                return Problem(e.Message, null, (int)HttpStatusCode.InternalServerError);
-            }
-
-            return new OkResult();
+            await _makelineQueueProcessor.AddOrderAsync(orderSummary, cancellationToken);
+            LogOrderAddedSuccessfully(orderSummary.OrderId);
+        }
+        catch (Exception e)
+        {
+            LogErrorSavingOrder(e, orderSummary.OrderId);
+            return Problem(e.Message, null, (int)HttpStatusCode.InternalServerError);
         }
 
-        [HttpGet("/orders/{storeId}")]
-        public async Task<IActionResult> GetOrders(string storeId)
-        {
-            var orders = (await GetAllOrdersAsync(storeId)).Value ?? new List<OrderSummary>();
-            return new OkObjectResult(orders.OrderBy(o => o.OrderDate));
-        }
-
-        [HttpDelete("/orders/{storeId}/{orderId}")]
-        public async Task<IActionResult> CompleteOrder(string storeId, Guid orderId)
-        {
-            _logger.LogInformation("Completing Order: {OrderId}", orderId);
-
-            bool isSuccess;
-            OrderSummary order;
-            DateTime orderCompletedDate = DateTime.UtcNow;
-
-            var orders = await GetAllOrdersAsync(storeId);
-            order = orders.Value.FirstOrDefault(o => o.OrderId == orderId);
-            order.OrderCompletedDate = orderCompletedDate;
-            
-            if (order != null)
-            {
-                try
-                {
-                    await _daprClient.PublishEventAsync<OrderSummary>(PubSubName, OrderCompletedTopic, order);
-                    _logger.LogInformation("Published order completed message for OrderId: {orderId}");
-                }
-                catch(Exception e)
-                {
-                    _logger.LogError("Error publishing order completed message for OrderId: {orderId}. Message: {Content}", orderId, e.InnerException?.Message ?? e.Message);
-                    return Problem(e.Message, null, (int)HttpStatusCode.InternalServerError);
-                }
-            }
-
-            do
-            {
-                if (order != null)
-                {
-                    orders.Value.Remove(order);
-                    try
-                    {
-                        isSuccess = await orders.TrySaveAsync(_stateOptions);
-                        if(!isSuccess)
-                        {
-                            orders = await GetAllOrdersAsync(storeId);
-                            order = orders.Value.FirstOrDefault(o => o.OrderId == orderId);
-                            order.OrderCompletedDate = orderCompletedDate;
-                        }
-                    }
-                    catch(Exception e)
-                    {
-                        _logger.LogError("Error saving order summaries. Message: {Content}", e.InnerException?.Message ?? e.Message);
-                        return Problem(e.Message, null, (int)HttpStatusCode.InternalServerError);
-                    }
-                }
-                else
-                {
-                    isSuccess = true;
-                }
-            }
-            while(!isSuccess);
-
-            _logger.LogInformation("Completed Order: {@OrderSummary}", order);
-
-            return new OkResult();
-        }
-
-        private async Task<StateEntry<List<OrderSummary>>> GetAllOrdersAsync(string storeId)
-        {
-            return await _daprClient.GetStateEntryAsync<List<OrderSummary>>(MakeLineStateStoreName, storeId);
-        }
+        return Ok();
     }
+
+    /// <summary>
+    /// Retrieves all orders in the queue for a specific store.
+    /// Orders are returned sorted by order date (oldest first).
+    /// </summary>
+    /// <param name="storeId">The unique identifier for the store location.</param>
+    /// <returns>Array of orders in the queue, sorted by order date.</returns>
+    [HttpGet("/orders/{storeId}")]
+    public async Task<IActionResult> GetOrders(string storeId, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(storeId))
+        {
+            return BadRequest("StoreId cannot be null or empty");
+        }
+
+        var orders = await _makelineQueueProcessor.GetOrdersAsync(storeId, cancellationToken);
+        return Ok(orders.OrderBy(o => o.OrderDate));
+    }
+
+    /// <summary>
+    /// Marks an order as completed and removes it from the queue.
+    /// Publishes an order completed event to the pub/sub system.
+    /// Implements optimistic concurrency control with retry loop.
+    /// </summary>
+    /// <param name="storeId">The unique identifier for the store location.</param>
+    /// <param name="orderId">The unique identifier for the order to complete.</param>
+    /// <returns>HTTP 200 OK if order completed successfully, HTTP 500 if error occurs.</returns>
+    [HttpDelete("/orders/{storeId}/{orderId}")]
+    public async Task<IActionResult> CompleteOrder(string storeId, Guid orderId, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(storeId))
+        {
+            return BadRequest("StoreId cannot be null or empty");
+        }
+
+        LogCompletingOrder(orderId);
+
+        DateTime orderCompletedDate = DateTime.UtcNow;
+
+        try
+        {
+            var completed = await _makelineQueueProcessor.CompleteOrderAsync(storeId, orderId, orderCompletedDate, cancellationToken);
+            if (completed)
+            {
+                LogPublishedOrderCompletedMessage(orderId);
+            }
+        }
+        catch (OrderPublishException e)
+        {
+            LogErrorPublishingOrderCompletedMessage(e, orderId);
+            return Problem(e.Message, null, (int)HttpStatusCode.InternalServerError);
+        }
+        catch (Exception e)
+        {
+            LogErrorSavingOrderSummaries(e);
+            return Problem(e.Message, null, (int)HttpStatusCode.InternalServerError);
+        }
+
+        LogCompletedOrder(orderId);
+
+        return Ok();
+    }
+
+    // Source generator logging (C# Pro performance pattern)
+    // See: https://learn.microsoft.com/dotnet/core/extensions/logger-message-generator
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Received order {OrderId} for store {StoreId} with total ${OrderTotal:F2}")]
+    partial void LogReceivedOrder(Guid orderId, string storeId, decimal orderTotal);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Successfully added order {OrderId} to Make Line")]
+    partial void LogOrderAddedSuccessfully(Guid orderId);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Error saving order {OrderId} to state store")]
+    partial void LogErrorSavingOrder(Exception exception, Guid orderId);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Completing order {OrderId}")]
+    partial void LogCompletingOrder(Guid orderId);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Published order completed message for order {OrderId}")]
+    partial void LogPublishedOrderCompletedMessage(Guid orderId);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Error publishing order completed message for order {OrderId}")]
+    partial void LogErrorPublishingOrderCompletedMessage(Exception exception, Guid orderId);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Error saving order summaries to state store")]
+    partial void LogErrorSavingOrderSummaries(Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Completed order {OrderId}")]
+    partial void LogCompletedOrder(Guid orderId);
 }
