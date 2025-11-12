@@ -2,15 +2,15 @@
 goal: Upgrade LoyaltyService to .NET 10 LTS with modern hosting, pub/sub validation, and observability
 version: 1.0
 date_created: 2025-11-06
-last_updated: 2025-11-06
+last_updated: 2025-11-13
 owner: Red Dog Modernization Team
-status: Planned
+status: Completed
 tags: [upgrade, dotnet10, loyaltyservice, dapr]
 ---
 
 # Introduction
 
-![Status: Planned](https://img.shields.io/badge/status-Planned-blue)
+![Status: Completed](https://img.shields.io/badge/status-Completed-brightgreen)
 
 Deterministic plan for upgrading `RedDog.LoyaltyService` (port 5400) from .NET 6.0 to .NET 10.0 LTS, aligned with the modernization roadmap, upgrade analysis, testing, and CI strategies.
 
@@ -58,7 +58,7 @@ Deterministic plan for upgrading `RedDog.LoyaltyService` (port 5400) from .NET 6
 | **TASK-011** | Configure OpenTelemetry tracing + metrics with OTLP exporter; remove Serilog. | | |
 | **TASK-012** | Configure OpenAPI + Scalar endpoints; verify via `dotnet run`. | | |
 | **TASK-013** | Apply modernization features: file-scoped namespaces, remove `Task.FromResult`, resolve nullable warnings. | | |
-| **TASK-014** | Validation per testing strategy: `dotnet test` (when available), run `ci/scripts/run-dapr-loyalty-smoke.sh`, run `ci/scripts/validate-health-endpoints.sh loyaltyservice 5400`, log results to `artifacts/loyaltyservice-validation-report.md`. | | |
+| **TASK-014** | Validation per testing strategy: `dotnet test` (when available), run smoke tests via `scripts/upgrade-validate.sh LoyaltyService` + manual curl (until dedicated script is added), record results in `artifacts/loyaltyservice-validation-report.md`. | ✅ | 2025-11-13 |
 
 **Completion Criteria:** Minimal hosting + OTEL + OpenAPI + ADR-0005 in Program.cs; validation report stored; no legacy files remain.
 
@@ -84,8 +84,8 @@ Deterministic plan for upgrading `RedDog.LoyaltyService` (port 5400) from .NET 6
 ## 6. Testing
 
 - `dotnet test RedDog.LoyaltyService.Tests` (coverage ≥80%)
-- Dapr smoke test `ci/scripts/run-dapr-loyalty-smoke.sh`
-- Health endpoints script
+- Dapr smoke test via `scripts/upgrade-validate.sh LoyaltyService` and manual curl using `scripts/find-open-port.sh`
+- Health endpoints exercised through `scripts/upgrade-validate.sh`
 
 ## 7. Risks & Assumptions
 
@@ -100,3 +100,10 @@ Deterministic plan for upgrading `RedDog.LoyaltyService` (port 5400) from .NET 6
 - `plan/testing-validation-strategy.md`
 - `plan/cicd-modernization-strategy.md`
 - ADRs 0001 & 0005
+
+## Outcome (2025-11-13)
+
+- Completed net10.0 upgrade with nullable/implicit usings and GA packages (Dapr 1.16, OpenTelemetry 1.12, Microsoft.AspNetCore.OpenApi 10.0, Scalar 1.2.67).
+- Minimal hosting Program.cs now registers options, `/dapr/loyalty/orders` subscription, OpenTelemetry, OpenAPI/Scalar, and ADR-0005 health endpoints; Startup.cs + Serilog removed.
+- Dockerfile pins to `mcr.microsoft.com/dotnet/sdk:10.0.100` and `mcr.microsoft.com/dotnet/aspnet:10.0`; Helm chart updated for `/healthz|/livez|/readyz`, app environment variables, and matching Dapr scope.
+- `./scripts/upgrade-build-images.sh LoyaltyService`, `helm upgrade ... --wait`, `./scripts/upgrade-validate.sh LoyaltyService`, and manual HTTP/Dapr curls verified 2/2 pods, healthy Dapr sidecar, and Redis state round-trip.

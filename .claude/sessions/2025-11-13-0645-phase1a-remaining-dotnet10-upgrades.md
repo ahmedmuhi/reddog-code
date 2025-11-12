@@ -245,7 +245,26 @@ This session continues Phase 1A modernization work - completing the remaining 4 
 **Next Steps**:
 1. Commit these changes
 2. Begin .NET 10 upgrades for remaining 4 services:
-   - MakeLineService
-   - LoyaltyService
+   - LoyaltyService ✅ (completed 2025-11-13 11:40 NZDT)
    - VirtualWorker
    - VirtualCustomers
+
+### Update - 2025-11-13 11:45 NZDT
+
+**Summary**: LoyaltyService upgraded to .NET 10, deployed via Helm, validated with enhanced automation, and smoke-tested over both HTTP and Dapr invocation paths.
+
+**Activities**:
+1. Applied the same C# Pro patterns as MakeLineService (nullable net10.0 csproj, options binding, OpenTelemetry, OpenAPI/Scalar, `/dapr/loyalty/orders` endpoint, ADR-0005 health checks) and removed Startup.cs/Serilog.
+2. Added new `Configuration/` option classes, `ILoyaltyStateService` for Redis/Dapr access with ETag retry logic, and a Dapr sidecar health check.
+3. Updated Dockerfile to GA SDK/runtime images, Helm chart to `/healthz|/livez|/readyz` + env vars, and corrected `reddog.state.loyalty` scope to `makelineservice`.
+4. Built images (`./scripts/upgrade-build-images.sh LoyaltyService`), rolled back stuck Helm rev, re-upgraded, then ran `./scripts/upgrade-validate.sh LoyaltyService` (state round-trip), followed by manual HTTP + Dapr curls using `scripts/find-open-port.sh`.
+
+**Artifacts / Evidence**:
+- `.image-manifest-LoyaltyService.txt`
+- `./scripts/upgrade-validate.sh LoyaltyService` output in terminal history (state store check passed)
+- `/tmp/loyalty-http.json` & `/tmp/loyalty-dapr.json` capture HTTP 200 payloads.
+
+**Next Steps**:
+- Archive LoyaltyService plan under `plan/done/`
+- Update modernization strategy + documentation with new guardrails
+- Prepare VirtualWorker/VirtualCustomers plans with GA-image + port-forward guidance.

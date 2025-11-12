@@ -333,7 +333,7 @@ These components satisfy Phase 1A (.NET 10 upgrade) requirements. The upgrades b
 2. ✅ RedDog.AccountingService (.NET 6 → .NET 10) - **COMPLETED 2025-11-12**
 3. ✅ RedDog.AccountingModel (.NET 6 → .NET 10) - **COMPLETED 2025-11-12**
 4. ✅ RedDog.MakeLineService (.NET 6 → .NET 10) - **COMPLETED 2025-11-13**
-5. RedDog.LoyaltyService (.NET 6 → .NET 10)
+5. ✅ RedDog.LoyaltyService (.NET 6 → .NET 10) - **COMPLETED 2025-11-13**
 6. ✅ RedDog.ReceiptGenerationService (.NET 6 → .NET 10) - **COMPLETED 2025-11-11**
 7. RedDog.VirtualWorker (.NET 6 → .NET 10)
 8. RedDog.VirtualCustomers (.NET 6 → .NET 10)
@@ -426,8 +426,8 @@ These components satisfy Phase 1A (.NET 10 upgrade) requirements. The upgrades b
 - ✅ **ReceiptGenerationService** - Fully compliant (startup: `/healthz`, liveness: `/livez`, readiness: `/readyz`)
 - ✅ **AccountingService** - Fully compliant (all probes correct, timeouts optimal)
 - ⚠️ **OrderService** - Needs probe path update (still uses `/probes/ready` in Helm chart)
-- ⚠️ **MakeLineService** - Not yet upgraded
-- ⚠️ **LoyaltyService** - Not yet upgraded
+- ✅ **MakeLineService** - Upgraded 2025-11-13 (Helm chart and endpoints aligned)
+- ✅ **LoyaltyService** - Upgraded 2025-11-13 (Helm chart and endpoints aligned)
 
 **Session Documentation:**
 - `.claude/sessions/2025-11-11-1541-phase1a-orderservice-dotnet10-upgrade.md` - Complete Phase 1A history
@@ -487,7 +487,7 @@ Created automation and documentation to prevent these issues for remaining 4 ser
 - Zero configuration errors
 - Zero stale image deployments
 
-**Target:** Complete remaining 4 services (MakeLineService, LoyaltyService, VirtualWorker, VirtualCustomers) with ZERO deployment failures.
+**Target:** Complete remaining 2 services (VirtualWorker, VirtualCustomers) with ZERO deployment failures.
 
 **Session Documentation:**
 - `.claude/sessions/2025-11-12-XXXX-phase1a-prevention-strategy.md` - Prevention strategy development session

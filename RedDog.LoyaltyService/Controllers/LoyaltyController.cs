@@ -1,68 +1,30 @@
-﻿using System;
-using System.Threading.Tasks;
-using Dapr;
-using Dapr.Client;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.AspNetCore.Mvc;
 using RedDog.LoyaltyService.Models;
+using RedDog.LoyaltyService.Services;
 
-namespace RedDog.LoyaltyService.Controllers
+namespace RedDog.LoyaltyService.Controllers;
+
+[ApiController]
+[Route("[controller]")]
+public class LoyaltyController(ILoyaltyStateService loyaltyStateService, ILogger<LoyaltyController> logger) : ControllerBase
 {
-    [ApiController]
-    [Route("[controller]")]
-    public class LoyaltyController : ControllerBase
+    private readonly ILoyaltyStateService _loyaltyStateService = loyaltyStateService ?? throw new ArgumentNullException(nameof(loyaltyStateService));
+    private readonly ILogger<LoyaltyController> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+
+    [HttpPost("orders")]
+    public async Task<IActionResult> UpdateLoyalty(OrderSummary orderSummary, CancellationToken cancellationToken)
     {
-        private const string OrderTopic = "orders";
-        private const string PubSubName = "reddog.pubsub";
-        private const string LoyaltyStateStoreName = "reddog.state.loyalty";
-        private readonly ILogger<LoyaltyController> _logger;
-        private readonly DaprClient _daprClient;
-        private readonly StateOptions _stateOptions = new StateOptions(){ Concurrency = ConcurrencyMode.FirstWrite, Consistency = ConsistencyMode.Eventual };
-
-        public LoyaltyController(ILogger<LoyaltyController> logger, DaprClient daprClient)
+        if (orderSummary is null)
         {
-            _logger = logger;
-            _daprClient = daprClient;
+            return BadRequest("OrderSummary cannot be null.");
         }
 
-        [Topic(PubSubName, OrderTopic)]
-        [HttpPost("orders")]
-        public async Task<IActionResult> UpdateLoyalty(OrderSummary orderSummary)
-        {
-            _logger.LogInformation("Received Order Summary: {@OrderSummary}", orderSummary);
+        var summary = await _loyaltyStateService.UpdateAsync(orderSummary, cancellationToken);
+        _logger.LogInformation("Updated loyalty points for {LoyaltyId}. Points earned: {PointsEarned}, total: {PointTotal}",
+            orderSummary.LoyaltyId,
+            summary.PointsEarned,
+            summary.PointTotal);
 
-            // TODO: Test if orderSummary.OrderTotal == null
-            int loyaltyPointsEarned = (int)Math.Round(orderSummary.OrderTotal * 10, 0, MidpointRounding.AwayFromZero);
-
-            StateEntry<LoyaltySummary> stateEntry = null;
-            try
-            {
-                bool isSuccess;
-
-                do
-                {
-                    stateEntry = await _daprClient.GetStateEntryAsync<LoyaltySummary>(LoyaltyStateStoreName, orderSummary.LoyaltyId);
-                    stateEntry.Value ??= new LoyaltySummary()
-                    {
-                        FirstName = orderSummary.FirstName,
-                        LastName = orderSummary.LastName,
-                        LoyaltyId = orderSummary.LoyaltyId,
-                        PointTotal = 0
-                    };
-                    stateEntry.Value.PointsEarned = loyaltyPointsEarned;
-                    stateEntry.Value.PointTotal += loyaltyPointsEarned;
-                    isSuccess = await stateEntry.TrySaveAsync(_stateOptions);
-                }
-                while(!isSuccess);
-
-                _logger.LogInformation("Successfully updated loyalty points: {@LoyaltySummary}", stateEntry.Value);
-            }
-            catch(Exception e)
-            {
-                _logger.LogError("Error saving loyalty summary: {@LoyaltySummary}, Message: {Message}", stateEntry.Value, e.InnerException?.Message ?? e.Message);
-            }
-
-            return Ok(stateEntry.Value);
-        }
+        return Ok(summary);
     }
 }

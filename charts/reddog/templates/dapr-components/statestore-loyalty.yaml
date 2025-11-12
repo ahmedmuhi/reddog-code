@@ -17,5 +17,5 @@ spec:
       key: password
   {{- end }}
 scopes:
-  - loyalty-service
+  - {{ .Values.services.loyaltyservice.dapr.appId | quote }}
 {{- end }}

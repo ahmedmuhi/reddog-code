@@ -32,6 +32,13 @@ Upgrade plan for `RedDog.VirtualWorker` (port 5500), aligning with modernization
 - **GUD-001**: Minimal hosting pattern.
 - **PAT-001**: Async I/O; no blocking queue operations.
 
+### Upgrade Guardrails (2025-11-13 refresh)
+
+- **Pin GA images:** Use `mcr.microsoft.com/dotnet/sdk:10.0.100` and `mcr.microsoft.com/dotnet/aspnet:10.0` explicitly. Keep `global.json` in place—do not delete it inside Dockerfiles.
+- **Component scopes:** When renaming app IDs or labels, update Dapr component `scopes` and validation scripts in the same change.
+- **Helm rollback playbook:** If `helm upgrade` reports "another operation in progress," run `helm history reddog` and `helm rollback reddog <previous rev>` before retrying.
+- **Port-forward helper:** All smoke tests must use `scripts/find-open-port.sh` instead of hardcoding 52xx host ports; this prevents the "port already in use" hang.
+
 ## 2. Implementation Steps
 
 ### Implementation Phase 1
@@ -57,7 +64,7 @@ Upgrade plan for `RedDog.VirtualWorker` (port 5500), aligning with modernization
 | **TASK-011** | Configure OpenTelemetry tracing/metrics. | | |
 | **TASK-012** | Configure OpenAPI + Scalar (if controllers present); otherwise document reason for exclusion. | | |
 | **TASK-013** | Apply modernization features: file-scoped namespaces, remove `Task.FromResult`, resolve nullable warnings. | | |
-| **TASK-014** | Validation: `dotnet test` (when available), run `ci/scripts/run-dapr-virtualworker-smoke.sh`, run `ci/scripts/validate-health-endpoints.sh virtualworker 5500`, record results in `artifacts/virtualworker-validation-report.md`. | | |
+| **TASK-014** | Validation: `dotnet test` (when available), run `scripts/run-dapr-virtualworker-smoke.sh` (port helper + Dapr invocation), run `scripts/upgrade-validate.sh VirtualWorker`, record results in `artifacts/virtualworker-validation-report.md`. | | |
 
 ## 3. Alternatives
 

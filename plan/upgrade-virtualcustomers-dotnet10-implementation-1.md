@@ -31,6 +31,13 @@ Upgrade plan for the console-based `RedDog.VirtualCustomers` workload (simulates
 - **GUD-001**: Use `Host.CreateApplicationBuilder`/Generic Host with background services.
 - **PAT-001**: Async/await only; no `.Wait()`/`.Result()`.
 
+### Upgrade Guardrails (2025-11-13 refresh)
+
+- **Pin GA images:** If/when containerizing, use `mcr.microsoft.com/dotnet/sdk:10.0.100` for build and `mcr.microsoft.com/dotnet/runtime:10.0` for final image. Keep `global.json` intact.
+- **Helm / Rollout awareness:** If the workload is deployed via Helm in the future, document the rollback command (`helm history`, `helm rollback <release> <rev>`) to avoid being stuck in `pending-upgrade`.
+- **Port-forward helper:** Smoke tests must use `scripts/find-open-port.sh` when invoking services/Dapr endpoints to avoid hanging on occupied ports.
+- **Component alignment:** When this workload publishes/subscribes to Dapr topics, ensure any component scopes reference the correct `app-id` casing.
+
 ## 2. Implementation Steps
 
 ### Implementation Phase 1
@@ -55,7 +62,7 @@ Upgrade plan for the console-based `RedDog.VirtualCustomers` workload (simulates
 | **TASK-010** | Implement structured lifecycle logging + custom readiness events (log `VirtualCustomersReady=true`), ensuring integration with OpenTelemetry. | | |
 | **TASK-011** | Configure OpenTelemetry tracing + metrics (no HTTP endpoints but still emit spans/metrics). | | |
 | **TASK-012** | Modernize code: file-scoped namespaces, collection expressions, remove `Task.FromResult`, resolve nullable warnings. | | |
-| **TASK-013** | Validation: run `ci/scripts/run-virtualcustomers-smoke.sh` to ensure the console app starts, issues Dapr calls, and shuts down cleanly; log results to `artifacts/virtualcustomers-validation-report.md`. | | |
+| **TASK-013** | Validation: run `scripts/run-virtualcustomers-smoke.sh` (uses `scripts/find-open-port.sh` + Dapr invocation) to ensure the console app starts, issues Dapr calls, and shuts down cleanly; log results to `artifacts/virtualcustomers-validation-report.md`. | | |
 
 **Completion Criteria:** Tooling artifacts stored; console app builds and runs without blocking calls; OpenTelemetry instrumentation active; smoke test results recorded.
 
@@ -81,7 +88,7 @@ Upgrade plan for the console-based `RedDog.VirtualCustomers` workload (simulates
 ## 6. Testing
 
 - `dotnet test RedDog.VirtualCustomers.Tests` (if/when created)
-- Smoke script `ci/scripts/run-virtualcustomers-smoke.sh`
+- Smoke script `scripts/run-virtualcustomers-smoke.sh`
 
 ## 7. Risks & Assumptions
 

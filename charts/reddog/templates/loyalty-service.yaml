@@ -50,6 +50,11 @@ spec:
         ports:
         - containerPort: 80
           protocol: TCP
+        env:
+        - name: ASPNETCORE_URLS
+          value: "http://+:80"
+        - name: DAPR_HTTP_PORT
+          value: "3500"
         resources:
           requests:
             cpu: {{ .Values.services.common.resources.requests.cpu }}
@@ -59,18 +64,21 @@ spec:
             memory: {{ .Values.services.common.resources.limits.memory }}
         startupProbe:
           httpGet:
-            path: /probes/ready
+            path: /healthz
             port: 80
           failureThreshold: 6
           periodSeconds: 10
+          timeoutSeconds: 5
         livenessProbe:
           httpGet:
-            path: /probes/ready
+            path: /livez
             port: 80
           periodSeconds: 10
+          timeoutSeconds: 5
         readinessProbe:
           httpGet:
-            path: /probes/ready
+            path: /readyz
             port: 80
           periodSeconds: 5
+          timeoutSeconds: 3
 {{- end }}

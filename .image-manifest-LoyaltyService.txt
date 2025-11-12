@@ -1,0 +1,40 @@
+═══════════════════════════════════════════════════════════════
+                   IMAGE BUILD MANIFEST
+═══════════════════════════════════════════════════════════════
+
+Service:       LoyaltyService
+Build Date:    2025-11-12 22:38:29 UTC
+Build Time:    48s
+Load Time:     8s
+Target:        .NET 10
+Dapr SDK:      1.16.0
+Health Probes: /healthz, /livez, /readyz (ADR-0005)
+
+───────────────────────────────────────────────────────────────
+                      IMAGE TAGS BUILT
+───────────────────────────────────────────────────────────────
+
+ghcr.io/ahmedmuhi/reddog-loyaltyservice:local	349MB	2025-11-13 11:38:09 +1300 NZDT
+reddog-loyaltyservice:net10	349MB	2025-11-13 11:38:09 +1300 NZDT
+reddog-loyaltyservice:net10-test	349MB	2025-11-13 11:38:09 +1300 NZDT
+ghcr.io/ahmedmuhi/reddog-loyaltyservice:latest	349MB	2025-11-13 11:38:09 +1300 NZDT
+reddog-loyaltyservice:local	311MB	2025-11-11 07:44:59 +1300 NZDT
+
+───────────────────────────────────────────────────────────────
+                         DEPLOYMENT
+───────────────────────────────────────────────────────────────
+
+Cluster:       kind (reddog-local)
+Status:        Loaded and ready for deployment
+
+Next Steps:
+  1. Deploy via Helm:
+     helm upgrade reddog charts/reddog -f values/values-local.yaml
+
+  2. Validate deployment:
+     ./scripts/upgrade-validate.sh LoyaltyService
+
+  3. Check pod status:
+     kubectl get pods -l app=loyaltyservice-service
+
+═══════════════════════════════════════════════════════════════
