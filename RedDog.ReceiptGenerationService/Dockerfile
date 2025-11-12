@@ -1,4 +1,6 @@
-FROM mcr.microsoft.com/dotnet/aspnet:6.0 AS base
+# ADR-0003: Ubuntu 24.04 base image standardization
+# ADR-0006: Infrastructure configuration via environment variables (ASPNETCORE_URLS)
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
 WORKDIR /app
 EXPOSE 80
 

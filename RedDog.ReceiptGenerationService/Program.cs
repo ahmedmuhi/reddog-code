@@ -1,55 +1,84 @@
-using System;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Hosting;
-using Serilog;
-using Serilog.Core;
-using Serilog.Events;
-using RedDog.ReceiptGenerationService.Models;
+using Dapr.Client;
+using OpenTelemetry.Logs;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
+using RedDog.ReceiptGenerationService.HealthChecks;
 
-namespace RedDog.ReceiptGenerationService
+var builder = WebApplication.CreateBuilder(args);
+
+// ADR-0006: Validate required environment variables at startup
+var aspnetcoreUrls = Environment.GetEnvironmentVariable("ASPNETCORE_URLS")
+    ?? throw new InvalidOperationException("ASPNETCORE_URLS environment variable is required");
+var daprHttpPort = Environment.GetEnvironmentVariable("DAPR_HTTP_PORT") ?? "3500";
+
+// ADR-0011: OpenTelemetry observability with OTLP exporter
+var otlpEndpoint = Environment.GetEnvironmentVariable("OTEL_EXPORTER_OTLP_ENDPOINT") ?? "http://localhost:4317";
+var serviceName = "RedDog.ReceiptGenerationService";
+var serviceVersion = "1.0.0";
+
+builder.Services.AddOpenTelemetry()
+    .ConfigureResource(resource => resource
+        .AddService(serviceName: serviceName, serviceVersion: serviceVersion))
+    .WithTracing(tracing => tracing
+        .AddAspNetCoreInstrumentation()
+        .AddHttpClientInstrumentation()
+        .AddOtlpExporter(options => options.Endpoint = new Uri(otlpEndpoint)))
+    .WithMetrics(metrics => metrics
+        .AddAspNetCoreInstrumentation()
+        .AddHttpClientInstrumentation()
+        .AddOtlpExporter(options => options.Endpoint = new Uri(otlpEndpoint)));
+
+builder.Logging.AddOpenTelemetry(logging =>
 {
-    public class Program
-    {
-        public static void Main(string[] args)
-        {
-            Log.Logger = new LoggerConfiguration()
-                .MinimumLevel.Information()
-                .MinimumLevel.Override("System", LogEventLevel.Warning)
-                .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
-                .Enrich.FromLogContext()
-                .Destructure.ByTransforming<OrderSummary>(os => new { OrderId = os.OrderId, StoreId = os.StoreId, FirstName = os.FirstName, LastName = os.LastName, LoyaltyId = os.LoyaltyId, OrderItemCount = os.OrderItems.Count, OrderTotal = os.OrderTotal })
-                .Enrich.With(new UtcTimestampEnricher())
-                .WriteTo.Console(outputTemplate: "[{UtcTimestamp:yyyy-MM-dd HH:mm:ss.fff} {Level:u3}] [{SourceContext}] {Message:lj}{NewLine}{Exception}")
-                .CreateLogger();
+    logging.IncludeFormattedMessage = true;
+    logging.IncludeScopes = true;
+    logging.AddOtlpExporter(options => options.Endpoint = new Uri(otlpEndpoint));
+});
 
-            try
-            {
-                CreateHostBuilder(args).Build().Run();
-            }
-            catch (Exception e)
-            {
-                Log.Fatal(e, "Host terminated unexpectedly.");
-            }
-            finally
-            {
-                Log.CloseAndFlush();
-            }
-        }
+// Add services
+builder.Services.AddHttpClient();
+builder.Services.AddControllers().AddDapr();
 
-        public static IHostBuilder CreateHostBuilder(string[] args) =>
-            Host.CreateDefaultBuilder(args)
-                .UseSerilog()
-                .ConfigureWebHostDefaults(webBuilder =>
-                {
-                    webBuilder.UseStartup<Startup>();
-                });
-    }
+// ADR-0005: Kubernetes health probe standardization
+builder.Services.AddHealthChecks()
+    .AddCheck("liveness", () =>
+        Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckResult.Healthy("Service is alive"),
+        tags: new[] { "live" })
+    .AddCheck<DaprSidecarHealthCheck>("readiness", tags: new[] { "ready" });
 
-    class UtcTimestampEnricher : ILogEventEnricher
-    {
-        public void Enrich(LogEvent logEvent, ILogEventPropertyFactory pf)
-        {
-            logEvent.AddPropertyIfAbsent(pf.CreateProperty("UtcTimestamp", logEvent.Timestamp.UtcDateTime));
-        }
-    }
+var app = builder.Build();
+
+// Development exception page
+if (app.Environment.IsDevelopment())
+{
+    app.UseDeveloperExceptionPage();
 }
+
+// Routing
+app.UseRouting();
+
+// Dapr CloudEvents middleware (for pub/sub)
+app.UseCloudEvents();
+
+// Authorization
+app.UseAuthorization();
+
+// Map endpoints
+app.MapControllers();
+
+// Dapr subscription handler
+app.MapSubscribeHandler();
+
+// ADR-0005: Health probe endpoints
+app.MapHealthChecks("/healthz");
+app.MapHealthChecks("/livez", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("live")
+});
+app.MapHealthChecks("/readyz", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("ready")
+});
+
+app.Run();

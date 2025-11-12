@@ -1,16 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 
-namespace RedDog.AccountingModel
-{
-    public class AccountingContext : DbContext
-    {
-        public AccountingContext(DbContextOptions<AccountingContext> options) : base(options)
-        {
-        }
+namespace RedDog.AccountingModel;
 
-        public DbSet<Customer> Customers { get; set; }
-        public DbSet<Order> Orders { get; set; }
-        public DbSet<OrderItem> OrderItems { get; set; }
-        public DbSet<StoreLocation> Stores { get; set; }
-    }
+public class AccountingContext(DbContextOptions<AccountingContext> options) : DbContext(options)
+{
+    public DbSet<Customer> Customers => Set<Customer>();
+    public DbSet<Order> Orders => Set<Order>();
+    public DbSet<OrderItem> OrderItems => Set<OrderItem>();
+    public DbSet<StoreLocation> Stores => Set<StoreLocation>();
 }

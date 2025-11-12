@@ -21,8 +21,9 @@ Any dates before this are in the past, and any dates after this are in the futur
 - ✅ Phase 1 baseline complete (.NET 6 performance baseline established - see `tests/k6/BASELINE-RESULTS.md`)
 - ✅ Dapr 1.16.2 running in-cluster (Kubernetes mode with Redis + SQL Server)
 - ✅ .NET 6.0.36 + ASP.NET Core 6.0.36 runtimes installed
-- ⚠️ All services still .NET 6.0 (Phase 1A .NET 10 upgrade not started)
-- ⚠️ global.json specifies .NET 10 SDK RC2, but .csproj files target net6.0
+- 🟡 **Phase 1A IN PROGRESS** - 5/9 services upgraded to .NET 10 (56% complete as of 2025-11-12)
+- ✅ OrderService, ReceiptGenerationService, AccountingService, AccountingModel, Bootstrapper upgraded to .NET 10
+- ⏳ MakeLineService, LoyaltyService, VirtualWorker, VirtualCustomers still .NET 6.0
 
 **📅 Upcoming Upgrade (November 11, 2025):**
 - ⏰ **.NET 10 GA Release** - Upgrade from 10.0.100-rc.2 to 10.0.0 (GA)

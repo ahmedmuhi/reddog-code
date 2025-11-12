@@ -12,13 +12,14 @@ Any dates before this are in the past, and any dates after this are in the futur
 
 ## Current Development Status
 
-**Actual State (as of 2025-11-11 10:58 NZDT):**
+**Actual State (as of 2025-11-12 07:57 NZDT):**
 - ✅ Phase 0 cleanup completed (removed manifests/local, manifests/corporate, CorporateTransferService, .vscode)
 - ✅ Phase 0 tooling installed (Go 1.25.4, kind 0.30.0, kubectl 1.34.1, Helm 3.19.0, upgrade-assistant, ApiCompat)
 - ✅ **Phase 0.5 COMPLETE** - kind cluster operational, all services deployed via Helm, end-to-end smoke tests passing
 - ✅ Phase 1 baseline complete (.NET 6 performance baseline established - see `tests/k6/BASELINE-RESULTS.md`)
 - ✅ Dapr 1.16.2 running in-cluster (Kubernetes mode with Redis + SQL Server)
 - ✅ .NET 6.0.36 + ASP.NET Core 6.0.36 runtimes installed
+- 🔄 **Phase 1A Pre-Work: Health Check Improvements** - ReceiptGenerationService upgraded to production-ready health check pattern (IHealthCheck + IHttpClientFactory, eliminating socket exhaustion and thread blocking anti-patterns)
 - ⚠️ All services still .NET 6.0 (Phase 1A .NET 10 upgrade not started)
 - ⚠️ global.json specifies .NET 10 SDK RC2, but .csproj files target net6.0
 

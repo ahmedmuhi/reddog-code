@@ -1,34 +1,32 @@
-using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace RedDog.AccountingModel
+namespace RedDog.AccountingModel;
+
+[Table(nameof(OrderItem))]
+public class OrderItem
 {
-    [Table(nameof(OrderItem))]
-    public class OrderItem
-    {
-        [Key]
-        public int OrderItemId { get; set; }
+    [Key]
+    public int OrderItemId { get; set; }
 
-        public int ProductId { get; set; }
-        
-        [Column(TypeName = "nvarchar(50)")]
-        [Required]
-        public string ProductName { get; set; }
-        
-        public int Quantity { get; set; }
+    public int ProductId { get; set; }
 
-        [Column(TypeName = "decimal(18,2)")]
-        public decimal UnitCost { get; set; }
+    [Column(TypeName = "nvarchar(50)")]
+    [Required]
+    public required string ProductName { get; set; }
 
-        [Column(TypeName = "decimal(18,2)")]
-        public decimal UnitPrice { get; set; }
+    public int Quantity { get; set; }
 
-        [Column(TypeName = "nvarchar(255)")]
-        public string ImageUrl { get; set; }
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal UnitCost { get; set; }
 
-        public Guid OrderId { get; set; }
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal UnitPrice { get; set; }
 
-        public Order Order { get; set; }
-    }
+    [Column(TypeName = "nvarchar(255)")]
+    public string? ImageUrl { get; set; }
+
+    public Guid OrderId { get; set; }
+
+    public required Order Order { get; set; }
 }

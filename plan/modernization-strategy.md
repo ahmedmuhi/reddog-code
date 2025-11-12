@@ -159,7 +159,7 @@ The phases below represent the **planned modernization work**:
 6. **Phase 4** - CI/CD modernization (varies)
 7. **Phase 5** - Infrastructure and observability enhancements (varies)
 
-**Current Status:** ✅ Phase 0 cleanup complete, Phase 0 tooling complete (Nov 10), Phase 0.5 complete (kind cluster operational, Nov 10-11), Phase 1 baseline complete (performance baseline established, Nov 10). Phase 1A (.NET 10 upgrade) can now proceed.
+**Current Status:** ✅ Phase 0 cleanup complete, Phase 0 tooling complete (Nov 10), Phase 0.5 complete (kind cluster operational, Nov 10-11), Phase 1 baseline complete (performance baseline established, Nov 10). 🟡 **Phase 1A IN PROGRESS** (56% complete - 5/9 services upgraded to .NET 10 as of Nov 12, 2025).
 
 ---
 
@@ -315,15 +315,15 @@ These components satisfy Phase 1A (.NET 10 upgrade) requirements. The upgrades b
 - **Modern Baseline:** Migrate to Go/Python/Node.js from modern .NET 10 codebase, not outdated .NET 6
 
 **Services to Upgrade (9 projects):**
-1. RedDog.OrderService (.NET 6 → .NET 10)
-2. RedDog.AccountingService (.NET 6 → .NET 10)
-3. RedDog.AccountingModel (.NET 6 → .NET 10)
+1. ✅ RedDog.OrderService (.NET 6 → .NET 10) - **COMPLETED 2025-11-11**
+2. ✅ RedDog.AccountingService (.NET 6 → .NET 10) - **COMPLETED 2025-11-12**
+3. ✅ RedDog.AccountingModel (.NET 6 → .NET 10) - **COMPLETED 2025-11-12**
 4. RedDog.MakeLineService (.NET 6 → .NET 10)
 5. RedDog.LoyaltyService (.NET 6 → .NET 10)
-6. RedDog.ReceiptGenerationService (.NET 6 → .NET 10)
+6. ✅ RedDog.ReceiptGenerationService (.NET 6 → .NET 10) - **COMPLETED 2025-11-11**
 7. RedDog.VirtualWorker (.NET 6 → .NET 10)
 8. RedDog.VirtualCustomers (.NET 6 → .NET 10)
-9. RedDog.Bootstrapper (.NET 6 → .NET 10)
+9. ✅ RedDog.Bootstrapper (.NET 6 → .NET 10) - **COMPLETED 2025-11-12**
 
 **Key Updates:**
 - .NET 10.0 SDK and runtime
@@ -366,6 +366,63 @@ These components satisfy Phase 1A (.NET 10 upgrade) requirements. The upgrades b
 - `plan/upgrade-orderservice-dotnet10-implementation-1.md`
 - `plan/upgrade-virtualworker-dotnet10-implementation-1.md`
 - `plan/upgrade-virtualcustomers-dotnet10-implementation-1.md`
+
+### Phase 1A Progress Summary
+
+**Overall Status:** 🟡 **IN PROGRESS** (56% complete - 5/9 projects upgraded)
+
+**Completion Timeline:**
+- Started: 2025-11-11 15:41 NZDT
+- Latest Update: 2025-11-12 14:35 NZDT
+- Estimated Completion: TBD (4 services remaining)
+
+**Services Completed (5/9):**
+
+| Service | Completion Date | Build Status | Tests | Deployment | ADR Compliance |
+|---------|----------------|--------------|-------|------------|----------------|
+| OrderService | 2025-11-11 16:15 | ✅ 0 errors | 3/3 passed | 2/2 Running | ADR-0005 ⚠️ (probes need update) |
+| ReceiptGenerationService | 2025-11-11 17:35 | ✅ 0 errors | 4/4 passed | 2/2 Running | ✅ Fully compliant |
+| AccountingService | 2025-11-12 11:19 | ✅ 0 errors | 7/7 passed | 2/2 Running | ✅ Fully compliant |
+| AccountingModel | 2025-11-12 10:37 | ✅ 0 errors | N/A (library) | N/A | ✅ Fully compliant |
+| Bootstrapper | 2025-11-12 10:37 | ✅ 0 errors | N/A (console) | N/A | ✅ Fully compliant |
+
+**Services Remaining (4/9):**
+- MakeLineService - Go migration candidate (evaluate .NET 10 upgrade vs direct migration)
+- LoyaltyService - Node.js migration candidate (evaluate .NET 10 upgrade vs direct migration)
+- VirtualWorker - Go migration candidate (evaluate .NET 10 upgrade vs direct migration)
+- VirtualCustomers - Python migration candidate (evaluate .NET 10 upgrade vs direct migration)
+
+**Key Patterns Established:**
+1. ✅ Minimal hosting model (WebApplicationBuilder)
+2. ✅ ADR-0005 health endpoints (`/healthz`, `/livez`, `/readyz`)
+3. ✅ Production-ready health checks (IHealthCheck + IHttpClientFactory)
+4. ✅ OpenTelemetry logging/tracing (replaced Serilog)
+5. ✅ Scalar API documentation (replaced Swashbuckle)
+6. ✅ Anti-pattern remediation (HttpClient reuse, async/await)
+
+**Issues Discovered & Resolved:**
+1. ⚠️ **Dapr Sidecar Injection Issue** - Resolved by recreating pod after injector startup
+2. ⚠️ **Health Check Anti-Patterns** - Fixed socket exhaustion (HttpClient reuse) and thread blocking (.Result → async/await)
+3. ⚠️ **Configuration Key Mismatch** - Fixed ASP.NET Core configuration system (double underscore → colon)
+4. ⚠️ **Health Probe Timeouts** - Increased from 1s to 3-5s for comprehensive checks
+5. ⚠️ **Stale Container Images** - Established rebuild checklist for all image tags
+6. ⚠️ **EF Core Compiled Model Warning** - Non-critical (EF Core 6 model on EF Core 10 runtime)
+
+**ADR-0005 Compliance Status:**
+- ✅ **ReceiptGenerationService** - Fully compliant (startup: `/healthz`, liveness: `/livez`, readiness: `/readyz`)
+- ✅ **AccountingService** - Fully compliant (all probes correct, timeouts optimal)
+- ⚠️ **OrderService** - Needs probe path update (still uses `/probes/ready` in Helm chart)
+- ⚠️ **MakeLineService** - Not yet upgraded
+- ⚠️ **LoyaltyService** - Not yet upgraded
+
+**Session Documentation:**
+- `.claude/sessions/2025-11-11-1541-phase1a-orderservice-dotnet10-upgrade.md` - Complete Phase 1A history
+
+**Next Steps:**
+1. **Decision Point:** Upgrade remaining 4 .NET services to .NET 10 OR proceed directly with polyglot migrations (Phase 1B)?
+2. Fix OrderService Helm chart probe paths for ADR-0005 compliance
+3. Regenerate EF Core compiled model in AccountingModel (optional performance optimization)
+4. Continue Phase 1A or begin Phase 1B polyglot migrations
 
 ---
 

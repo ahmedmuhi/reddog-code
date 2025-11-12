@@ -49,7 +49,8 @@ namespace RedDog.AccountingService.Controllers
                 StoreId = orderSummary.StoreId,
                 PlacedDate = orderSummary.OrderDate,
                 Customer = customer,
-                OrderTotal = orderSummary.OrderTotal
+                OrderTotal = orderSummary.OrderTotal,
+                OrderItems = new List<OrderItem>()
             };
 
             foreach (var orderItemSummary in orderSummary.OrderItems)
@@ -61,7 +62,8 @@ namespace RedDog.AccountingService.Controllers
                     Quantity = orderItemSummary.Quantity,
                     UnitCost = orderItemSummary.UnitCost,
                     UnitPrice = orderItemSummary.UnitPrice,
-                    ImageUrl = orderItemSummary.ImageUrl
+                    ImageUrl = orderItemSummary.ImageUrl,
+                    Order = order
                 });
             }
 
