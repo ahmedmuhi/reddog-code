@@ -1644,3 +1644,231 @@ D  plan/upgrade-*.md (5 files moved to plan/done/)
 
 **Next Session:** Decision on Phase 1A completion vs Phase 1B start, or continue with remaining service upgrades
 
+
+### Update - 2025-11-12 15:42 NZDT
+
+**Summary**: Completed OrderService ADR-0005 health probe implementation and resolved deployment issues
+
+**Git Changes**:
+- Modified: RedDog.OrderService/Program.cs
+- Modified: charts/reddog/templates/order-service.yaml
+- Added: RedDog.OrderService/HealthChecks/DaprSidecarHealthCheck.cs
+- Current branch: master (commit: a89edf1)
+
+**Todo Progress**: 8 completed, 0 in progress, 0 pending
+- ✓ Completed: Create DaprSidecarHealthCheck.cs in OrderService
+- ✓ Completed: Update OrderService Program.cs health check registration
+- ✓ Completed: Fix OrderService Program.cs /healthz endpoint tag filter
+- ✓ Completed: Update order-service.yaml Helm chart probe paths and timeouts
+- ✓ Completed: Verify which image is deployed in cluster
+- ✓ Completed: Reload correct :local image into kind cluster
+- ✓ Completed: Force pod recreation with new image
+- ✓ Completed: Validate OrderService pod health and endpoints
+
+**Issues Encountered**:
+
+1. **Stale Docker Images (Root Cause)**
+   - Symptom: OrderService and AccountingService pods failing with HTTP 404 on startup probes
+   - Root Cause: `:local` image tags were built BEFORE ADR-0005 health endpoint changes
+   - Images contained old .NET 6 code with `/probes/ready` instead of `/healthz`, `/livez`, `/readyz`
+   - Issue identified by collaborator analysis matching ReceiptGenerationService pattern from earlier today
+
+2. **Missing Environment Variable**
+   - Symptom: OrderService container crashing immediately after image rebuild
+   - Root Cause: OrderService Helm chart had NO environment variables configured
+   - .NET 10 needs explicit `ASPNETCORE_URLS` when no other configuration present
+
+3. **Helm Upgrade Scope Issue**
+   - Initial attempt used `--set services.common.image.tag=net10-adr0005` 
+   - This affected ALL services, not just OrderService
+   - Caused AccountingService to also fail (tried to pull non-existent tag)
+
+**Solutions Implemented**:
+
+1. **Rebuilt Docker Images with Current Code**
+   ```bash
+   docker build -t ghcr.io/ahmedmuhi/reddog-accountingservice:local -f RedDog.AccountingService/Dockerfile .
+   docker build -t ghcr.io/ahmedmuhi/reddog-orderservice:local -f RedDog.OrderService/Dockerfile .
+   kind load docker-image ghcr.io/ahmedmuhi/reddog-accountingservice:local ghcr.io/ahmedmuhi/reddog-orderservice:local --name reddog-local
+   ```
+
+2. **Added ASPNETCORE_URLS Environment Variable**
+   - Updated `charts/reddog/templates/order-service.yaml`
+   - Added env section with `ASPNETCORE_URLS=http://+:80`
+   - Ensures .NET 10 app binds to correct port
+
+3. **Applied Helm Upgrade**
+   ```bash
+   helm upgrade reddog charts/reddog -f values/values-local.yaml -n default --wait
+   ```
+
+**Code Changes Made**:
+
+1. **RedDog.OrderService/HealthChecks/DaprSidecarHealthCheck.cs** (NEW)
+   - Production-ready health check using IHttpClientFactory
+   - Proper exception handling and structured logging
+   - 2-second timeout for Dapr sidecar check
+   - Matches AccountingService pattern exactly
+
+2. **RedDog.OrderService/Program.cs**
+   - Added `using RedDog.OrderService.HealthChecks;`
+   - Replaced inline `AddAsyncCheck` with `AddCheck<DaprSidecarHealthCheck>`
+   - Fixed `/healthz` endpoint to use "live" tag instead of "startup" tag
+   - Simplified health check registration from 27 lines to 3 lines
+   - Removed `ASPNETCORE_URLS` from required environment variables validation
+
+3. **charts/reddog/templates/order-service.yaml**
+   - Updated startupProbe path: `/probes/ready` → `/healthz`
+   - Updated livenessProbe path: `/probes/ready` → `/livez` with `timeoutSeconds: 5`
+   - Updated readinessProbe path: `/probes/ready` → `/readyz` with `timeoutSeconds: 3`
+   - Added environment variables section with `ASPNETCORE_URLS=http://+:80`
+
+**Validation Results**:
+
+Pod Status:
+```
+accounting-service: 2/2 Running ✅ (0 restarts)
+order-service: 2/2 Running ✅ (0 restarts)
+```
+
+Health Endpoints (OrderService):
+```
+/healthz: HTTP 200 ✅
+/livez: HTTP 200 ✅
+/readyz: HTTP 200 ✅
+/Product: HTTP 200 ✅ (API working)
+```
+
+**Key Learnings**:
+
+1. **Always rebuild ALL image tags after code changes**
+   - Not just new version tags like `:net10-test`
+   - Must also rebuild `:local` tag used in Helm values
+   - kind cluster caches images, stale images can persist
+
+2. **Collaborator analysis was critical**
+   - Identified exact root cause: stale images lacking health endpoints
+   - Matched pattern from ReceiptGenerationService fix earlier today
+   - Saved significant debugging time
+
+3. **Environment variables matter in .NET 10**
+   - Even "optional" vars like `ASPNETCORE_URLS` can be required
+   - .NET 10 has new defaults that may conflict with Kubernetes
+   - Better to be explicit in Helm charts
+
+4. **Helm upgrade scope must be precise**
+   - Using `--set services.common.image.tag` affects ALL services
+   - Better to rebuild images with correct tags than override in Helm
+   - Per-service tag overrides should be in values files, not CLI
+
+**Status**: OrderService ADR-0005 health probe implementation COMPLETE ✅
+
+**Next Steps**: Ready to commit changes and move on to remaining services (MakeLineService, LoyaltyService, VirtualWorker, VirtualCustomers)
+
+
+### Update - 2025-11-12 15:54 NZDT
+
+**Summary**: Completed .NET 10 RC2 → GA upgrade + Created prevention strategy framework
+
+**Milestone**: .NET 10 GA released November 11, 2025 - Upgraded from RC2 to production-ready LTS release
+
+**Git Changes**:
+**Modified (14 files)**:
+- global.json: SDK 10.0.100-rc.2 → 10.0.100 (GA)
+- RedDog.OrderService/RedDog.OrderService.csproj: Updated packages to GA
+- RedDog.AccountingService/RedDog.AccountingService.csproj: Updated packages to GA
+- RedDog.AccountingService/Program.cs: Re-enabled compiled model with UseModel()
+- RedDog.AccountingModel/CompiledModels/*: 6 files regenerated with EF Core 10 GA
+- charts/reddog/templates/order-service.yaml: ADR-0005 health probe paths
+- plan/modernization-strategy.md: Added prevention strategy section
+
+**Created (13 files)**:
+- RedDog.AccountingModel/AccountingContextFactory.cs: Design-time DbContext factory for EF tooling
+- RedDog.AccountingModel/CompiledModels/AccountingContextAssemblyAttributes.cs: New compiled model file
+- RedDog.OrderService/HealthChecks/DaprSidecarHealthCheck.cs: Production-ready health check
+- scripts/upgrade-preflight.sh: Pre-upgrade validation automation
+- scripts/upgrade-validate.sh: Post-deployment validation automation
+- scripts/upgrade-build-images.sh: Image building automation (all tags)
+- scripts/upgrade-dotnet10.sh: Complete upgrade orchestrator
+- docs/guides/dotnet10-upgrade-procedure.md: 400+ line comprehensive guide
+
+**Current branch**: master (commit: a89edf1)
+
+**Todo Progress**: 7/8 completed (87.5%)
+- ✓ Installed .NET 10 GA SDK (10.0.100)
+- ✓ Updated global.json to 10.0.100
+- ✓ Updated Microsoft.AspNetCore.OpenApi: 10.0.0-rc.2 → 10.0.0 (OrderService, AccountingService)
+- ✓ Updated OpenTelemetry packages: 1.11.2 → 1.12.0 (OrderService)
+- ✓ Cleared NuGet caches and restored packages
+- ✓ Created AccountingContextFactory for design-time EF tooling
+- ✓ Regenerated EF Core compiled model with EF Core 10 GA (eliminates "built with 6.0.4" warning)
+- ✓ Built entire solution: 0 errors, 10 warnings (all expected)
+- ✓ Verified zero RC/preview packages (except OpenTelemetry.Instrumentation.EntityFrameworkCore 1.0.0-beta.14 - no GA available)
+- ⏳ Standalone Dapr testing (deferred)
+
+**Package Upgrades**:
+1. **Microsoft.AspNetCore.OpenApi**: `10.0.0-rc.2.25502.23` → `10.0.0` (2 services)
+2. **OpenTelemetry**: `1.11.2` → `1.12.0` (4 packages in OrderService)
+3. **EF Core Design**: Already on `10.0.0` (no change)
+
+**Validation Results**:
+- ✅ `dotnet build RedDog.sln -c Release`: **0 errors**
+- ✅ All .NET 10 services compiled successfully
+- ✅ Zero RC/preview packages in upgraded services
+- ✅ EF Core compiled model regenerated with GA tooling
+- ✅ No "built with EF Core 6.0.4" warning
+
+**Key Issue Resolved**: EF Core design-time tooling failure
+- **Problem**: `dotnet ef dbcontext optimize` failed with "Unable to create DbContext" error
+- **Root Cause**: DbContext in separate project from startup project, no design-time factory
+- **Solution**: Implemented `IDesignTimeDbContextFactory<AccountingContext>` in AccountingModel project
+- **Result**: Compiled model successfully regenerated with EF Core 10 GA metadata
+
+**Prevention Strategy Framework Created**:
+
+To address recurring upgrade issues (health probe drift, missing Dapr sidecars, configuration drift, stale images), created comprehensive automation and documentation:
+
+**Automation Scripts (4 files)**:
+1. `scripts/upgrade-preflight.sh`: Pre-flight checks (Dapr injector, stuck rollouts, images, probe paths)
+2. `scripts/upgrade-build-images.sh`: Build ALL image tags at once (prevents stale image problem)
+3. `scripts/upgrade-validate.sh`: Post-deployment validation (MANDATORY 2/2 check, health endpoints, probe failures)
+4. `scripts/upgrade-dotnet10.sh`: Complete orchestrator with checkpoints
+
+**Documentation**:
+- `docs/guides/dotnet10-upgrade-procedure.md`: 400+ line comprehensive guide
+  - Four recurring failure patterns documented
+  - Pre-upgrade checklist (verify BEFORE making changes)
+  - Code changes checklist (synchronized with infrastructure)
+  - Infrastructure changes checklist (Helm probes + env vars)
+  - Image build checklist (all tags together)
+  - Deployment checklist (Helm + rollout)
+  - Validation checklist (MANDATORY verification steps)
+  - Common issues and fixes (troubleshooting guide)
+
+**Prevention Principles**:
+1. Code and Infrastructure Move Together (never commit code without Helm updates)
+2. Verify Before Declaring Success (ALWAYS check 2/2 pods, test health endpoints)
+3. Build All Image Tags (build ALL tags in one operation, verify in kind)
+4. Configuration as Code (copy working patterns, validate keys match)
+5. Automation Over Memory (use scripts to enforce checklists)
+
+**Target**: Complete remaining 4 services (MakeLineService, LoyaltyService, VirtualWorker, VirtualCustomers) with ZERO deployment failures using these tools.
+
+**Services Status (5/9 upgraded to .NET 10 GA)**:
+- ✅ OrderService - .NET 10.0.100 (GA)
+- ✅ AccountingService - .NET 10.0.100 (GA)
+- ✅ AccountingModel - .NET 10.0.100 (GA)
+- ✅ ReceiptGenerationService - .NET 10.0.100 (GA)
+- ✅ Bootstrapper - .NET 10.0.100 (GA)
+- ⏳ MakeLineService - .NET 6.0 (future: migrate to Go)
+- ⏳ LoyaltyService - .NET 6.0 (future: migrate to Node.js)
+- ⏳ VirtualWorker - .NET 6.0 (future: migrate to Go)
+- ⏳ VirtualCustomers - .NET 6.0 (future: migrate to Python)
+
+**LTS Support**: All upgraded services now have 3-year support until November 2028
+
+**Next Steps**:
+1. Commit .NET 10 GA upgrade changes
+2. Test services standalone with Dapr (when ready)
+3. Update CLAUDE.md with GA version
+4. Consider upgrading remaining 4 .NET 6 services OR proceed with polyglot migrations

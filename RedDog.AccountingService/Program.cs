@@ -34,7 +34,6 @@ builder.Services.AddOpenApi(); // .NET 10 built-in OpenAPI
 // DbContext with compiled model and retry logic
 builder.Services.AddDbContext<AccountingContext>(options =>
 {
-    options.UseModel(RedDog.AccountingModel.AccountingContextModel.Instance);
     options.UseSqlServer(connectionString, sqlOptions =>
     {
         sqlOptions.EnableRetryOnFailure(
@@ -42,6 +41,7 @@ builder.Services.AddDbContext<AccountingContext>(options =>
             maxRetryDelay: TimeSpan.FromSeconds(10),
             errorNumbersToAdd: null);
     });
+    options.UseModel(RedDog.AccountingModel.CompiledModels.AccountingContextModel.Instance);
 });
 
 // Health checks (ADR-0005)

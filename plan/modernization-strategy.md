@@ -424,6 +424,60 @@ These components satisfy Phase 1A (.NET 10 upgrade) requirements. The upgrades b
 3. Regenerate EF Core compiled model in AccountingModel (optional performance optimization)
 4. Continue Phase 1A or begin Phase 1B polyglot migrations
 
+### Phase 1A: Prevention Strategy (2025-11-12)
+
+**Problem:** During the first 5 service upgrades, we encountered four recurring failure patterns that caused repeated deployment failures and wasted development time.
+
+**Recurring Issues:**
+1. **Health Probe Drift** - Code exposed ADR-0005 endpoints but Helm charts still referenced legacy paths → HTTP 404 → CrashLoopBackOff
+2. **Missing Dapr Sidecars** - Declared success with `1/1` pods instead of verifying `2/2` → pub/sub didn't work
+3. **Configuration Drift** - Connection string key mismatches, password substitution failures, missing env vars → database failures
+4. **Stale Image Tags** - Built `:net10` but forgot to rebuild `:local`, kind used old images → deployments ran .NET 6 code
+
+**Root Causes:**
+- Code-first workflow (Helm charts updated as afterthought)
+- Premature success declaration (skipped `2/2` verification)
+- Inconsistent configuration patterns between services
+- Incremental image tag builds (forgetting some tags)
+
+**Solution: Comprehensive Prevention Framework**
+
+Created automation and documentation to prevent these issues for remaining 4 services:
+
+**1. Automation Scripts (4 new scripts):**
+- `scripts/upgrade-preflight.sh` - Pre-flight checks (Dapr injector, stuck rollouts, images, probe paths)
+- `scripts/upgrade-build-images.sh` - Build ALL image tags at once (`:net10`, `:net10-test`, `:local`, `:latest`)
+- `scripts/upgrade-validate.sh` - Post-deployment validation (MANDATORY `2/2` check, health endpoints, probe failures)
+- `scripts/upgrade-dotnet10.sh` - Complete orchestrator (all steps with checkpoints)
+
+**2. Comprehensive Documentation:**
+- `docs/guides/dotnet10-upgrade-procedure.md` - Complete upgrade procedure with detailed checklists
+  - Pre-upgrade checklist (what to verify BEFORE making changes)
+  - Code changes checklist (synchronized with infrastructure)
+  - Infrastructure changes checklist (Helm probes + env vars)
+  - Image build checklist (all tags together)
+  - Deployment checklist (Helm + rollout)
+  - Validation checklist (MANDATORY verification steps)
+  - Common issues and fixes (troubleshooting guide)
+
+**3. Prevention Principles:**
+- **Code and Infrastructure Move Together** - Never commit code without Helm updates
+- **Verify Before Declaring Success** - ALWAYS check `2/2` pods, test health endpoints
+- **Build All Image Tags** - Build ALL tags in one operation, verify in kind
+- **Configuration as Code** - Copy working patterns, validate keys match
+- **Automation Over Memory** - Use scripts to enforce checklists
+
+**Expected Outcome:**
+- Zero HTTP 404 health probe failures
+- Zero `1/1` pod deployments (missing sidecars)
+- Zero configuration errors
+- Zero stale image deployments
+
+**Target:** Complete remaining 4 services (MakeLineService, LoyaltyService, VirtualWorker, VirtualCustomers) with ZERO deployment failures.
+
+**Session Documentation:**
+- `.claude/sessions/2025-11-12-XXXX-phase1a-prevention-strategy.md` - Prevention strategy development session
+
 ---
 
 ### Phase 1B: Language Migration (5 Services)

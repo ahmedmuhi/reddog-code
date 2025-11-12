@@ -85,11 +85,11 @@ infrastructure:
         enabled: false  # No persistence needed locally
       resources:
         requests:
-          cpu: 100m
-          memory: 128Mi
+          cpu: 50m        # Reduced from 100m for local dev
+          memory: 64Mi    # Reduced from 128Mi for local dev
         limits:
-          cpu: 500m
-          memory: 512Mi
+          cpu: 200m       # Reduced from 500m for local dev
+          memory: 256Mi   # Reduced from 512Mi for local dev
 
   # SQL Server (Developer Edition - free, full-featured)
   sqlserver:
@@ -107,11 +107,11 @@ infrastructure:
       storageClass: standard  # kind default storage class
     resources:
       requests:
-        cpu: 500m
-        memory: 2Gi
+        cpu: 100m       # Reduced from 500m for local dev
+        memory: 512Mi   # Reduced from 2Gi for local dev
       limits:
-        cpu: 2000m
-        memory: 4Gi
+        cpu: 500m       # Reduced from 2000m for local dev
+        memory: 1536Mi  # Reduced from 4Gi (1.5GB) for local dev
 
 # Application Services Configuration
 services:
@@ -122,16 +122,24 @@ services:
       tag: local
     resources:
       requests:
-        cpu: 100m
-        memory: 128Mi
+        cpu: 50m        # Reduced from 100m for local dev
+        memory: 64Mi    # Reduced from 128Mi for local dev
       limits:
-        cpu: 500m
-        memory: 512Mi
+        cpu: 200m       # Reduced from 500m for local dev
+        memory: 256Mi   # Reduced from 512Mi for local dev
     # Dapr sidecar annotations (auto-injected)
     dapr:
       enabled: true
       appPort: 80
       logLevel: info
+      # Dapr sidecar resource limits (CRITICAL - prevents 2 vCPU default per sidecar)
+      resources:
+        requests:
+          cpu: 50m
+          memory: 64Mi
+        limits:
+          cpu: 200m     # Prevents default 2000m (2 vCPU) per sidecar
+          memory: 256Mi # Prevents default 512Mi per sidecar
 
   # OrderService
   orderservice:

@@ -38,6 +38,10 @@ spec:
         dapr.io/app-id: {{ .Values.services.orderservice.dapr.appId | quote }}
         dapr.io/app-port: {{ .Values.services.orderservice.dapr.appPort | quote }}
         dapr.io/log-level: {{ .Values.services.common.dapr.logLevel | quote }}
+        dapr.io/sidecar-cpu-request: {{ .Values.services.common.dapr.resources.requests.cpu | quote }}
+        dapr.io/sidecar-memory-request: {{ .Values.services.common.dapr.resources.requests.memory | quote }}
+        dapr.io/sidecar-cpu-limit: {{ .Values.services.common.dapr.resources.limits.cpu | quote }}
+        dapr.io/sidecar-memory-limit: {{ .Values.services.common.dapr.resources.limits.memory | quote }}
     spec:
       containers:
       - name: order-service
@@ -46,6 +50,9 @@ spec:
         ports:
         - containerPort: 80
           protocol: TCP
+        env:
+        - name: ASPNETCORE_URLS
+          value: "http://+:80"
         resources:
           requests:
             cpu: {{ .Values.services.common.resources.requests.cpu }}
@@ -55,18 +62,20 @@ spec:
             memory: {{ .Values.services.common.resources.limits.memory }}
         startupProbe:
           httpGet:
-            path: /probes/ready
+            path: /healthz
             port: 80
           failureThreshold: 6
           periodSeconds: 10
         livenessProbe:
           httpGet:
-            path: /probes/ready
+            path: /livez
             port: 80
           periodSeconds: 10
+          timeoutSeconds: 5
         readinessProbe:
           httpGet:
-            path: /probes/ready
+            path: /readyz
             port: 80
           periodSeconds: 5
+          timeoutSeconds: 3
 {{- end }}

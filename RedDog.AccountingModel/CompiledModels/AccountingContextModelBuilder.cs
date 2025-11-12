@@ -6,10 +6,15 @@ using Microsoft.EntityFrameworkCore.Metadata;
 #pragma warning disable 219, 612, 618
 #nullable disable
 
-namespace RedDog.AccountingModel
+namespace RedDog.AccountingModel.CompiledModels
 {
     public partial class AccountingContextModel
     {
+        private AccountingContextModel()
+            : base(skipDetectChanges: false, modelId: new Guid("b88355aa-eff1-42d5-a35d-d8c443703975"), entityTypeCount: 4)
+        {
+        }
+
         partial void Initialize()
         {
             var customer = CustomerEntityType.Create(this);
@@ -25,7 +30,7 @@ namespace RedDog.AccountingModel
             OrderItemEntityType.CreateAnnotations(orderItem);
             StoreLocationEntityType.CreateAnnotations(storeLocation);
 
-            AddAnnotation("ProductVersion", "6.0.4");
+            AddAnnotation("ProductVersion", "10.0.0");
             AddAnnotation("Relational:MaxIdentifierLength", 128);
             AddAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
         }

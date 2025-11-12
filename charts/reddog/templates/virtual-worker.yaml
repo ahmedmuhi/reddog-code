@@ -38,6 +38,10 @@ spec:
         dapr.io/app-id: {{ .Values.services.virtualworker.dapr.appId | quote }}
         dapr.io/app-port: {{ .Values.services.virtualworker.dapr.appPort | quote }}
         dapr.io/log-level: {{ .Values.services.common.dapr.logLevel | quote }}
+        dapr.io/sidecar-cpu-request: {{ .Values.services.common.dapr.resources.requests.cpu | quote }}
+        dapr.io/sidecar-memory-request: {{ .Values.services.common.dapr.resources.requests.memory | quote }}
+        dapr.io/sidecar-cpu-limit: {{ .Values.services.common.dapr.resources.limits.cpu | quote }}
+        dapr.io/sidecar-memory-limit: {{ .Values.services.common.dapr.resources.limits.memory | quote }}
     spec:
       containers:
       - name: virtual-worker

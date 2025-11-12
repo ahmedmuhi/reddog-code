@@ -3,21 +3,28 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 
 #pragma warning disable 219, 612, 618
 #nullable disable
 
-namespace RedDog.AccountingModel
+namespace RedDog.AccountingModel.CompiledModels
 {
-    internal partial class OrderItemEntityType
+    [EntityFrameworkInternal]
+    public partial class OrderItemEntityType
     {
         public static RuntimeEntityType Create(RuntimeModel model, RuntimeEntityType baseEntityType = null)
         {
             var runtimeEntityType = model.AddEntityType(
                 "RedDog.AccountingModel.OrderItem",
                 typeof(OrderItem),
-                baseEntityType);
+                baseEntityType,
+                propertyCount: 8,
+                navigationCount: 1,
+                foreignKeyCount: 1,
+                unnamedIndexCount: 1,
+                keyCount: 1);
 
             var orderItemId = runtimeEntityType.AddProperty(
                 "OrderItemId",
@@ -25,7 +32,8 @@ namespace RedDog.AccountingModel
                 propertyInfo: typeof(OrderItem).GetProperty("OrderItemId", BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 fieldInfo: typeof(OrderItem).GetField("<OrderItemId>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 valueGenerated: ValueGenerated.OnAdd,
-                afterSaveBehavior: PropertySaveBehavior.Throw);
+                afterSaveBehavior: PropertySaveBehavior.Throw,
+                sentinel: 0);
             orderItemId.AddAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
 
             var imageUrl = runtimeEntityType.AddProperty(
@@ -41,14 +49,16 @@ namespace RedDog.AccountingModel
                 "OrderId",
                 typeof(Guid),
                 propertyInfo: typeof(OrderItem).GetProperty("OrderId", BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly),
-                fieldInfo: typeof(OrderItem).GetField("<OrderId>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly));
+                fieldInfo: typeof(OrderItem).GetField("<OrderId>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly),
+                sentinel: new Guid("00000000-0000-0000-0000-000000000000"));
             orderId.AddAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.None);
 
             var productId = runtimeEntityType.AddProperty(
                 "ProductId",
                 typeof(int),
                 propertyInfo: typeof(OrderItem).GetProperty("ProductId", BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly),
-                fieldInfo: typeof(OrderItem).GetField("<ProductId>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly));
+                fieldInfo: typeof(OrderItem).GetField("<ProductId>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly),
+                sentinel: 0);
             productId.AddAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.None);
 
             var productName = runtimeEntityType.AddProperty(
@@ -63,14 +73,16 @@ namespace RedDog.AccountingModel
                 "Quantity",
                 typeof(int),
                 propertyInfo: typeof(OrderItem).GetProperty("Quantity", BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly),
-                fieldInfo: typeof(OrderItem).GetField("<Quantity>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly));
+                fieldInfo: typeof(OrderItem).GetField("<Quantity>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly),
+                sentinel: 0);
             quantity.AddAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.None);
 
             var unitCost = runtimeEntityType.AddProperty(
                 "UnitCost",
                 typeof(decimal),
                 propertyInfo: typeof(OrderItem).GetProperty("UnitCost", BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly),
-                fieldInfo: typeof(OrderItem).GetField("<UnitCost>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly));
+                fieldInfo: typeof(OrderItem).GetField("<UnitCost>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly),
+                sentinel: 0m);
             unitCost.AddAnnotation("Relational:ColumnType", "decimal(18,2)");
             unitCost.AddAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.None);
 
@@ -78,7 +90,8 @@ namespace RedDog.AccountingModel
                 "UnitPrice",
                 typeof(decimal),
                 propertyInfo: typeof(OrderItem).GetProperty("UnitPrice", BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly),
-                fieldInfo: typeof(OrderItem).GetField("<UnitPrice>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly));
+                fieldInfo: typeof(OrderItem).GetField("<UnitPrice>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly),
+                sentinel: 0m);
             unitPrice.AddAnnotation("Relational:ColumnType", "decimal(18,2)");
             unitPrice.AddAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.None);
 

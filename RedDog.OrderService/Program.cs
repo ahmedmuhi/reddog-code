@@ -4,6 +4,7 @@ using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
+using RedDog.OrderService.HealthChecks;
 using Scalar.AspNetCore;
 
 // Validate required infrastructure environment variables (ADR-0006)
@@ -62,31 +63,10 @@ builder.Services.AddOpenApi();
 
 // Configure Health Checks (ADR-0005)
 builder.Services.AddHealthChecks()
-    .AddCheck("startup", () =>
-        Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckResult.Healthy("Service started successfully"),
-        tags: ["startup"])
-    .AddCheck("live", () =>
+    .AddCheck("liveness", () =>
         Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckResult.Healthy("Service is alive"),
         tags: ["live"])
-    .AddAsyncCheck("ready", async () =>
-    {
-        // Check Dapr sidecar health
-        try
-        {
-            var daprPort = Environment.GetEnvironmentVariable("DAPR_HTTP_PORT") ?? "3500";
-            using var httpClient = new HttpClient();
-            var response = await httpClient.GetAsync($"http://localhost:{daprPort}/v1.0/healthz");
-
-            if (!response.IsSuccessStatusCode)
-                return Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckResult.Unhealthy("Dapr sidecar not healthy");
-
-            return Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckResult.Healthy("Dapr sidecar is healthy");
-        }
-        catch (Exception ex)
-        {
-            return Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckResult.Unhealthy("Dapr sidecar unreachable", ex);
-        }
-    }, tags: ["ready"]);
+    .AddCheck<DaprSidecarHealthCheck>("dapr-readiness", tags: ["ready"]);
 
 var app = builder.Build();
 
@@ -105,7 +85,7 @@ app.MapSubscribeHandler();
 // Health endpoints (ADR-0005)
 app.MapHealthChecks("/healthz", new HealthCheckOptions
 {
-    Predicate = check => check.Tags.Contains("startup")
+    Predicate = check => check.Tags.Contains("live")
 });
 
 app.MapHealthChecks("/livez", new HealthCheckOptions
@@ -125,7 +105,7 @@ app.Run();
 // Environment variable validation (ADR-0006)
 static void ValidateEnvironmentVariables()
 {
-    var required = new[] { "ASPNETCORE_URLS", "DAPR_HTTP_PORT" };
+    var required = new[] { "DAPR_HTTP_PORT" };
     var missing = required.Where(v => string.IsNullOrEmpty(Environment.GetEnvironmentVariable(v))).ToList();
 
     if (missing.Count > 0)
