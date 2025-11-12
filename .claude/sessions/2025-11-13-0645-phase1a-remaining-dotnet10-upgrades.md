@@ -224,6 +224,22 @@ This session continues Phase 1A modernization work - completing the remaining 4 
 **Next Steps**:
 - Update modernization docs (Phase 1A progress) and prepare commit with all MakeLineService + tooling changes.
 - Repeat net10 upgrade workflow for LoyaltyService once MakeLineService changes are merged.
+
+### Update - 2025-11-13 11:13 NZDT
+
+**Summary**: Captured upgrade lessons in docs, added helper tooling, and created official MakeLine smoke-test script so future services avoid today’s pitfalls.
+
+**Activities**:
+1. Updated `docs/guides/dotnet10-upgrade-procedure.md` with automation guardrails (no stdout parsing, defer env validation, naming alignment) and documented the new port-forward helper usage.
+2. Added a deployment naming matrix + port-forward guidance to `plan/modernization-strategy.md`, so Helm/Kubernetes/Dapr identifiers stay synchronized.
+3. Introduced `scripts/find-open-port.sh` plus enhanced `scripts/upgrade-validate.sh` to select free ports automatically and run a Dapr state read/write round-trip (component map currently covers MakeLine + Loyalty).
+4. Created `scripts/run-dapr-makeline-smoke.sh` (curling both direct HTTP and Dapr service invocation), updated all planning docs to reference it, and ran the script successfully against kind cluster (`storeId=Redmond`).
+
+**Gaps Addressed**:
+- Automation regressions from BuildKit log parsing.
+- Missing naming guidance that caused inconsistent appIds.
+- Absent Dapr smoke script referenced by the testing plan.
+- Port contention for smoke tests on WSL/kind environments.
 - All checks use simple grep/sed parsing (no external dependencies)
 
 **Next Steps**:

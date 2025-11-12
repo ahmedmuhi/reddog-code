@@ -63,7 +63,7 @@ Deterministic implementation plan for upgrading `RedDog.MakeLineService` (port 5
 | **TASK-011** | Configure OpenTelemetry tracing + metrics with OTLP exporter env var `OTEL_EXPORTER_OTLP_ENDPOINT`. | | |
 | **TASK-012** | Configure OpenAPI + Scalar endpoints and verify via `dotnet run`. | | |
 | **TASK-013** | Apply modernization features: file-scoped namespaces, remove `Task.FromResult`, resolve nullable warnings, adopt collection expressions. | | |
-| **TASK-014** | Execute validation per `plan/testing-validation-strategy.md`: `dotnet test` (when tests exist), run Dapr smoke test `ci/scripts/run-dapr-makeline-smoke.sh`, run `ci/scripts/validate-health-endpoints.sh makelineservice 5200`, store results in `artifacts/makelineservice-validation-report.md`. | | |
+| **TASK-014** | Execute validation per `plan/testing-validation-strategy.md`: `dotnet test` (when tests exist), run Dapr smoke test `scripts/run-dapr-makeline-smoke.sh`, run `scripts/upgrade-validate.sh MakeLineService`, store results in `artifacts/makelineservice-validation-report.md`. | | |
 
 **Completion Criteria (Phase 2):** Program.cs uses minimal hosting + OTEL + OpenAPI + ADR-0005; validation report captures passing tests/smoke checks; repository contains no legacy Startup/Serilog files.
 
@@ -89,7 +89,7 @@ Deterministic implementation plan for upgrading `RedDog.MakeLineService` (port 5
 ## 6. Testing
 
 - **TEST-001**: `dotnet test RedDog.MakeLineService.Tests` (when available) with coverage ≥80%.
-- **TEST-002**: Dapr integration smoke test `ci/scripts/run-dapr-makeline-smoke.sh` verifying queue operations.
+- **TEST-002**: Dapr integration smoke test `scripts/run-dapr-makeline-smoke.sh` verifying queue operations.
 - **TEST-003**: Health endpoints validation script.
 
 ## 7. Risks & Assumptions

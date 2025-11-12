@@ -314,6 +314,20 @@ These components satisfy Phase 1A (.NET 10 upgrade) requirements. The upgrades b
 - **Production Safety:** Deploy .NET 10 services immediately, removing EOL .NET 6 risk
 - **Modern Baseline:** Migrate to Go/Python/Node.js from modern .NET 10 codebase, not outdated .NET 6
 
+### Deployment Naming Matrix
+
+| Concern | Example Value | Source of Truth | Notes |
+|---------|---------------|-----------------|-------|
+| Helm release/deployment | `make-line-service` | `charts/reddog/templates/makeline-service.yaml` | Kubernetes object names stay kebab-case. |
+| Kubernetes label selector | `app=make-line-service` | Helm template metadata | `kubectl get pods -l app=make-line-service` (validation scripts must match this). |
+| Dapr `app-id` / component scope | `makelineservice` | `values/values-*.yaml` (`services.makelineservice.dapr.appId`) | No hyphen. Dapr components (state/pubsub) must use this exact casing in `scopes`. |
+| Container name | `make-line-service` | Helm Deployment spec | Used for `kubectl logs <pod> -c make-line-service`. |
+| Validation script pod label | `make-line-service` | `scripts/upgrade-validate.sh` | Script now derives the selector from the service name; keep table updated when renaming. |
+
+**Best Practice:** When renaming a service, update *all* rows at once—Helm values, Dapr component scopes, and validation scripts—to avoid `ERR_STATE_STORE_NOT_CONFIGURED` or missing pod matches.
+
+**Port-Forward Helper:** Use `scripts/find-open-port.sh` (see Step 3 tooling) to locate an available host port before running smoke tests. Always prefer 5200/15200/25200 in that order so documentation and automation stay consistent.
+
 **Services to Upgrade (9 projects):**
 1. ✅ RedDog.OrderService (.NET 6 → .NET 10) - **COMPLETED 2025-11-11**
 2. ✅ RedDog.AccountingService (.NET 6 → .NET 10) - **COMPLETED 2025-11-12**

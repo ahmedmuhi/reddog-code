@@ -857,6 +857,7 @@ grep -r "Dapr.AspNetCore" *.csproj | grep "1.16"
 # Verify MakeLineService reads/writes Redis state
 # (Integration test in Phase 4)
 ```
+*Automation:* Run `scripts/run-dapr-makeline-smoke.sh` to execute the required curls. It port-forwards `svc/makelineservice` on the first open port (via `scripts/find-open-port.sh`), hits `/orders/{storeId}` directly, and then invokes the same method through Dapr (`/v1.0/invoke/makelineservice/...`). Successful runs leave response bodies in `/tmp/makeline-*-response.json` for auditing.
 
 **Test 4: Test TrySaveAsync (ETag Concurrency)**
 ```bash

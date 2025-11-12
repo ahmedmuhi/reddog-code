@@ -10,6 +10,9 @@
 
 set -euo pipefail
 
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+FIND_PORT_SCRIPT="${SCRIPT_DIR}/find-open-port.sh"
+
 if [ $# -ne 1 ]; then
   echo "Usage: $0 <ServiceName>"
   echo "Example: $0 MakeLineService"
@@ -19,6 +22,11 @@ fi
 SERVICE_NAME="$1"
 SERVICE_LOWER=$(echo "$SERVICE_NAME" | tr '[:upper:]' '[:lower:]')
 SERVICE_LABEL=$(echo "$SERVICE_NAME" | sed -E 's/([a-z0-9])([A-Z])/\1-\2/g' | tr '[:upper:]' '[:lower:]')
+
+declare -A STATE_COMPONENTS=(
+  [MakeLineService]="reddog.state.makeline"
+  [LoyaltyService]="reddog.state.loyalty"
+)
 
 echo "╔════════════════════════════════════════════════════════════════╗"
 echo "║       Deployment Validation for $SERVICE_NAME"
@@ -96,7 +104,8 @@ echo ""
 echo "✓ Testing health endpoints..."
 
 # Start port-forward in background
-kubectl port-forward $POD_NAME 8080:80 >/dev/null 2>&1 &
+HTTP_PORT=$("$FIND_PORT_SCRIPT" 8080 18080 28080)
+kubectl port-forward $POD_NAME ${HTTP_PORT}:80 >/dev/null 2>&1 &
 PF_PID=$!
 sleep 3
 
@@ -104,8 +113,8 @@ sleep 3
 trap "kill $PF_PID 2>/dev/null || true" EXIT
 
 for ENDPOINT in healthz livez readyz; do
-  STATUS_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/$ENDPOINT 2>/dev/null || echo "000")
-  TIME=$(curl -s -o /dev/null -w "%{time_total}" http://localhost:8080/$ENDPOINT 2>/dev/null || echo "0")
+  STATUS_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:${HTTP_PORT}/$ENDPOINT 2>/dev/null || echo "000")
+  TIME=$(curl -s -o /dev/null -w "%{time_total}" http://localhost:${HTTP_PORT}/$ENDPOINT 2>/dev/null || echo "0")
 
   if [ "$STATUS_CODE" = "200" ]; then
     printf "  ✓ /%s: %s (%.3fs)\n" "$ENDPOINT" "$STATUS_CODE" "$TIME"
@@ -151,6 +160,45 @@ else
   FAILED=1
 fi
 echo ""
+
+STATE_COMPONENT=${STATE_COMPONENTS[$SERVICE_NAME]:-}
+if [ -n "$STATE_COMPONENT" ]; then
+  echo "✓ Verifying Dapr state store access (${STATE_COMPONENT})..."
+  DAPR_PORT=$("$FIND_PORT_SCRIPT" 3500 13500 23500)
+  kubectl port-forward $POD_NAME ${DAPR_PORT}:3500 >/dev/null 2>&1 &
+  DAPR_PF_PID=$!
+  sleep 3
+  trap "kill $PF_PID 2>/dev/null || true; kill $DAPR_PF_PID 2>/dev/null || true" EXIT
+
+  STATE_KEY="upgrade-validate-$(date +%s)-$RANDOM"
+  STATE_URL="http://localhost:${DAPR_PORT}/v1.0/state/${STATE_COMPONENT}"
+  WRITE_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+    -H "Content-Type: application/json" \
+    -d "[{\"key\":\"${STATE_KEY}\",\"value\":\"ok\"}]" \
+    "$STATE_URL" 2>/dev/null || echo "000")
+
+  if [ "$WRITE_STATUS" != "204" ]; then
+    echo "  ❌ Failed to write test record (status $WRITE_STATUS)"
+    FAILED=1
+  else
+    TMP_RESPONSE=$(mktemp)
+    READ_STATUS=$(curl -s -o "$TMP_RESPONSE" -w "%{http_code}" \
+      "${STATE_URL}/${STATE_KEY}" 2>/dev/null || echo "000")
+    READ_BODY=$(cat "$TMP_RESPONSE")
+    rm -f "$TMP_RESPONSE"
+
+    if [ "$READ_STATUS" = "200" ] && [[ "$READ_BODY" == "\"ok\"" ]]; then
+      echo "  ✓ State store round-trip succeeded"
+    else
+      echo "  ❌ State store read failed (status $READ_STATUS, body: $READ_BODY)"
+      FAILED=1
+    fi
+  fi
+
+  kill $DAPR_PF_PID 2>/dev/null || true
+  trap "kill $PF_PID 2>/dev/null || true" EXIT
+  echo ""
+fi
 
 # 8. Check application logs for errors
 echo "✓ Checking application logs for errors..."

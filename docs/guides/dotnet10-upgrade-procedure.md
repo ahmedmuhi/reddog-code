@@ -391,6 +391,12 @@ kubectl logs <pod-name> -c <service-name>-service
 # Add to Helm chart env section
 ```
 
+### Automation Guardrails (Must Follow)
+
+- **Build/output parsing:** Never rely on log text to decide whether a `docker build` or `dotnet` command succeeded. Use the command’s exit code. When additional detail is needed, opt into `docker build --progress=plain` (supported in recent Docker versions) but still key decisions from the exit status, not stdout.
+- **Environment validation order:** Run helpers such as `EnsureDaprEnvironmentVariables` *after* `WebApplication.CreateBuilder` has loaded configuration and options. Always provide safe defaults for Development (e.g., default `DAPR_HTTP_PORT` to 3500) so local `dapr run` or port-forwarding scenarios don’t crash prior to binding.
+- **Identifier alignment:** Keep the Helm release, Kubernetes labels, deployments, and Dapr `app-id` in sync. Whenever you rename a service or tweak casing (`make-line-service` vs `makelineservice`), update component scopes and validation scripts in the same change to avoid “component not configured” errors.
+
 ---
 
 ## Post-Upgrade Tasks
@@ -405,8 +411,12 @@ curl http://localhost:5100/Product
 
 **MakeLineService Example:**
 ```bash
-kubectl port-forward svc/makelineservice 5200:80
-curl http://localhost:5200/orders
+PORT=$(./scripts/find-open-port.sh 5200 15200 25200)
+kubectl port-forward svc/makelineservice ${PORT}:80 &
+PF_PID=$!
+sleep 3
+curl http://localhost:${PORT}/orders
+kill $PF_PID
 ```
 
 ### 2. Update Session Log
