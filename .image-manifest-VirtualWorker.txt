@@ -1,0 +1,40 @@
+═══════════════════════════════════════════════════════════════
+                   IMAGE BUILD MANIFEST
+═══════════════════════════════════════════════════════════════
+
+Service:       VirtualWorker
+Build Date:    2025-11-12 23:07:39 UTC
+Build Time:    43s
+Load Time:     13s
+Target:        .NET 10
+Dapr SDK:      1.16.0
+Health Probes: /healthz, /livez, /readyz (ADR-0005)
+
+───────────────────────────────────────────────────────────────
+                      IMAGE TAGS BUILT
+───────────────────────────────────────────────────────────────
+
+reddog-virtualworker:net10-test	349MB	2025-11-13 12:07:14 +1300 NZDT
+ghcr.io/ahmedmuhi/reddog-virtualworker:latest	349MB	2025-11-13 12:07:14 +1300 NZDT
+ghcr.io/ahmedmuhi/reddog-virtualworker:local	349MB	2025-11-13 12:07:14 +1300 NZDT
+reddog-virtualworker:net10	349MB	2025-11-13 12:07:14 +1300 NZDT
+reddog-virtualworker:local	311MB	2025-11-11 08:06:45 +1300 NZDT
+
+───────────────────────────────────────────────────────────────
+                         DEPLOYMENT
+───────────────────────────────────────────────────────────────
+
+Cluster:       kind (reddog-local)
+Status:        Loaded and ready for deployment
+
+Next Steps:
+  1. Deploy via Helm:
+     helm upgrade reddog charts/reddog -f values/values-local.yaml
+
+  2. Validate deployment:
+     ./scripts/upgrade-validate.sh VirtualWorker
+
+  3. Check pod status:
+     kubectl get pods -l app=virtualworker-service
+
+═══════════════════════════════════════════════════════════════

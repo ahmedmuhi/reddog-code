@@ -1,56 +1,117 @@
-using System;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Hosting;
-using Serilog;
-using Serilog.Core;
-using Serilog.Events;
-using RedDog.VirtualWorker.Models;
+using Dapr;
+using Dapr.Client;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Options;
+using OpenTelemetry.Logs;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
+using RedDog.VirtualWorker.Configuration;
+using RedDog.VirtualWorker.HealthChecks;
+using RedDog.VirtualWorker.Services;
+using Scalar.AspNetCore;
 
-namespace RedDog.VirtualWorker
+var builder = WebApplication.CreateBuilder(args);
+EnsureDaprEnvironmentVariables(builder.Configuration, builder.Environment);
+
+builder.Services.AddOptions<DaprOptions>()
+    .BindConfiguration(DaprOptions.SectionName)
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+
+builder.Services.AddOptions<CorsOptions>()
+    .BindConfiguration(CorsOptions.SectionName)
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+
+var serviceName = "VirtualWorker";
+var otlpEndpoint = Environment.GetEnvironmentVariable("OTEL_EXPORTER_OTLP_ENDPOINT") ?? "http://localhost:4318";
+
+builder.Services.AddOpenTelemetry()
+    .ConfigureResource(resource => resource.AddService(serviceName))
+    .WithTracing(tracing => tracing
+        .AddAspNetCoreInstrumentation()
+        .AddHttpClientInstrumentation()
+        .AddSource("Dapr.*")
+        .AddOtlpExporter(options => options.Endpoint = new Uri(otlpEndpoint)))
+    .WithMetrics(metrics => metrics
+        .AddAspNetCoreInstrumentation()
+        .AddHttpClientInstrumentation()
+        .AddMeter("Dapr.*")
+        .AddOtlpExporter(options => options.Endpoint = new Uri(otlpEndpoint)));
+
+builder.Logging.ClearProviders();
+builder.Logging.AddOpenTelemetry(logging =>
 {
-    public class Program
+    logging.IncludeFormattedMessage = true;
+    logging.IncludeScopes = true;
+    logging.AddOtlpExporter(options => options.Endpoint = new Uri(otlpEndpoint));
+});
+
+if (builder.Environment.IsDevelopment())
+{
+    builder.Logging.AddConsole();
+}
+
+builder.Services.AddDaprClient();
+builder.Services.AddHttpClient();
+builder.Services.AddScoped<IVirtualWorkerService, VirtualWorkerService>();
+builder.Services.AddControllers().AddDapr();
+builder.Services.AddCors();
+builder.Services.AddOpenApi();
+builder.Services.AddHealthChecks()
+    .AddCheck("liveness", () => HealthCheckResult.Healthy("Service is alive"), tags: new[] { "live" })
+    .AddCheck<DaprSidecarHealthCheck>("dapr-readiness", tags: new[] { "ready" });
+
+var app = builder.Build();
+
+var corsOptions = app.Services.GetRequiredService<IOptions<CorsOptions>>().Value;
+var daprOptions = app.Services.GetRequiredService<IOptions<DaprOptions>>().Value;
+
+if (app.Environment.IsDevelopment())
+{
+    app.UseDeveloperExceptionPage();
+    app.MapOpenApi();
+    app.MapScalarApiReference();
+}
+
+app.UseCors(policy =>
+    policy.WithOrigins(corsOptions.AllowedOrigins)
+          .AllowAnyMethod()
+          .AllowAnyHeader()
+          .AllowCredentials());
+
+app.UseCloudEvents();
+app.MapSubscribeHandler();
+
+app.MapControllers();
+
+app.MapHealthChecks("/healthz", new HealthCheckOptions { Predicate = check => check.Tags.Contains("live") });
+app.MapHealthChecks("/livez", new HealthCheckOptions { Predicate = check => check.Tags.Contains("live") });
+app.MapHealthChecks("/readyz", new HealthCheckOptions { Predicate = check => check.Tags.Contains("ready") });
+
+app.Run();
+
+static void EnsureDaprEnvironmentVariables(IConfiguration configuration, IHostEnvironment environment)
+{
+    if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("DAPR_HTTP_PORT")))
     {
-        public static void Main(string[] args)
-        {
-            Log.Logger = new LoggerConfiguration()
-                .MinimumLevel.Information()
-                .MinimumLevel.Override("System", LogEventLevel.Warning)
-                .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
-                .Enrich.FromLogContext()
-                .Enrich.With(new UtcTimestampEnricher())
-                .Destructure.ByTransforming<OrderItemSummary>(ois => new { ProductId = ois.ProductId, ProductName = ois.ProductName, Quantity = ois.Quantity })
-                .Destructure.ByTransforming<OrderSummary>(os => new { OrderId = os.OrderId, StoreId = os.StoreId, FirstName = os.FirstName, LastName = os.LastName, LoyaltyId = os.LoyaltyId, OrderItemCount = os.OrderItems.Count, OrderTotal = os.OrderTotal })
-                .WriteTo.Console(outputTemplate: "[{UtcTimestamp:yyyy-MM-dd HH:mm:ss.fff} {Level:u3}] [{SourceContext}] {Message:lj}{NewLine}{Exception}")
-                .CreateLogger();
-
-            try
-            {
-                CreateHostBuilder(args).Build().Run();
-            }
-            catch (Exception e)
-            {
-                Log.Fatal(e, "Host terminated unexpectedly.");
-            }
-            finally
-            {
-                Log.CloseAndFlush();
-            }
-        }
-
-        public static IHostBuilder CreateHostBuilder(string[] args) =>
-            Host.CreateDefaultBuilder(args)
-                .UseSerilog()
-                .ConfigureWebHostDefaults(webBuilder =>
-                {
-                    webBuilder.UseStartup<Startup>();
-                });
+        return;
     }
 
-    class UtcTimestampEnricher : ILogEventEnricher
+    var configuredPort = configuration.GetValue<string?>("Dapr:HttpPort");
+    if (!string.IsNullOrWhiteSpace(configuredPort))
     {
-        public void Enrich(LogEvent logEvent, ILogEventPropertyFactory pf)
-        {
-            logEvent.AddPropertyIfAbsent(pf.CreateProperty("UtcTimestamp", logEvent.Timestamp.UtcDateTime));
-        }
+        Environment.SetEnvironmentVariable("DAPR_HTTP_PORT", configuredPort);
+    }
+    else if (environment.IsDevelopment())
+    {
+        Environment.SetEnvironmentVariable("DAPR_HTTP_PORT", "3500");
+    }
+
+    if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("DAPR_HTTP_PORT")))
+    {
+        throw new InvalidOperationException("Missing required environment variable: DAPR_HTTP_PORT");
     }
 }

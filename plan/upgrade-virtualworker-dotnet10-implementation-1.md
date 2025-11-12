@@ -88,8 +88,8 @@ Upgrade plan for `RedDog.VirtualWorker` (port 5500), aligning with modernization
 ## 6. Testing
 
 - `dotnet test RedDog.VirtualWorker.Tests`
-- Dapr worker smoke test `ci/scripts/run-dapr-virtualworker-smoke.sh`
-- Health endpoints script
+- Dapr/HTTP smoke test `scripts/run-dapr-virtualworker-smoke.sh` (POST `/orders` via ingress and `/v1.0/invoke/virtualworker/method/orders` via Dapr)
+- Health endpoints exercised via `scripts/upgrade-validate.sh VirtualWorker`
 
 ## 7. Risks & Assumptions
 

@@ -268,3 +268,23 @@ This session continues Phase 1A modernization work - completing the remaining 4 
 - Archive LoyaltyService plan under `plan/done/`
 - Update modernization strategy + documentation with new guardrails
 - Prepare VirtualWorker/VirtualCustomers plans with GA-image + port-forward guidance.
+
+### Update - 2025-11-13 12:22 NZDT
+
+**Summary**: VirtualWorker upgraded to .NET 10 (minimal hosting, OpenTelemetry, ADR-0005), container images rebuilt on GA tags, deployed via Helm, and validated + smoke-tested using the `/orders` endpoint pattern.
+
+**Activities**:
+1. Upgraded csproj, Dockerfile, Program.cs, and controllers/services to match the modern MakeLine/Loyalty patterns (options binding, Dapr client usage, health checks, OpenAPI/Scalar). Removed Startup.cs, Serilog, and ProbesController.
+2. Added `Configuration/*`, `Services/IVirtualWorkerService.cs`, and `HealthChecks/DaprSidecarHealthCheck.cs`; Helm chart now sets env vars and `/healthz|/livez|/readyz` probes for the worker deployment.
+3. Built/uploaded images via `./scripts/upgrade-build-images.sh VirtualWorker` (GA SDK/runtime), rolled Helm back to rev 8 when it got stuck, then re-upgraded to rev 11.
+4. Ran `./scripts/upgrade-validate.sh VirtualWorker` (2/2 pods, state round trip) and manual smoke tests: `POST /orders` via service ingress and `POST /v1.0/invoke/virtualworker/method/orders` via Dapr—both returned 200.
+
+**Artifacts / Evidence**:
+- `.image-manifest-VirtualWorker.txt`
+- `./scripts/upgrade-validate.sh VirtualWorker` output
+- `/tmp/vworker-http.json` and `/tmp/vworker-dapr.json` showing HTTP 200.
+
+**Next Steps**:
+- Archive VirtualWorker plan once documentation updates are finished
+- Update modernization strategy to mark VirtualWorker as ✅ when we commit
+- Begin VirtualCustomers upgrade after committing these changes.
