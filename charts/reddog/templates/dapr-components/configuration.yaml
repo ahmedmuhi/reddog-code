@@ -1,0 +1,23 @@
+{{- if .Values.dapr.enabled }}
+{{- $config := .Values.dapr.configuration -}}
+{{- $name := default "reddog.configuration" $config.name -}}
+{{- $sampling := "0.05" -}}
+{{- if $config.tracing }}
+  {{- $sampling = default "0.05" $config.tracing.samplingRate -}}
+{{- end -}}
+{{- $health := true -}}
+{{- if $config.features }}
+  {{- $health = default true $config.features.appHealthCheck -}}
+{{- end -}}
+apiVersion: dapr.io/v1alpha1
+kind: Configuration
+metadata:
+  name: {{ $name }}
+  namespace: {{ .Values.global.namespace }}
+spec:
+  tracing:
+    samplingRate: {{ $sampling | quote }}
+  features:
+    - name: AppHealthCheck
+      enabled: {{ $health }}
+{{- end }}

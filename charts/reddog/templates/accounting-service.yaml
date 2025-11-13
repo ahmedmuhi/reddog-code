@@ -38,6 +38,9 @@ spec:
         dapr.io/app-id: {{ .Values.services.accountingservice.dapr.appId | quote }}
         dapr.io/app-port: {{ .Values.services.accountingservice.dapr.appPort | quote }}
         dapr.io/log-level: {{ .Values.services.common.dapr.logLevel | quote }}
+        dapr.io/config: {{ default "reddog.configuration" .Values.dapr.configuration.name | quote }}
+        dapr.io/enable-metrics: "true"
+        dapr.io/metrics-port: "9090"
         dapr.io/sidecar-cpu-request: {{ .Values.services.common.dapr.resources.requests.cpu | quote }}
         dapr.io/sidecar-memory-request: {{ .Values.services.common.dapr.resources.requests.memory | quote }}
         dapr.io/sidecar-cpu-limit: {{ .Values.services.common.dapr.resources.limits.cpu | quote }}

@@ -189,6 +189,7 @@ The following prerequisites must be completed before starting Phase 1A:
 **Status:** 🟢 **COMPLETE** (2025-11-11)
 - ✅ Tooling installed (kind 0.30.0, kubectl 1.34.1, Helm 3.19.0, Dapr CLI 1.16.3)
 - ✅ Dapr 1.16.2 operational in Kubernetes mode (in-cluster deployment)
+- ✅ Dapr runtime/components refreshed on kind (Nov 13, 2025) per `plan/upgrade-dapr-1.16-implementation-1.md`
 - ✅ Dapr components configured (.dapr/components/ - pubsub, state stores, secrets, bindings)
 - ✅ kind cluster created and operational (ADR-0008 implemented)
 - ✅ Helm charts created and deployed (`charts/reddog/`, `charts/infrastructure/`)

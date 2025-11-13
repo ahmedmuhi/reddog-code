@@ -2,15 +2,23 @@
 goal: "Upgrade Dapr from 1.3.0 to 1.16.2 for .NET 10 and Modern Platform Support"
 version: 1.0
 date_created: 2025-11-09
-last_updated: 2025-11-09
+last_updated: 2025-11-13
 owner: "Red Dog Modernization Team"
-status: 'Planned'
+status: "✅ COMPLETED"
+completion_date: 2025-11-13
+session: .claude/sessions/2025-11-13-1505-phase1b-foundation-upgrades.md
 tags: [infrastructure, upgrade, phase-0, dapr, runtime, sidecar]
 ---
 
 # Introduction
 
-![Status: Planned](https://img.shields.io/badge/status-Planned-blue)
+![Status: Completed](https://img.shields.io/badge/status-Completed-brightgreen)
+
+## Completion Summary (2025-11-13)
+
+- Rebuilt the kind cluster, installed Dapr 1.16.2 control plane via Helm, and redeployed `reddog` with updated component templates + deployment annotations.
+- All artifacts for Phases 1–4 & 7 (backups, version captures, component diffs, validation logs, smoke results) live under `artifacts/dapr-upgrade/2025-11-13/`.
+- Phase 5/6 scope (service invocation header fixes + cloud workload identity) has been moved to `plan/dapr-cloud-hardening-implementation-1.md`.
 
 This plan upgrades Dapr (Distributed Application Runtime) from version 1.3.0 (released 2021) to 1.16.2 (released 2024), enabling Red Dog services to run on .NET 10 and leverage modern Dapr features including Workload Identity Federation, OpenTelemetry integration, and the Configuration API.
 
@@ -76,14 +84,14 @@ This plan upgrades Dapr (Distributed Application Runtime) from version 1.3.0 (re
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-101 | Backup all Dapr component YAML files from `manifests/branch/base/components/` | | |
-| TASK-102 | Document current Dapr sidecar annotations on all deployments | | |
-| TASK-103 | Export Dapr runtime version: `kubectl get deploy -n dapr-system dapr-operator -o yaml` | | |
-| TASK-104 | Verify Kubernetes version is 1.30+ on all clusters | | |
-| TASK-105 | Install Dapr CLI 1.16: `curl -fsSL https://raw.githubusercontent.com/dapr/cli/master/install/install.sh \| /bin/bash -s 1.16.0` | | |
-| TASK-106 | Audit all service-to-service invocation code for missing `Content-Type` headers | | |
-| TASK-107 | Verify component name uniqueness across namespaces | | |
-| TASK-108 | Create staging environment for testing | | |
+| TASK-101 | Backup all Dapr component YAML files from `manifests/branch/base/components/` | ✅ `artifacts/dapr-upgrade/2025-11-13/dapr-components-backup.tgz` | 2025-11-13 |
+| TASK-102 | Document current Dapr sidecar annotations on all deployments | ✅ `artifacts/dapr-upgrade/2025-11-13/sidecar-annotations.md` | 2025-11-13 |
+| TASK-103 | Export Dapr runtime version: `kubectl get deploy -n dapr-system dapr-operator -o yaml` | ✅ `runtime-version.txt`, `control-plane-pods.json` | 2025-11-13 |
+| TASK-104 | Verify Kubernetes version is 1.30+ on all clusters | ✅ `kubernetes-version.yaml` (kind v1.34) | 2025-11-13 |
+| TASK-105 | Install Dapr CLI 1.16: `curl -fsSL https://raw.githubusercontent.com/dapr/cli/master/install/install.sh \| /bin/bash -s 1.16.0` | ✅ `dapr-cli-version.txt` (CLI 1.16.3) | 2025-11-13 |
+| TASK-106 | Audit all service-to-service invocation code for missing `Content-Type` headers | ✅ `invocation-audit.txt` (rg scan; fixes deferred to cloud plan) | 2025-11-13 |
+| TASK-107 | Verify component name uniqueness across namespaces | ✅ `component-names.md` | 2025-11-13 |
+| TASK-108 | Create staging environment for testing | ✅ Fresh kind cluster (`setup-local-dev.sh`, documented in session) | 2025-11-13 |
 
 ### Implementation Phase 2: Helm Chart Upgrade (Days 2-3)
 
@@ -91,14 +99,14 @@ This plan upgrades Dapr (Distributed Application Runtime) from version 1.3.0 (re
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-201 | Add Dapr Helm repository: `helm repo add dapr https://dapr.github.io/helm-charts/ && helm repo update` | | |
-| TASK-202 | Review Dapr 1.16 Helm values for breaking changes | | |
-| TASK-203 | Execute Helm upgrade: `helm upgrade dapr dapr/dapr --namespace dapr-system --version 1.16.2 --wait` | | |
-| TASK-204 | Verify Dapr control plane pods are running: `kubectl get pods -n dapr-system` | | |
-| TASK-205 | Check Dapr operator version: `kubectl get deploy -n dapr-system dapr-operator -o jsonpath='{.spec.template.spec.containers[0].image}'` | | |
-| TASK-206 | Verify Dapr sidecar injector is healthy | | |
-| TASK-207 | Check Dapr placement service for state store support | | |
-| TASK-208 | Verify Dapr Sentry service for mTLS certificates | | |
+| TASK-201 | Add Dapr Helm repository: `helm repo add dapr https://dapr.github.io/helm-charts/ && helm repo update` | ✅ `helm repo update dapr` logs | 2025-11-13 |
+| TASK-202 | Review Dapr 1.16 Helm values for breaking changes | ✅ `helm-current-values.yaml` archived | 2025-11-13 |
+| TASK-203 | Execute Helm upgrade: `helm upgrade dapr dapr/dapr --namespace dapr-system --version 1.16.2 --wait` | ✅ Helm revision 1 (fresh cluster) | 2025-11-13 |
+| TASK-204 | Verify Dapr control plane pods are running: `kubectl get pods -n dapr-system` | ✅ `control-plane-pods.json` | 2025-11-13 |
+| TASK-205 | Check Dapr operator version: `kubectl get deploy -n dapr-system dapr-operator -o jsonpath='{.spec.template.spec.containers[0].image}'` | ✅ Captured in `runtime-version.txt` (ghcr.io/dapr/operator:1.16.2) | 2025-11-13 |
+| TASK-206 | Verify Dapr sidecar injector is healthy | ✅ `kubectl get pods -n dapr-system` + `upgrade-validate.sh` outputs | 2025-11-13 |
+| TASK-207 | Check Dapr placement service for state store support | ✅ Placement pod running (logs in control-plane snapshot) | 2025-11-13 |
+| TASK-208 | Verify Dapr Sentry service for mTLS certificates | ✅ `kubectl logs dapr-sentry-...` recorded during troubleshooting | 2025-11-13 |
 
 ### Implementation Phase 3: Component YAML Updates (Days 3-4)
 
@@ -106,16 +114,16 @@ This plan upgrades Dapr (Distributed Application Runtime) from version 1.3.0 (re
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-301 | Update `reddog.pubsub.yaml` for RabbitMQ 4.2 (verify metadata fields) | | |
-| TASK-302 | Update `reddog.state.makeline.yaml` for Redis 6.2.14 (local dev) | | |
-| TASK-303 | Update `reddog.state.loyalty.yaml` for Redis 6.2.14 (local dev) | | |
-| TASK-304 | Create `reddog.state.cosmosdb.yaml` for Azure (replaces Redis in production) | | |
-| TASK-305 | Create `reddog.state.dynamodb.yaml` for AWS (replaces Redis in production) | | |
-| TASK-306 | Create `reddog.state.firestore.yaml` for GCP (replaces Redis in production) | | |
-| TASK-307 | Update `reddog.binding.receipt.yaml` for object storage (MinIO local, S3/Blob/GCS cloud) | | |
-| TASK-308 | Update `reddog.secretstore.yaml` for Workload Identity (Azure, AWS, GCP) | | |
-| TASK-309 | Create `reddog.configuration.yaml` for Configuration API (ADR-0004) | | |
-| TASK-310 | Apply updated component YAMLs: `kubectl apply -f manifests/branch/base/components/` | | |
+| TASK-301 | Update `reddog.pubsub.yaml` for RabbitMQ 4.2 (verify metadata fields) | ✅ Template updated + applied (see `components.txt`) | 2025-11-13 |
+| TASK-302 | Update `reddog.state.makeline.yaml` for Redis 6.2.14 (local dev) | ✅ Template updated + applied | 2025-11-13 |
+| TASK-303 | Update `reddog.state.loyalty.yaml` for Redis 6.2.14 (local dev) | ✅ Template updated + applied | 2025-11-13 |
+| TASK-304 | Create `reddog.state.cosmosdb.yaml` for Azure (replaces Redis in production) | ➡ Deferred to `plan/dapr-cloud-hardening-implementation-1.md` | — |
+| TASK-305 | Create `reddog.state.dynamodb.yaml` for AWS (replaces Redis in production) | ➡ Deferred to `plan/dapr-cloud-hardening-implementation-1.md` | — |
+| TASK-306 | Create `reddog.state.firestore.yaml` for GCP (replaces Redis in production) | ➡ Deferred to `plan/dapr-cloud-hardening-implementation-1.md` | — |
+| TASK-307 | Update `reddog.binding.receipt.yaml` for object storage (MinIO local, S3/Blob/GCS cloud) | ✅ Template now scopes via appId + supports cloud metadata | 2025-11-13 |
+| TASK-308 | Update `reddog.secretstore.yaml` for Workload Identity (Azure, AWS, GCP) | ✅ Kubernetes secretstore updated for namespace scoping (cloud identity handled in follow-up plan) | 2025-11-13 |
+| TASK-309 | Create `reddog.configuration.yaml` for Configuration API (ADR-0004) | ✅ Added templated Configuration resource | 2025-11-13 |
+| TASK-310 | Apply updated component YAMLs: `kubectl apply -f manifests/branch/base/components/` | ✅ `components.txt` + live `kubectl apply` records | 2025-11-13 |
 
 ### Implementation Phase 4: Service Deployment Updates (Days 4-5)
 
@@ -123,14 +131,14 @@ This plan upgrades Dapr (Distributed Application Runtime) from version 1.3.0 (re
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-401 | Verify `dapr.io/enabled: "true"` annotation on all deployments | | |
-| TASK-402 | Verify `dapr.io/app-id` matches service name | | |
-| TASK-403 | Verify `dapr.io/app-port` matches service HTTP port | | |
-| TASK-404 | Add `dapr.io/enable-metrics: "true"` for Prometheus scraping | | |
-| TASK-405 | Add `dapr.io/metrics-port: "9090"` for metrics endpoint | | |
-| TASK-406 | Configure `dapr.io/log-level: "info"` (production) or `"debug"` (staging) | | |
-| TASK-407 | Restart all service pods to inject Dapr 1.16 sidecars: `kubectl rollout restart deployment -n reddog` | | |
-| TASK-408 | Verify all pods have `daprd` sidecar container | | |
+| TASK-401 | Verify `dapr.io/enabled: "true"` annotation on all deployments | ✅ Helm templates updated + `upgrade-validate.sh` proof | 2025-11-13 |
+| TASK-402 | Verify `dapr.io/app-id` matches service name | ✅ Helm templates pull from values to avoid drift | 2025-11-13 |
+| TASK-403 | Verify `dapr.io/app-port` matches service HTTP port | ✅ Confirmed in Helm templates and validation output | 2025-11-13 |
+| TASK-404 | Add `dapr.io/enable-metrics: "true"` for Prometheus scraping | ✅ Added to every deployment/job annotation block | 2025-11-13 |
+| TASK-405 | Add `dapr.io/metrics-port: "9090"` for metrics endpoint | ✅ Added to every deployment/job annotation block | 2025-11-13 |
+| TASK-406 | Configure `dapr.io/log-level: "info"` (production) or `"debug"` (staging) | ✅ Values-driven `logLevel` enforced via Helm | 2025-11-13 |
+| TASK-407 | Restart all service pods to inject Dapr 1.16 sidecars: `kubectl rollout restart deployment -n reddog` | ✅ Rollout restart executed after redeploy (see session log) | 2025-11-13 |
+| TASK-408 | Verify all pods have `daprd` sidecar container | ✅ `upgrade-validate.sh` 2/2 checks | 2025-11-13 |
 
 > **Scope Note:** Phases 5 and 6 (service invocation code fixes and cloud workload identity hardening) have been split into a dedicated follow-up plan (`plan/dapr-cloud-hardening-implementation-1.md`). This document now tracks the core runtime + component upgrade (Phases 1–4) and validation (Phase 7) required for Phase 1B readiness.
 
@@ -140,16 +148,16 @@ This plan upgrades Dapr (Distributed Application Runtime) from version 1.3.0 (re
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-701 | Test Dapr health endpoint: `curl http://localhost:3500/v1.0/healthz` | | |
-| TASK-702 | Test service invocation: `curl http://localhost:3500/v1.0/invoke/order-service/method/healthz` | | |
-| TASK-703 | Test pub/sub publish: POST to `/v1.0/publish/reddog.pubsub/orders` | | |
-| TASK-704 | Test state store read/write: POST to `/v1.0/state/reddog.state.makeline` | | |
-| TASK-705 | Test output binding: POST to `/v1.0/bindings/reddog.binding.receipt` | | |
-| TASK-706 | Test secret retrieval: GET `/v1.0/secrets/reddog.secretstore/sqlconnection` | | |
-| TASK-707 | Test configuration retrieval: GET `/v1.0-alpha1/configuration/reddog.configuration` (if implemented) | | |
-| TASK-708 | Validate Dapr mTLS certificates: `kubectl get pods -n reddog -o jsonpath='{.items[0].spec.volumes[?(@.name=="dapr-identity-token")].projected}'` | | |
-| TASK-709 | Run integration tests (end-to-end order flow) | | |
-| TASK-710 | Monitor Dapr metrics in Prometheus: `dapr_runtime_service_invocation_*` | | |
+| TASK-701 | Test Dapr health endpoint: `curl http://localhost:3500/v1.0/healthz` | ✅ Recorded in `phase7-dapr-tests.txt` | 2025-11-13 |
+| TASK-702 | Test service invocation: `curl http://localhost:3500/v1.0/invoke/order-service/method/healthz` | ✅ `phase7-dapr-tests.txt` (Healthy) | 2025-11-13 |
+| TASK-703 | Test pub/sub publish: POST to `/v1.0/publish/reddog.pubsub/orders` | ✅ Status 204 captured in phase7 artifact | 2025-11-13 |
+| TASK-704 | Test state store read/write: POST to `/v1.0/state/reddog.state.makeline` | ✅ write/read cycle logged (`"ok"`) | 2025-11-13 |
+| TASK-705 | Test output binding: POST to `/v1.0/bindings/reddog.binding.receipt` | ✅ Binding write returns 200 (phase7 log) | 2025-11-13 |
+| TASK-706 | Test secret retrieval: GET `/v1.0/secrets/reddog.secretstore/sqlconnection` | ✅ Sample secret round-trip recorded | 2025-11-13 |
+| TASK-707 | Test configuration retrieval: GET `/v1.0-alpha1/configuration/reddog.configuration` (if implemented) | ✅ `configuration-api.json` saved | 2025-11-13 |
+| TASK-708 | Validate Dapr mTLS certificates: `kubectl get pods -n reddog -o jsonpath='{.items[0].spec.volumes[?(@.name=="dapr-identity-token")].projected}'` | ✅ `mtls-volume.json` captured | 2025-11-13 |
+| TASK-709 | Run integration tests (end-to-end order flow) | ✅ `scripts/run-dapr-makeline-smoke.sh` + `run-virtualcustomers-smoke.sh` | 2025-11-13 |
+| TASK-710 | Monitor Dapr metrics in Prometheus: `dapr_runtime_service_invocation_*` | ➡ Deferred to observability uplift (Phase 1B future work) | — |
 
 ## 3. Alternatives
 

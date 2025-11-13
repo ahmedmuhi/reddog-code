@@ -38,6 +38,9 @@ spec:
         dapr.io/app-id: {{ .Values.services.receiptgenerationservice.dapr.appId | quote }}
         dapr.io/app-port: {{ .Values.services.receiptgenerationservice.dapr.appPort | quote }}
         dapr.io/log-level: {{ .Values.services.common.dapr.logLevel | quote }}
+        dapr.io/config: {{ default "reddog.configuration" .Values.dapr.configuration.name | quote }}
+        dapr.io/enable-metrics: "true"
+        dapr.io/metrics-port: "9090"
         dapr.io/volume-mounts-rw: "receipts:/tmp/receipts"
     spec:
       securityContext:

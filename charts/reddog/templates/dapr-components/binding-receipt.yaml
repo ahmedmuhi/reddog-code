@@ -11,5 +11,5 @@ spec:
   - name: rootPath
     value: /tmp/receipts
 scopes:
-  - receiptgenerationservice
+  - {{ .Values.services.receiptgenerationservice.dapr.appId | quote }}
 {{- end }}

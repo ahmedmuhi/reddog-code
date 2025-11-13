@@ -13,7 +13,7 @@ global:
 # Local uses Redis for both state stores and pub/sub (NOT RabbitMQ - cloud only)
 dapr:
   enabled: true
-  version: "1.16.0"
+  version: "1.16.2"
 
   # State Stores (Redis-based for local development)
   stateStore:
@@ -35,6 +35,14 @@ dapr:
   secretStore:
     type: kubernetes
     # Cloud alternatives: azurekeyvault, aws.secretsmanager, gcp.secretmanager
+
+  # Configuration (applied via dapr.io/config annotation)
+  configuration:
+    name: reddog.configuration
+    tracing:
+      samplingRate: "0.05"
+    features:
+      appHealthCheck: true
 
 # Database Configuration
 database:

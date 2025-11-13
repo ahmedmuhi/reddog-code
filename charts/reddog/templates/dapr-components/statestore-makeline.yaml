@@ -12,9 +12,7 @@ spec:
     value: {{ .Values.dapr.stateStore.host }}:{{ .Values.dapr.stateStore.port }}
   {{- if .Values.dapr.stateStore.password }}
   - name: redisPassword
-    secretKeyRef:
-      name: redis-secret
-      key: password
+    value: {{ .Values.dapr.stateStore.password | quote }}
   {{- end }}
 scopes:
   - {{ .Values.services.makelineservice.dapr.appId | quote }}

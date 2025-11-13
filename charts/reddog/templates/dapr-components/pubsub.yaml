@@ -12,14 +12,12 @@ spec:
     value: {{ .Values.dapr.pubsub.host }}:{{ .Values.dapr.pubsub.port }}
   {{- if .Values.dapr.pubsub.password }}
   - name: redisPassword
-    secretKeyRef:
-      name: redis-secret
-      key: password
+    value: {{ .Values.dapr.pubsub.password | quote }}
   {{- end }}
 scopes:
-  - order-service
-  - make-line-service
-  - loyalty-service
-  - receipt-generation-service
-  - accounting-service
+  - {{ .Values.services.orderservice.dapr.appId | quote }}
+  - {{ .Values.services.makelineservice.dapr.appId | quote }}
+  - {{ .Values.services.loyaltyservice.dapr.appId | quote }}
+  - {{ .Values.services.receiptgenerationservice.dapr.appId | quote }}
+  - {{ .Values.services.accountingservice.dapr.appId | quote }}
 {{- end }}

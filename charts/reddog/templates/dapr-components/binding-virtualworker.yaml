@@ -2,7 +2,7 @@
 apiVersion: dapr.io/v1alpha1
 kind: Component
 metadata:
-  name: orders
+  name: virtualworker.cron
   namespace: {{ .Values.global.namespace }}
 spec:
   type: bindings.cron
@@ -11,5 +11,5 @@ spec:
   - name: schedule
     value: "@every 5s"
 scopes:
-  - virtual-worker
+  - {{ .Values.services.virtualworker.dapr.appId | quote }}
 {{- end }}
