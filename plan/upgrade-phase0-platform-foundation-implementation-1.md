@@ -286,15 +286,14 @@ tags: [infrastructure, upgrade, phase-0, platform, dapr, keda, certmanager, prer
 - **FILE-012**: `manifests/branch/base/deployments/virtual-customers.yaml` - VirtualCustomers deployment
 - **FILE-013**: `manifests/branch/base/deployments/ui.yaml` - UI deployment
 
-### Infrastructure Dependency Files
+### Infrastructure Deployment Sources
 
-- **FILE-014**: `manifests/branch/dependencies/dapr/dapr.yaml` - Dapr Helm release
-- **FILE-015**: `manifests/branch/dependencies/keda/keda.yaml` - KEDA Helm release
-- **FILE-016**: `manifests/branch/dependencies/cert-manager/cert-manager.yaml` - cert-manager Helm release
-- **FILE-017**: `manifests/branch/dependencies/sql/sql-server.yaml` - SQL Server deployment
-- **FILE-018**: `manifests/branch/dependencies/redis/redis.yaml` - Redis Helm release (local dev only)
-- **FILE-019**: `manifests/branch/dependencies/rabbitmq/rabbitmq.yaml` - RabbitMQ Helm release
-- **FILE-020**: `manifests/branch/dependencies/nginx/nginx.yaml` - Nginx Helm release
+- **FILE-014**: `charts/infrastructure/` - Helm chart that provisions Redis + SQL Server secrets for local clusters
+- **FILE-015**: `charts/reddog/` - Umbrella chart for application workloads (installs Dapr components + services)
+- **FILE-016**: `scripts/setup-local-dev.sh` - Automates upstream Helm installs (dapr/dapr, kedacore/keda, jetstack/cert-manager, ingress-nginx, Bitnami RabbitMQ, etc.)
+- **FILE-017**: `values/values-local.yaml` - Local override file consumed by the Helm commands above
+- **FILE-018**: `plan/upgrade-keda-2.18-implementation-1.md` / `plan/upgrade-certmanager-1.19-implementation-1.md` - Contain the command matrices that replace the deleted Flux `HelmRelease` manifests
+- **FILE-019**: `docs/research/infrastructure-versions-verification.md` - Source of record for chart names/versions now that the Flux YAMLs were removed (2025-11-14 cleanup)
 
 ### Docker Compose File (Local Development)
 

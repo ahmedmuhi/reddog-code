@@ -49,7 +49,9 @@ dlldata.c
 # DNX
 project.lock.json
 project.fragment.lock.json
-artifacts/
+artifacts/*
+!artifacts/image-manifests/
+!artifacts/image-manifests/**
 
 *_i.c
 *_p.c

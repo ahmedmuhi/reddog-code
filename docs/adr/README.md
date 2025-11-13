@@ -85,6 +85,11 @@ How settings, secrets, and runtime behavior are configured:
   - **Status:** Implemented (local), Accepted (production)
   - **Why it matters:** Object storage strategy distinct from containerized infrastructure (ADR-0007)
 
+- 🟡 [ADR-0013: Secret Management Strategy](adr-0013-secret-management-strategy.md)
+  - **Decision:** Standardize on Kubernetes Secrets as the transport layer and environment-specific providers (Helm locally, external secret managers in cloud) as the source of truth
+  - **Status:** Accepted / In Progress (Helm creates SQL secrets today; broader policy not yet implemented)
+  - **Why it matters:** Ensures infrastructure components, KEDA scalers, and Dapr secret stores all consume secrets consistently without embedding credentials in manifests
+
 **See also:** [Configuration Decision Tree](#configuration-decision-tree) below for guidance on where to put settings
 
 ### Deployment & Infrastructure
@@ -141,10 +146,10 @@ Track progress across all architectural decisions:
 | Category | Total ADRs | Implemented | In Progress | Planned |
 |----------|-----------|-------------|-------------|---------|
 | Core Platform | 3 | 0 | 0 | 3 |
-| Configuration | 4 | 2 (ADR-0002, 0012) | 0 | 2 |
+| Configuration | 5 | 2 (ADR-0002, 0012) | 1 (ADR-0013) | 2 |
 | Deployment | 3 | 0 | 1 (ADR-0010) | 2 |
 | Operational | 2 | 0 | 0 | 2 |
-| **TOTAL** | **12** | **2 (17%)** | **1 (8%)** | **9 (75%)** |
+| **TOTAL** | **13** | **2 (15%)** | **2 (15%)** | **9 (69%)** |
 
 ### Completion Milestones
 

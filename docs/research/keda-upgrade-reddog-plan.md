@@ -4,7 +4,7 @@
 
 **Red Dog KEDA Configuration:**
 - Current Version: 2.2.0 (May 2021)
-- Installation Method: Helm via Flux (HelmRelease in `manifests/branch/dependencies/keda/keda.yaml`)
+- Installation Method: Direct Helm CLI (`helm upgrade --install keda kedacore/keda ...` – invoked by `scripts/setup-local-dev.sh`)
 - Namespace: `keda`
 - Target Services: Unknown (ScaledObject definitions not found in current codebase)
 

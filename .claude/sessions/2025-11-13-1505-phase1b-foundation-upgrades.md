@@ -119,3 +119,37 @@ _Updates will be appended below as work proceeds._
 **Next Steps:**
 - Update the Dapr upgrade plan tracker (Phase 7 = complete) and modernization docs, then commit the rebuild/validation changes.
 - Proceed to the next foundation plan (e.g., KEDA or CI/CD) once the docs reflect this successful runtime upgrade.
+
+### Update - 2025-11-14 06:45 NZDT
+
+**Summary:** Removed the legacy Flux v1 `HelmRelease` manifests and Kustomize overlays so the repo reflects our Helm-only workflow.
+
+**Details:**
+- Deleted all files under `manifests/branch/dependencies/` plus `manifests/branch/base|redmond/kustomization.yaml`; nothing in CI/CD referenced them and the cluster has no Flux CRDs.
+- Updated `plan/upgrade-phase0-platform-foundation-implementation-1.md` to point at the Helm charts/scripts that now own infrastructure deployments.
+- Updated `docs/research/keda-upgrade-reddog-plan.md` to describe the direct Helm installation procedure.
+
+**Next Steps:** Continue the KEDA 2.18 upgrade work (Phase 1 checklist is complete, ready for Helm install).
+
+### Update - 2025-11-14 07:05 NZDT
+
+**Summary:** Installed and validated KEDA 2.18.1 via Helm, completing Phase 3–4 of the upgrade plan.
+
+**Details:**
+- Added the `kedacore` Helm repo, refreshed indexes, and confirmed chart 2.18.1 availability before installing.
+- Ran `helm upgrade --install keda kedacore/keda --namespace keda --create-namespace --version 2.18.1 --wait --timeout 5m`; release reached `deployed` on revision 1.
+- Verified pods (`kubectl get pods -n keda`), operator image (`ghcr.io/kedacore/keda:2.18.1`), metrics API service availability, admission webhook, and CRD access (`kubectl get scaledobjects/triggerauthentication -A`).
+- Confirmed `autoscaling/v2` appears in `kubectl api-versions`, logs show no operator errors, and a sample ScaledObject passes `kubectl apply --dry-run=client`.
+
+**Next Steps:** Document the remaining optional Phase 5 scaler work and decide when to author real ScaledObjects for MakeLine + Loyalty.
+
+### Update - 2025-11-14 07:55 NZDT
+
+**Summary:** Captured the new secret management policy in ADR-0013 and aligned the quick-start docs with the current platform state.
+
+**Details:**
+- Authored `docs/adr/adr-0013-secret-management-strategy.md` (transport = Kubernetes Secrets, source = environment-specific providers) and linked it from `docs/adr/README.md`.
+- Refreshed `AGENTS.md` / `CLAUDE.md` with the latest status (Phase 1A complete, KEDA installed) plus a new “Secrets (ADR-0013)” quick-start section.
+- Reinforced that Helm/External Secrets must populate Kubernetes Secrets and that KEDA TriggerAuthentications will reference them.
+
+**Next Steps:** Apply the policy to upcoming work (RabbitMQ/KEDA credentials, CI/CD modernization) and keep the session log updated as additional foundation upgrades land.

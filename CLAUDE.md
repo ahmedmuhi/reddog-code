@@ -14,26 +14,26 @@ Any dates before this are in the past, and any dates after this are in the futur
 
 ## Current Development Status
 
-**Actual State (as of 2025-11-11 10:58 NZDT):**
+**Actual State (as of 2025-11-14 07:10 NZDT):**
 - ✅ Phase 0 cleanup completed (removed manifests/local, manifests/corporate, CorporateTransferService, .vscode)
 - ✅ Phase 0 tooling installed (Go 1.25.4, kind 0.30.0, kubectl 1.34.1, Helm 3.19.0, upgrade-assistant, ApiCompat)
 - ✅ **Phase 0.5 COMPLETE** - kind cluster operational, all services deployed via Helm, end-to-end smoke tests passing
 - ✅ Phase 1 baseline complete (.NET 6 performance baseline established - see `tests/k6/BASELINE-RESULTS.md`)
-- ✅ Dapr 1.16.2 running in-cluster (Kubernetes mode with Redis + SQL Server)
-- ✅ .NET 6.0.36 + ASP.NET Core 6.0.36 runtimes installed
-- 🟡 **Phase 1A IN PROGRESS** - 5/9 services upgraded to .NET 10 (56% complete as of 2025-11-12)
-- ✅ OrderService, ReceiptGenerationService, AccountingService, AccountingModel, Bootstrapper upgraded to .NET 10
-- ⏳ MakeLineService, LoyaltyService, VirtualWorker, VirtualCustomers still .NET 6.0
+- ✅ Phase 1A complete – all nine .NET workloads (apps + tests) target `net10.0`, Dockerfiles validated with the GA .NET 10 SDK
+- ✅ Dapr runtime upgrade finished – control plane on 1.16.2 GA with refreshed component templates/annotations
+- ✅ KEDA 2.18.1 installed via Helm; operator + metrics pods healthy (ScaledObjects forthcoming)
+- 🟡 **Phase 1B Foundations in progress** – environment readiness checklist, ADR-0013 adoption, CI/CD + infrastructure container upgrades queued next
 
-**📅 Upcoming Upgrade (November 11, 2025):**
-- ⏰ **.NET 10 GA Release** - Upgrade from 10.0.100-rc.2 to 10.0.0 (GA)
-- Update `global.json` to `10.0.0` after official release at .NET Conf 2025
-- Verify with `dotnet --version` after upgrade
+**📅 Active Phase 1B Tasks:**
+- Define KEDA ScaledObjects + TriggerAuthentications (MakeLine RabbitMQ queue depth, Loyalty Redis metrics)
+- Capture environment readiness checklist + automation (versions, scripts, validation)
+- Update CI/CD workflows + infrastructure charts now that Dapr/KEDA upgrades are stable
 
 **What Works Now:**
-- Building .NET 6.0 services with .NET 10 SDK
+- Building and running .NET 10 services with the GA SDK/runtime
 - **kind cluster deployment** - Operational with Dapr 1.16.2 in Kubernetes mode
 - **Helm chart deployment** - All services deployed and healthy via `charts/reddog/` and `charts/infrastructure/`
+- KEDA 2.18.1 control plane online and ready for ScaledObjects
 - Running services locally with `dapr run` and Dapr 1.16.2 CLI (slim mode)
 - OrderService validated and load tested (P95: 7.77ms, 46.47 req/s)
 - Performance baseline established (k6 load testing framework)
@@ -45,8 +45,8 @@ Any dates before this are in the past, and any dates after this are in the futur
 - REST API testing via samples in `rest-samples/`
 
 **What Doesn't Work Yet:**
-- .NET 10 builds (projects not retargeted)
 - Automated unit/integration tests (load testing only)
+- KEDA ScaledObjects/TriggerAuthentications (autoscaling idle)
 - Production-ready observability (Jaeger, Prometheus, Grafana - disabled for Phase 0.5)
 
 ## Documentation Map
@@ -61,7 +61,7 @@ This repository uses structured documentation to separate concerns and provide c
   - Implementation status dashboard (🟢 Implemented, 🟡 In Progress, 🔵 Accepted, ⚪ Planned)
   - Configuration decision tree ("Where should I put this setting?")
   - Role-based reading guides (Developer, Operator, Decision Maker)
-  - 11 ADRs organized by category (Core Platform, Configuration, Deployment, Operational, Multi-Cloud)
+  - 13 ADRs organized by category (Core Platform, Configuration, Deployment, Operational, Multi-Cloud)
 - **Individual ADRs** in `docs/adr/` - Detailed decision records with implementation status
 
 ### 📐 Implementation Standards
@@ -94,13 +94,17 @@ This repository uses structured documentation to separate concerns and provide c
 ## Common Development Commands
 
 ### Prerequisites
-- .NET 10 SDK (per global.json) - builds .NET 6.0 projects
-- .NET 6.0.36 runtime + ASP.NET Core 6.0.36 runtime (for running .NET 6 services)
+- .NET 10 SDK (per global.json) + .NET 10 runtime (legacy .NET 6 runtime optional for historical baselines only)
 - Dapr CLI 1.16.2+ for local service execution (slim mode)
 - Node.js 24+ and npm 11+ for Vue.js UI
 - k6 v0.54.0+ for load testing (installed to ~/bin/)
 - Copy `.env/local.sample` → `.env/local`, set `SQLSERVER_SA_PASSWORD`, and keep the real file untracked.
 - Copy `values/values-local.yaml.sample` → `values/values-local.yaml` before running kind/Helm scripts.
+
+### Secrets (ADR-0013)
+- Follow [ADR-0013](docs/adr/adr-0013-secret-management-strategy.md): all workloads consume credentials from Kubernetes Secrets; no inline credentials in manifests, ConfigMaps, or source.
+- Local dev: use gitignored `values/values-local.yaml` to feed Helm stringData (e.g., `sqlserver-secret`, RabbitMQ/KEDA secrets) and keep `.env/local` solely for scripts outside Kubernetes.
+- Cloud environments: hydrate the same secret names via External Secrets Operator or CSI drivers backed by Key Vault / Secrets Manager so manifests remain cloud-agnostic.
 
 ### Build & Restore
 ```bash
