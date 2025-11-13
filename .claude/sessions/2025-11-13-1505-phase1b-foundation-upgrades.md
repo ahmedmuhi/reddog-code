@@ -164,3 +164,24 @@ _Updates will be appended below as work proceeds._
 - Refreshed AGENTS/CLAUDE quick starts to point developers at the new pattern and reference the cloud sample file.
 
 **Next Steps:** Create real cloud values files per environment and hook them into deployment scripts; wire the RabbitMQ/Cosmos credentials via Kubernetes Secrets/ESO so we can stand up KEDA ScaledObjects.
+
+### Update - 2025-11-14 08:45 NZDT
+
+**Summary:** Pre-created the RabbitMQ 4.2 cloud deployment assets so Phase 0 can execute quickly when we bring up managed clusters.
+
+**Details:**
+- Added `charts/external/rabbitmq/values-cloud.yaml` + README (Bitnami chart pinned to 4.2.0, TLS, Prometheus, Khepri flag).
+- Documented the required Kubernetes Secrets in `docs/cloud/rabbitmq/rabbitmq-secrets.template.yaml` so operators can source credentials via ADR-0013.
+
+**Next Steps:** When cloud environments are ready, copy the template, inject real secrets, and run the documented Helm command to stand up RabbitMQ before wiring Dapr/KEDA.
+
+### Update - 2025-11-14 09:30 NZDT
+
+**Summary:** Closed KEDA platform upgrade, created cloud autoscaling plan.
+
+**Details:**
+- Marked `plan/upgrade-keda-2.18-implementation-1.md` complete (Phases 1-4 done, KEDA 2.18.1 operational).
+- Moved to `plan/done/`.
+- Created `plan/keda-cloud-autoscaling-implementation-1.md` for cloud ScaledObjects work (MakeLine RabbitMQ scaler, TriggerAuthentication, Helm integration).
+
+**Next Steps:** Cloud deployment work deferred. Focus on remaining Phase 1B foundations (CI/CD, infrastructure containers).
