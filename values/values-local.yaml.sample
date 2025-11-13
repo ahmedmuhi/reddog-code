@@ -207,9 +207,18 @@ services:
     replicas: 1
     image:
       repository: ghcr.io/ahmedmuhi/reddog-virtualcustomers
+    dapr:
+      appId: virtualcustomers
     env:
-      ORDER_SERVICE_URL: http://localhost:5100
-      ORDERS_PER_HOUR: 10  # Low rate for local dev
+      VirtualCustomers__StoreId: Redmond
+      VirtualCustomers__MaxItemQuantity: 4
+      VirtualCustomers__MaxUniqueItemsPerOrder: 3
+      VirtualCustomers__MinSecondsToPlaceOrder: 1
+      VirtualCustomers__MaxSecondsToPlaceOrder: 3
+      VirtualCustomers__MinSecondsBetweenOrders: 1
+      VirtualCustomers__MaxSecondsBetweenOrders: 3
+      VirtualCustomers__NumOrders: -1
+      VirtualCustomers__DisableDaprCalls: false
 
   # VirtualWorker (order completion simulator)
   virtualworker:

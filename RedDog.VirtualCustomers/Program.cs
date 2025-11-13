@@ -1,72 +1,52 @@
-using System;
-using System.IO;
-using System.Threading.Tasks;
-using Microsoft.Extensions.Configuration;
+using Dapr.Client;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Serilog;
-using Serilog.Core;
-using Serilog.Events;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using OpenTelemetry.Logs;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
+using OpenTelemetry.Extensions.Hosting;
+using RedDog.VirtualCustomers.Configuration;
+using RedDog.VirtualCustomers;
 
-namespace RedDog.VirtualCustomers
+var builder = Host.CreateApplicationBuilder(args);
+
+builder.Services.AddOptions<VirtualCustomerOptions>()
+    .BindConfiguration(VirtualCustomerOptions.SectionName)
+    .ValidateDataAnnotations()
+    .Validate(opts => opts.MinSecondsToPlaceOrder <= opts.MaxSecondsToPlaceOrder, "MinSecondsToPlaceOrder must be <= MaxSecondsToPlaceOrder")
+    .Validate(opts => opts.MinSecondsBetweenOrders <= opts.MaxSecondsBetweenOrders, "MinSecondsBetweenOrders must be <= MaxSecondsBetweenOrders");
+
+var serviceName = "VirtualCustomers";
+var otlpEndpoint = Environment.GetEnvironmentVariable("OTEL_EXPORTER_OTLP_ENDPOINT") ?? "http://localhost:4318";
+
+builder.Services.AddOpenTelemetry()
+    .ConfigureResource(resource => resource.AddService(serviceName))
+    .WithTracing(tracing => tracing
+        .AddHttpClientInstrumentation()
+        .AddOtlpExporter(options => options.Endpoint = new Uri(otlpEndpoint)))
+    .WithMetrics(metrics => metrics
+        .AddHttpClientInstrumentation()
+        .AddMeter(serviceName)
+        .AddOtlpExporter(options => options.Endpoint = new Uri(otlpEndpoint)));
+
+builder.Logging.ClearProviders();
+builder.Logging.AddOpenTelemetry(logging =>
 {
-    class Program
-    {
-        static async Task Main(string[] args)
-        {
-            Log.Logger = new LoggerConfiguration()
-                .MinimumLevel.Information()
-                .MinimumLevel.Override("System", LogEventLevel.Debug)
-                //.MinimumLevel.Override("System.Net.Http.HttpClient.Default.LogicalHandler", LogEventLevel.Information)
-                .Enrich.FromLogContext()
-                .Enrich.With(new UtcTimestampEnricher())
-                .WriteTo.Console(outputTemplate: "[{UtcTimestamp:yyyy-MM-dd HH:mm:ss.fff} {Level:u3}] [{SourceContext}] {Message:lj}{NewLine}{Exception}")
-                .CreateLogger();
+    logging.IncludeFormattedMessage = true;
+    logging.IncludeScopes = true;
+    logging.AddOtlpExporter(options => options.Endpoint = new Uri(otlpEndpoint));
+});
 
-            try
-            {
-                using IHost host = new HostBuilder()
-                    .ConfigureHostConfiguration(configHost =>
-                    {
-                        configHost.SetBasePath(Directory.GetCurrentDirectory());
-                        configHost.AddEnvironmentVariables(prefix: "DOTNETCORE_");
-                        configHost.AddCommandLine(args);
-                    })
-                    .ConfigureAppConfiguration((hostContext, configApp) =>
-                    {
-                        configApp.SetBasePath(Directory.GetCurrentDirectory());
-                        configApp.AddEnvironmentVariables(prefix: "DOTNETCORE_");
-                        configApp.AddJsonFile($"appsettings.json", true);
-                        configApp.AddJsonFile($"appsettings.{hostContext.HostingEnvironment.EnvironmentName}.json", true);
-                        configApp.AddCommandLine(args);
-                    })
-                    .ConfigureServices((hostContext, services) =>
-                    {
-                        services.AddHttpClient();
-                        services.AddDaprClient();
-                        services.AddHostedService<VirtualCustomers>();
-                    })
-                    .UseSerilog()
-                    .Build();
-                
-                await host.RunAsync();
-            }
-            catch (Exception e)
-            {
-                Log.Fatal(e, "Host terminated unexpectedly.");
-            }
-            finally
-            {
-                Log.CloseAndFlush();
-            }
-        }
-    }
-
-    class UtcTimestampEnricher : ILogEventEnricher
-    {
-        public void Enrich(LogEvent logEvent, ILogEventPropertyFactory pf)
-        {
-            logEvent.AddPropertyIfAbsent(pf.CreateProperty("UtcTimestamp", logEvent.Timestamp.UtcDateTime));
-        }
-    }
+if (builder.Environment.IsDevelopment())
+{
+    builder.Logging.AddConsole();
 }
+
+builder.Services.AddHttpClient();
+builder.Services.AddSingleton(_ => new DaprClientBuilder().Build());
+builder.Services.AddHostedService<VirtualCustomersWorker>();
+
+await builder.Build().RunAsync();

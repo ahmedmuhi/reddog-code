@@ -8,10 +8,10 @@ namespace RedDog.VirtualCustomers.Models
         public int ProductId { get; set; }
 
         [JsonPropertyName("productName")]
-        public string ProductName { get; set; }
+        public string ProductName { get; set; } = string.Empty;
 
         [JsonPropertyName("description")]
-        public string Description { get; set; }
+        public string Description { get; set; } = string.Empty;
 
         [JsonPropertyName("unitCost")]
         public decimal UnitCost { get; set; }
@@ -20,6 +20,6 @@ namespace RedDog.VirtualCustomers.Models
         public decimal UnitPrice { get; set; }
 
         [JsonPropertyName("imageUrl")]
-        public string ImageUrl { get; set; }
+        public string ImageUrl { get; set; } = string.Empty;
     }
 }

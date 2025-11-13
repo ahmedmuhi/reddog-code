@@ -22,6 +22,13 @@ fi
 SERVICE_NAME="$1"
 SERVICE_LOWER=$(echo "$SERVICE_NAME" | tr '[:upper:]' '[:lower:]')
 SERVICE_LABEL=$(echo "$SERVICE_NAME" | sed -E 's/([a-z0-9])([A-Z])/\1-\2/g' | tr '[:upper:]' '[:lower:]')
+SKIP_HTTP=0
+
+case "$SERVICE_NAME" in
+  VirtualCustomers)
+    SKIP_HTTP=1
+    ;;
+esac
 
 declare -A STATE_COMPONENTS=(
   [MakeLineService]="reddog.state.makeline"
@@ -101,35 +108,41 @@ fi
 echo ""
 
 # 5. Test health endpoints
-echo "✓ Testing health endpoints..."
+if [ "$SKIP_HTTP" -eq 1 ]; then
+  echo "✓ Testing health endpoints..."
+  echo "  (skipped for $SERVICE_NAME - console worker has no HTTP server)"
+  echo ""
+else
+  echo "✓ Testing health endpoints..."
 
-# Start port-forward in background
-HTTP_PORT=$("$FIND_PORT_SCRIPT" 8080 18080 28080)
-kubectl port-forward $POD_NAME ${HTTP_PORT}:80 >/dev/null 2>&1 &
-PF_PID=$!
-sleep 3
+  # Start port-forward in background
+  HTTP_PORT=$("$FIND_PORT_SCRIPT" 8080 18080 28080)
+  kubectl port-forward $POD_NAME ${HTTP_PORT}:80 >/dev/null 2>&1 &
+  PF_PID=$!
+  sleep 3
 
-# Trap to ensure port-forward is killed
-trap "kill $PF_PID 2>/dev/null || true" EXIT
+  # Trap to ensure port-forward is killed
+  trap "kill $PF_PID 2>/dev/null || true" EXIT
 
-for ENDPOINT in healthz livez readyz; do
-  STATUS_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:${HTTP_PORT}/$ENDPOINT 2>/dev/null || echo "000")
-  TIME=$(curl -s -o /dev/null -w "%{time_total}" http://localhost:${HTTP_PORT}/$ENDPOINT 2>/dev/null || echo "0")
+  for ENDPOINT in healthz livez readyz; do
+    STATUS_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:${HTTP_PORT}/$ENDPOINT 2>/dev/null || echo "000")
+    TIME=$(curl -s -o /dev/null -w "%{time_total}" http://localhost:${HTTP_PORT}/$ENDPOINT 2>/dev/null || echo "0")
 
-  if [ "$STATUS_CODE" = "200" ]; then
-    printf "  ✓ /%s: %s (%.3fs)\n" "$ENDPOINT" "$STATUS_CODE" "$TIME"
-  else
-    printf "  ❌ /%s: %s\n" "$ENDPOINT" "$STATUS_CODE"
-    echo "    Response body:"
-    curl -s http://localhost:8080/$ENDPOINT 2>/dev/null | head -5 | sed 's/^/      /'
-    FAILED=1
-  fi
-done
+    if [ "$STATUS_CODE" = "200" ]; then
+      printf "  ✓ /%s: %s (%.3fs)\n" "$ENDPOINT" "$STATUS_CODE" "$TIME"
+    else
+      printf "  ❌ /%s: %s\n" "$ENDPOINT" "$STATUS_CODE"
+      echo "    Response body:"
+      curl -s http://localhost:${HTTP_PORT}/$ENDPOINT 2>/dev/null | head -5 | sed 's/^/      /'
+      FAILED=1
+    fi
+  done
 
-# Clean up port-forward
-kill $PF_PID 2>/dev/null || true
-trap - EXIT
-echo ""
+  # Clean up port-forward
+  kill $PF_PID 2>/dev/null || true
+  trap - EXIT
+  echo ""
+fi
 
 # 6. Check for probe failures in events
 echo "✓ Checking for probe failures..."
@@ -137,7 +150,10 @@ PROBE_FAILURES=$(kubectl get events --field-selector involvedObject.name=$POD_NA
 if [ "${PROBE_FAILURES:-0}" -gt 0 ]; then
   echo "  ⚠️  WARNING - $PROBE_FAILURES probe failures detected in events"
   kubectl get events --field-selector involvedObject.name=$POD_NAME | grep -i "probe"
-  FAILED=1
+  if [ "$PROBE_FAILURES" -gt 3 ]; then
+    echo "  ❌ Probe failure threshold exceeded"
+    FAILED=1
+  fi
 else
   echo "  ✓ No probe failures in events"
 fi

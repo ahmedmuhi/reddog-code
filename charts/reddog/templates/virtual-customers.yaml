@@ -16,16 +16,29 @@ spec:
     metadata:
       labels:
         app: virtual-customers
+      annotations:
+        dapr.io/enabled: "true"
+        dapr.io/app-id: {{ .Values.services.virtualcustomers.dapr.appId | quote }}
+        {{- with .Values.services.virtualcustomers.dapr.appPort }}
+        dapr.io/app-port: {{ . | quote }}
+        {{- end }}
+        dapr.io/log-level: {{ .Values.services.common.dapr.logLevel | quote }}
+        dapr.io/sidecar-cpu-request: {{ .Values.services.common.dapr.resources.requests.cpu | quote }}
+        dapr.io/sidecar-memory-request: {{ .Values.services.common.dapr.resources.requests.memory | quote }}
+        dapr.io/sidecar-cpu-limit: {{ .Values.services.common.dapr.resources.limits.cpu | quote }}
+        dapr.io/sidecar-memory-limit: {{ .Values.services.common.dapr.resources.limits.memory | quote }}
     spec:
       containers:
       - name: virtual-customers
         image: {{ .Values.services.virtualcustomers.image.repository }}:{{ .Values.services.common.image.tag }}
         imagePullPolicy: {{ .Values.services.common.image.pullPolicy }}
+        {{- if .Values.services.virtualcustomers.env }}
         env:
-        - name: ORDER_SERVICE_URL
-          value: {{ .Values.services.virtualcustomers.env.ORDER_SERVICE_URL | quote }}
-        - name: ORDERS_PER_HOUR
-          value: {{ .Values.services.virtualcustomers.env.ORDERS_PER_HOUR | quote }}
+        {{- range $name, $value := .Values.services.virtualcustomers.env }}
+        - name: {{ $name }}
+          value: {{ $value | quote }}
+        {{- end }}
+        {{- end }}
         resources:
           requests:
             cpu: {{ .Values.services.common.resources.requests.cpu }}
@@ -33,4 +46,29 @@ spec:
           limits:
             cpu: {{ .Values.services.common.resources.limits.cpu }}
             memory: {{ .Values.services.common.resources.limits.memory }}
+        startupProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - "pgrep dotnet"
+          failureThreshold: 12
+          periodSeconds: 10
+          timeoutSeconds: 5
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - "pgrep dotnet"
+          periodSeconds: 20
+          timeoutSeconds: 5
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - "pgrep dotnet"
+          periodSeconds: 20
+          timeoutSeconds: 5
 {{- end }}

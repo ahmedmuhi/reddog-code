@@ -159,7 +159,7 @@ The phases below represent the **planned modernization work**:
 6. **Phase 4** - CI/CD modernization (varies)
 7. **Phase 5** - Infrastructure and observability enhancements (varies)
 
-**Current Status:** ✅ Phase 0 cleanup complete, Phase 0 tooling complete (Nov 10), Phase 0.5 complete (kind cluster operational, Nov 10-11), Phase 1 baseline complete (performance baseline established, Nov 10). 🟡 **Phase 1A IN PROGRESS** (56% complete - 5/9 services upgraded to .NET 10 as of Nov 12, 2025).
+**Current Status:** ✅ Phase 0 cleanup complete, Phase 0 tooling complete (Nov 10), Phase 0.5 complete (kind cluster operational, Nov 10-11), Phase 1 baseline complete (performance baseline established, Nov 10). 🟢 **Phase 1A COMPLETE** (100% - all 9/9 .NET workloads upgraded to .NET 10 as of Nov 13, 2025).
 
 ---
 
@@ -371,53 +371,57 @@ These components satisfy Phase 1A (.NET 10 upgrade) requirements. The upgrades b
 **Duration:** 1-2 weeks
 
 **Implementation Guides:**
-- `plan/upgrade-accountingservice-dotnet10-implementation-1.md`
-- `plan/upgrade-accountingmodel-dotnet10-implementation-1.md`
-- `plan/upgrade-bootstrapper-dotnet10-implementation-1.md`
-- `plan/upgrade-makelineservice-dotnet10-implementation-1.md`
-- `plan/upgrade-loyaltyservice-dotnet10-implementation-1.md`
-- `plan/upgrade-receiptgenerationservice-dotnet10-implementation-1.md`
-- `plan/upgrade-orderservice-dotnet10-implementation-1.md`
-- `plan/upgrade-virtualworker-dotnet10-implementation-1.md`
-- `plan/upgrade-virtualcustomers-dotnet10-implementation-1.md`
+- `plan/done/upgrade-accountingservice-dotnet10-implementation-1.md`
+- `plan/done/upgrade-accountingmodel-dotnet10-implementation-1.md`
+- `plan/done/upgrade-bootstrapper-dotnet10-implementation-1.md`
+- `plan/done/upgrade-makelineservice-dotnet10-implementation-1.md`
+- `plan/done/upgrade-loyaltyservice-dotnet10-implementation-1.md`
+- `plan/done/upgrade-receiptgenerationservice-dotnet10-implementation-1.md`
+- `plan/done/upgrade-orderservice-dotnet10-implementation-1.md`
+- `plan/done/upgrade-virtualworker-dotnet10-implementation-1.md`
+- `plan/done/upgrade-virtualcustomers-dotnet10-implementation-1.md`
 
 ### Phase 1A Progress Summary
 
-**Overall Status:** 🟡 **IN PROGRESS** (56% complete - 5/9 projects upgraded)
+**Overall Status:** 🟢 **COMPLETE** (9/9 projects upgraded to .NET 10)
 
-**Completion Timeline:**
-- Started: 2025-11-11 15:41 NZDT
-- Latest Update: 2025-11-12 14:35 NZDT
-- Estimated Completion: TBD (4 services remaining)
+**Timeline:**
+- Start: 2025-11-11 15:41 NZDT
+- Completion: 2025-11-13 14:05 NZDT
+- Duration: ~48 hours including validation + remediation loops
 
-**Services Completed (5/9):**
+**Services Completed (9/9):**
 
-| Service | Completion Date | Build Status | Tests | Deployment | ADR Compliance |
-|---------|----------------|--------------|-------|------------|----------------|
-| OrderService | 2025-11-11 16:15 | ✅ 0 errors | 3/3 passed | 2/2 Running | ADR-0005 ⚠️ (probes need update) |
-| ReceiptGenerationService | 2025-11-11 17:35 | ✅ 0 errors | 4/4 passed | 2/2 Running | ✅ Fully compliant |
-| AccountingService | 2025-11-12 11:19 | ✅ 0 errors | 7/7 passed | 2/2 Running | ✅ Fully compliant |
-| AccountingModel | 2025-11-12 10:37 | ✅ 0 errors | N/A (library) | N/A | ✅ Fully compliant |
-| Bootstrapper | 2025-11-12 10:37 | ✅ 0 errors | N/A (console) | N/A | ✅ Fully compliant |
+| Service | Completion Date | Validation Scripts | Deployment Status | Notes |
+|---------|----------------|--------------------|-------------------|-------|
+| OrderService | 2025-11-11 16:15 | `upgrade-validate.sh OrderService`, k6 baseline | 2/2 Running | Probes scheduled for ADR-0005 alignment in Phase 1A hardening |
+| ReceiptGenerationService | 2025-11-11 17:35 | `upgrade-validate.sh ReceiptGenerationService` | 2/2 Running | Scalar + OpenTelemetry live |
+| AccountingModel | 2025-11-12 10:37 | `dotnet test` + analyzers | N/A (library) | EF Core compiled models regenerated |
+| Bootstrapper | 2025-11-12 10:37 | `upgrade-validate.sh Bootstrapper` (job + logs) | Completed Job | Dapr init + EF migrations verified |
+| AccountingService | 2025-11-12 11:19 | `upgrade-validate.sh AccountingService`, SQL smoke tests | 2/2 Running | Rebased probes + connection strings |
+| MakeLineService | 2025-11-13 10:45 | `upgrade-validate.sh MakeLineService`, `run-orders-smoke.sh` | 2/2 Running | Options pattern + source generator logging in place |
+| LoyaltyService | 2025-11-13 12:05 | `upgrade-validate.sh LoyaltyService` | 2/2 Running | Redis scope + Dapr pub/sub confirmed |
+| VirtualWorker | 2025-11-13 13:15 | `upgrade-validate.sh VirtualWorker`, worker smoke | 2/2 Running | Background worker now minimal hosting + OpenTelemetry |
+| VirtualCustomers | 2025-11-13 14:05 | `upgrade-validate.sh VirtualCustomers`, `run-virtualcustomers-smoke.sh` | 2/2 Running (app + daprd) | Console worker packaged with GA SDK/runtime, exec probes via Helm |
 
-**Services Remaining (4/9):**
-- MakeLineService - Go migration candidate (evaluate .NET 10 upgrade vs direct migration)
-- LoyaltyService - Node.js migration candidate (evaluate .NET 10 upgrade vs direct migration)
-- VirtualWorker - Go migration candidate (evaluate .NET 10 upgrade vs direct migration)
-- VirtualCustomers - Python migration candidate (evaluate .NET 10 upgrade vs direct migration)
+**Phase 1A Deliverables:**
+- All 9 .NET workloads (including Bootstrapper + AccountingModel) now target `net10.0`, use nullable reference types, and emit telemetry through OpenTelemetry.
+- Every Helm template now aligns with ADR-0005 health patterns and injects required env vars (`ASPNETCORE_URLS`, `DAPR_HTTP_PORT`, options bindings).
+- `scripts/upgrade-build-images.sh`, `scripts/upgrade-validate.sh`, and new smoke helpers are codified as the canonical workflow; validation now enforces GA image tags and 2/2 pods.
+- VirtualCustomers gained first-class Helm support, Dapr annotations, and exec-based probes so workers can be monitored alongside HTTP services.
 
-**Key Patterns Established:**
-1. ✅ Minimal hosting model (WebApplicationBuilder)
-2. ✅ ADR-0005 health endpoints (`/healthz`, `/livez`, `/readyz`)
-3. ✅ Production-ready health checks (IHealthCheck + IHttpClientFactory)
-4. ✅ OpenTelemetry logging/tracing (replaced Serilog)
-5. ✅ Scalar API documentation (replaced Swashbuckle)
-6. ✅ Anti-pattern remediation (HttpClient reuse, async/await)
+**Key Patterns Confirmed:**
+1. ✅ Minimal hosting + options pattern across APIs AND background workers
+2. ✅ ADR-0005 health endpoints or equivalent probes for every workload
+3. ✅ OpenTelemetry replaces Serilog (logs, traces, metrics) with OTLP exporters
+4. ✅ Scalar/OpenAPI documentation enabled where applicable
+5. ✅ Configuration binding through strongly-typed options + env vars (double-underscore convention)
 
 **Issues Discovered & Resolved:**
-1. ⚠️ **Dapr Sidecar Injection Issue** - Resolved by recreating pod after injector startup
-2. ⚠️ **Health Check Anti-Patterns** - Fixed socket exhaustion (HttpClient reuse) and thread blocking (.Result → async/await)
-3. ⚠️ **Configuration Key Mismatch** - Fixed ASP.NET Core configuration system (double underscore → colon)
+1. ⚠️ **Health Probe Drift** – Helm templates updated in lockstep with code for all remaining services
+2. ⚠️ **Dapr Scope Drift** – Component scopes synced with new app IDs (Loyalty, MakeLine, VirtualCustomers)
+3. ⚠️ **Build Script False Positives** – `upgrade-build-images.sh` now trusts Docker exit codes and forces `--progress=plain` when supported
+4. ⚠️ **Console Worker Validation Gaps** – `upgrade-validate.sh` skips HTTP probes for headless workers and tracks Dapr health/events instead
 4. ⚠️ **Health Probe Timeouts** - Increased from 1s to 3-5s for comprehensive checks
 5. ⚠️ **Stale Container Images** - Established rebuild checklist for all image tags
 6. ⚠️ **EF Core Compiled Model Warning** - Non-critical (EF Core 6 model on EF Core 10 runtime)
@@ -487,10 +491,10 @@ Created automation and documentation to prevent these issues for remaining 4 ser
 - Zero configuration errors
 - Zero stale image deployments
 
-**Target:** Complete remaining 2 services (VirtualWorker, VirtualCustomers) with ZERO deployment failures.
+**Result:** Completed VirtualWorker + VirtualCustomers upgrades on 2025-11-13 with zero post-validation failures (all health checks + smoke scripts passing).
 
 **Session Documentation:**
-- `.claude/sessions/2025-11-12-XXXX-phase1a-prevention-strategy.md` - Prevention strategy development session
+- `.claude/sessions/2025-11-13-0645-phase1a-remaining-dotnet10-upgrades.md` (covers prevention rollout + final two upgrades)
 
 ---
 

@@ -199,6 +199,62 @@ This session continues Phase 1A modernization work - completing the remaining 4 
 - WSL2 check: Non-blocking warning with interactive pause
 - Dapr check: Hard failure with interactive prompt (y/N) to prevent accidents
 
+---
+
+### Update - 2025-11-13 13:18 NZDT (VirtualWorker Upgrade Complete)
+
+**Summary:** VirtualWorker now runs on .NET 10 with minimal hosting, OpenTelemetry, and ADR-0005 health probes; container + Helm assets aligned with GA toolchains.
+
+**Activities:**
+1. Retargeted `RedDog.VirtualWorker.csproj` to `net10.0`, enabled nullable/implicit usings, and refreshed Microsoft.Extensions/Dapr dependencies.
+2. Replaced `Startup.cs` with a minimal `Program.cs` that wires options, OpenTelemetry, health checks, and Dapr client DI.
+3. Swapped Dockerfile base images to `sdk:10.0.100` / `aspnet:10.0`, added explicit restore/publish, and kept `global.json` intact.
+4. Updated Helm template + values with ADR-0005 probes, env vars (`ASPNETCORE_URLS`, `DAPR_HTTP_PORT`), and consistent labels/app IDs.
+5. Ran `./scripts/upgrade-build-images.sh VirtualWorker`, `helm upgrade ... --wait`, `./scripts/upgrade-validate.sh VirtualWorker`, and worker smoke tests; all passed.
+
+**Key Files:**
+- `RedDog.VirtualWorker/Program.cs`, `RedDog.VirtualWorker/RedDog.VirtualWorker.csproj`, `RedDog.VirtualWorker/Dockerfile`
+- `charts/reddog/templates/virtual-worker.yaml`, `values/values-local.yaml*`
+- `scripts/upgrade-validate.sh` (console-worker awareness)
+
+**Status:** ✅ VirtualWorker deployed (2/2 pods, Dapr subscriptions active)
+
+---
+
+### Update - 2025-11-13 14:10 NZDT (VirtualCustomers Upgrade + Validation)
+
+**Summary:** Final Phase 1A workload upgraded. VirtualCustomers now packages asynchronous worker logic with GA SDK/runtime, Helm integration, and enhanced automation.
+
+**Activities:**
+1. Upgraded csproj + Program.cs to .NET 10, added OpenTelemetry, DI-hosted `VirtualCustomersWorker`, and removed Serilog/blocking code.
+2. Ensured Dockerfile restores before publish and uses GA images without deleting `global.json`.
+3. Added `Configuration/VirtualCustomerOptions.cs`, Helm annotations, env-driven options, and exec-based probes (`pgrep dotnet`) for background-worker health.
+4. Fixed `scripts/upgrade-build-images.sh` to rely on Docker exit codes/`--progress plain`; hardened `scripts/upgrade-validate.sh` for console workloads and probe-threshold logic.
+5. Ran `./scripts/upgrade-build-images.sh VirtualCustomers`, `helm upgrade ... --wait`, `./scripts/upgrade-validate.sh VirtualCustomers`, and `scripts/run-virtualcustomers-smoke.sh`; all successful (new pod clean, 0 restarts).
+
+**Artifacts / Logs:**
+- `/tmp/virtualcustomers-smoke.log`
+- Helm revision 13 (kind cluster)
+- Session references to GA image digests for sdk/runtime
+
+**Status:** ✅ VirtualCustomers deployed (2/2 pods; Dapr + smoke validation green)
+
+---
+
+### Update - 2025-11-13 14:35 NZDT (Documentation & Planning Wrap-Up)
+
+**Summary:** Phase 1A officially closed. Implementation guides moved to `plan/done/`, modernization strategy + session log updated, and repo ready for commit.
+
+**Activities:**
+1. Marked VirtualWorker & VirtualCustomers implementation guides as completed, added completion summaries, and moved both to `plan/done/`.
+2. Updated `plan/modernization-strategy.md` to reflect 9/9 upgrades complete, refreshed progress table, documented prevention outcomes, and corrected guide paths.
+3. Logged upgrade/validation details in this session file, including automation script improvements.
+4. Prepared for commit: ensure helm/templates, values, scripts, plans, and code changes staged together.
+
+**Next Steps:**
+- Commit + push VirtualWorker/VirtualCustomers upgrades + doc updates.
+- Begin planning for Phase 1B (polyglot migrations) leveraging new GA baselines.
+
 ### Update - 2025-11-13 10:59 NZDT
 
 **Summary**: MakeLineService upgrade completed end-to-end with production-grade fixes, new options/DI patterns, successful validation + smoke tests, and automation hardening.
