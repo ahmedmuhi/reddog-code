@@ -153,3 +153,14 @@ _Updates will be appended below as work proceeds._
 - Reinforced that Helm/External Secrets must populate Kubernetes Secrets and that KEDA TriggerAuthentications will reference them.
 
 **Next Steps:** Apply the policy to upcoming work (RabbitMQ/KEDA credentials, CI/CD modernization) and keep the session log updated as additional foundation upgrades land.
+
+### Update - 2025-11-14 08:25 NZDT
+
+**Summary:** Refactored the Dapr Helm components to support metadata-driven backends, enabling true “plug and play” for RabbitMQ/Cosmos/other providers.
+
+**Details:**
+- Extended every Dapr component template (pub/sub, both state stores, secret store, bindings) to accept an optional `.metadata` array with backward-compatible Redis defaults.
+- Updated `values/values-local.yaml.sample` with metadata examples and added `values/values-azure.yaml.sample` showing RabbitMQ + Cosmos DB + Key Vault configuration tied to ADR-0013.
+- Refreshed AGENTS/CLAUDE quick starts to point developers at the new pattern and reference the cloud sample file.
+
+**Next Steps:** Create real cloud values files per environment and hook them into deployment scripts; wire the RabbitMQ/Cosmos credentials via Kubernetes Secrets/ESO so we can stand up KEDA ScaledObjects.
