@@ -422,9 +422,9 @@ These components satisfy Phase 1A (.NET 10 upgrade) requirements. The upgrades b
 2. ⚠️ **Dapr Scope Drift** – Component scopes synced with new app IDs (Loyalty, MakeLine, VirtualCustomers)
 3. ⚠️ **Build Script False Positives** – `upgrade-build-images.sh` now trusts Docker exit codes and forces `--progress=plain` when supported
 4. ⚠️ **Console Worker Validation Gaps** – `upgrade-validate.sh` skips HTTP probes for headless workers and tracks Dapr health/events instead
-4. ⚠️ **Health Probe Timeouts** - Increased from 1s to 3-5s for comprehensive checks
-5. ⚠️ **Stale Container Images** - Established rebuild checklist for all image tags
-6. ⚠️ **EF Core Compiled Model Warning** - Non-critical (EF Core 6 model on EF Core 10 runtime)
+5. ⚠️ **Health Probe Timeouts** – Increased from 1s to 3-5s for Dapr + HTTP checks
+6. ⚠️ **Stale Container Images** – Established rebuild checklist for all image tags
+7. ⚠️ **EF Core Compiled Model Warning** – Non-critical (EF Core 6 model on EF Core 10 runtime)
 
 **ADR-0005 Compliance Status:**
 - ✅ **ReceiptGenerationService** - Fully compliant (startup: `/healthz`, liveness: `/livez`, readiness: `/readyz`)
