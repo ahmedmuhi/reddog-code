@@ -8,11 +8,15 @@ spec:
   type: pubsub.{{ .Values.dapr.pubsub.type }}
   version: v1
   metadata:
+  {{- if .Values.dapr.pubsub.metadata }}
+  {{- toYaml .Values.dapr.pubsub.metadata | nindent 2 }}
+  {{- else }}
   - name: redisHost
     value: {{ .Values.dapr.pubsub.host }}:{{ .Values.dapr.pubsub.port }}
-  {{- if .Values.dapr.pubsub.password }}
+    {{- if .Values.dapr.pubsub.password }}
   - name: redisPassword
     value: {{ .Values.dapr.pubsub.password | quote }}
+    {{- end }}
   {{- end }}
 scopes:
   - {{ .Values.services.orderservice.dapr.appId | quote }}

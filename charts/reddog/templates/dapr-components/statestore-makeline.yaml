@@ -8,11 +8,15 @@ spec:
   type: state.{{ .Values.dapr.stateStore.type }}
   version: v1
   metadata:
+  {{- if .Values.dapr.stateStore.metadata }}
+  {{- toYaml .Values.dapr.stateStore.metadata | nindent 2 }}
+  {{- else }}
   - name: redisHost
     value: {{ .Values.dapr.stateStore.host }}:{{ .Values.dapr.stateStore.port }}
-  {{- if .Values.dapr.stateStore.password }}
+    {{- if .Values.dapr.stateStore.password }}
   - name: redisPassword
     value: {{ .Values.dapr.stateStore.password | quote }}
+    {{- end }}
   {{- end }}
 scopes:
   - {{ .Values.services.makelineservice.dapr.appId | quote }}

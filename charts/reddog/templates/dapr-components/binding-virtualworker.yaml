@@ -8,8 +8,12 @@ spec:
   type: bindings.cron
   version: v1
   metadata:
+  {{- if and .Values.services.virtualworker.binding .Values.services.virtualworker.binding.metadata }}
+  {{- toYaml .Values.services.virtualworker.binding.metadata | nindent 2 }}
+  {{- else }}
   - name: schedule
     value: "@every 5s"
+  {{- end }}
 scopes:
   - {{ .Values.services.virtualworker.dapr.appId | quote }}
 {{- end }}

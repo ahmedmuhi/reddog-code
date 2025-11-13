@@ -8,8 +8,12 @@ spec:
   type: bindings.localstorage
   version: v1
   metadata:
+  {{- if and .Values.services.receiptgenerationservice.binding .Values.services.receiptgenerationservice.binding.metadata }}
+  {{- toYaml .Values.services.receiptgenerationservice.binding.metadata | nindent 2 }}
+  {{- else }}
   - name: rootPath
     value: /tmp/receipts
+  {{- end }}
 scopes:
   - {{ .Values.services.receiptgenerationservice.dapr.appId | quote }}
 {{- end }}

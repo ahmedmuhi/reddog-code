@@ -1,0 +1,70 @@
+# Red Dog - Azure Cloud Configuration (Sample)
+# Demonstrates using RabbitMQ + Cosmos DB via metadata overrides (see ADR-0013)
+
+global:
+  environment: azure
+  domain: reddog.contoso.cloud
+  namespace: reddog
+
+dapr:
+  enabled: true
+  version: "1.16.2"
+
+  pubsub:
+    type: rabbitmq
+    metadata:
+      - name: host
+        secretKeyRef:
+          name: rabbitmq-shared-credentials
+          key: amqp-uri
+      - name: durable
+        value: "true"
+
+  stateStore:
+    type: azure.cosmosdb
+    metadata:
+      - name: url
+        value: https://reddog.documents.azure.com:443/
+      - name: masterKey
+        secretKeyRef:
+          name: cosmos-account-key
+          key: master-key
+      - name: database
+        value: reddog
+      - name: collection
+        value: state
+
+  secretStore:
+    type: azure.keyvault
+    metadata:
+      - name: vaultName
+        value: reddog-kv
+      - name: azureTenantId
+        secretKeyRef:
+          name: workload-identity
+          key: tenant-id
+      - name: azureClientId
+        secretKeyRef:
+          name: workload-identity
+          key: client-id
+
+# Example binding overrides
+services:
+  receiptgenerationservice:
+    binding:
+      enabled: true
+      metadata:
+        - name: storageAccount
+          value: reddogreceipts
+        - name: container
+          value: receipts
+        - name: accountKey
+          secretKeyRef:
+            name: receipts-storage-key
+            key: key1
+
+  virtualworker:
+    binding:
+      metadata:
+        - name: schedule
+          value: "0 */5 * * * *"  # Every 5 minutes in production

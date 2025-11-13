@@ -97,6 +97,7 @@ This repository uses structured documentation to separate concerns and provide c
 - k6 v0.54.0+ for load testing (installed to ~/bin/)
 - Copy `.env/local.sample` → `.env/local` and populate local-only secrets (e.g., `SQLSERVER_SA_PASSWORD`). This file stays untracked.
 - Copy `values/values-local.yaml.sample` → `values/values-local.yaml` for kind/Helm overrides before running the setup script.
+- Need cloud overrides? Use the new metadata-based component structure (see `values/values-azure.yaml.sample`) to swap Redis → RabbitMQ/Cosmos by editing `dapr.*.metadata` entries without touching templates.
 
 ### Secrets (ADR-0013)
 - Follow [ADR-0013](docs/adr/adr-0013-secret-management-strategy.md): all workloads consume credentials exclusively from Kubernetes Secrets; never embed passwords or connection strings in manifests/ConfigMaps.

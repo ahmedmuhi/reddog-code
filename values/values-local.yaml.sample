@@ -23,6 +23,12 @@ dapr:
     host: redis-master.default.svc.cluster.local
     port: 6379
     password: ""  # No password for local dev
+    # Preferred pattern (ADR-0013): override metadata for other backends (Cosmos, Dynamo, etc.)
+    metadata:
+      - name: redisHost
+        value: redis-master.default.svc.cluster.local:6379
+      - name: redisPassword
+        value: ""
 
   # Pub/Sub (Redis-based for local - NOT RabbitMQ)
   pubsub:
@@ -30,11 +36,19 @@ dapr:
     host: redis-master.default.svc.cluster.local
     port: 6379
     password: ""
+    metadata:
+      - name: redisHost
+        value: redis-master.default.svc.cluster.local:6379
+      - name: redisPassword
+        value: ""
 
   # Secret Store (Kubernetes secrets for local)
   secretStore:
     type: kubernetes
     # Cloud alternatives: azurekeyvault, aws.secretsmanager, gcp.secretmanager
+    metadata:
+      - name: namespace
+        value: default
 
   configuration:
     name: reddog.configuration
@@ -207,6 +221,9 @@ services:
       appPort: 5300
     binding:
       enabled: false
+      metadata:
+        - name: rootPath
+          value: /tmp/receipts
 
   # VirtualCustomers (load generator)
   virtualcustomers:
@@ -237,6 +254,10 @@ services:
     dapr:
       appId: virtualworker
       appPort: 5500
+    binding:
+      metadata:
+        - name: schedule
+          value: "@every 5s"
 
   # UI (Vue.js frontend)
   ui:
