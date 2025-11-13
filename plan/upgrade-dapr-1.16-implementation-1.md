@@ -132,37 +132,7 @@ This plan upgrades Dapr (Distributed Application Runtime) from version 1.3.0 (re
 | TASK-407 | Restart all service pods to inject Dapr 1.16 sidecars: `kubectl rollout restart deployment -n reddog` | | |
 | TASK-408 | Verify all pods have `daprd` sidecar container | | |
 
-### Implementation Phase 5: Service Code Changes (Days 5-6)
-
-- **GOAL-005**: Update service-to-service invocation code for Dapr 1.9+ breaking change
-
-| Task | Description | Completed | Date |
-|------|-------------|-----------|------|
-| TASK-501 | Identify all `HttpClient.PostAsync()` calls to Dapr service invocation endpoints | | |
-| TASK-502 | Add `Content-Type: application/json` header to all POST/PUT requests | | |
-| TASK-503 | Example fix: `httpClient.DefaultRequestHeaders.Add("Content-Type", "application/json")` | | |
-| TASK-504 | Update OrderService service invocations | | |
-| TASK-505 | Update MakeLineService service invocations | | |
-| TASK-506 | Update LoyaltyService service invocations | | |
-| TASK-507 | Update AccountingService service invocations | | |
-| TASK-508 | Update VirtualWorker service invocations | | |
-| TASK-509 | Rebuild and redeploy all services with code changes | | |
-
-### Implementation Phase 6: Workload Identity Configuration (Days 6-7)
-
-- **GOAL-006**: Configure Workload Identity Federation for cloud deployments
-
-| Task | Description | Completed | Date |
-|------|-------------|-----------|------|
-| TASK-601 | Azure: Create Managed Identity and federate with ServiceAccount | | |
-| TASK-602 | Azure: Add `azure.workload.identity/client-id` annotation to ServiceAccount | | |
-| TASK-603 | Azure: Update secret store component with `azureClientId` metadata | | |
-| TASK-604 | AWS: Create IAM role and trust policy for IRSA | | |
-| TASK-605 | AWS: Add `eks.amazonaws.com/role-arn` annotation to ServiceAccount | | |
-| TASK-606 | AWS: Update S3 binding component to use IRSA (omit accessKey/secretKey) | | |
-| TASK-607 | GCP: Create Service Account and Workload Identity binding | | |
-| TASK-608 | GCP: Add `iam.gke.io/gcp-service-account` annotation to ServiceAccount | | |
-| TASK-609 | GCP: Update GCS binding component to use Workload Identity | | |
+> **Scope Note:** Phases 5 and 6 (service invocation code fixes and cloud workload identity hardening) have been split into a dedicated follow-up plan (`plan/dapr-cloud-hardening-implementation-1.md`). This document now tracks the core runtime + component upgrade (Phases 1–4) and validation (Phase 7) required for Phase 1B readiness.
 
 ### Implementation Phase 7: Testing and Validation (Days 7)
 
