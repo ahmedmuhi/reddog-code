@@ -22,7 +22,7 @@ spec:
     spec:
       containers:
         - name: make-line-service
-          image: ghcr.io/ahmedmuhi/reddog-retail-demo/reddog-retail-make-line-service:8d8448a
+          image: ghcr.io/ahmedmuhi/reddog-retail-demo/reddog-retail-make-line-service:540080b
           ports:
             - containerPort: 80
           imagePullPolicy: Always
