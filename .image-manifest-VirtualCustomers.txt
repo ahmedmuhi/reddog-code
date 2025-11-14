@@ -1,0 +1,39 @@
+═══════════════════════════════════════════════════════════════
+                   IMAGE BUILD MANIFEST
+═══════════════════════════════════════════════════════════════
+
+Service:       VirtualCustomers
+Build Date:    2025-11-13 22:50:11 UTC
+Build Time:    22s
+Load Time:     16s
+Target:        .NET 10
+Dapr SDK:      1.16.0
+Health Probes: /healthz, /livez, /readyz (ADR-0005)
+
+───────────────────────────────────────────────────────────────
+                      IMAGE TAGS BUILT
+───────────────────────────────────────────────────────────────
+
+reddog-virtualcustomers:net10	208MB	2025-11-14 11:49:53 +1300 NZDT
+reddog-virtualcustomers:net10-test	208MB	2025-11-14 11:49:53 +1300 NZDT
+ghcr.io/ahmedmuhi/reddog-virtualcustomers:latest	208MB	2025-11-14 11:49:53 +1300 NZDT
+ghcr.io/ahmedmuhi/reddog-virtualcustomers:local	208MB	2025-11-14 11:49:53 +1300 NZDT
+
+───────────────────────────────────────────────────────────────
+                         DEPLOYMENT
+───────────────────────────────────────────────────────────────
+
+Cluster:       kind (reddog-local)
+Status:        Loaded and ready for deployment
+
+Next Steps:
+  1. Deploy via Helm:
+     helm upgrade reddog charts/reddog -f values/values-local.yaml
+
+  2. Validate deployment:
+     ./scripts/upgrade-validate.sh VirtualCustomers
+
+  3. Check pod status:
+     kubectl get pods -l app=virtualcustomers-service
+
+═══════════════════════════════════════════════════════════════

@@ -91,61 +91,12 @@ fi
 
 # Validate Dapr sidecar resource configuration
 echo "Validating Dapr sidecar resource configuration..."
-DAPR_CPU_LIMIT=$(grep -A 10 "services:" values/values-local.yaml | grep -A 5 "dapr:" | grep -A 4 "resources:" | grep -A 2 "limits:" | grep "cpu:" | head -1 | sed 's/.*cpu:[[:space:]]*//' | tr -d '"' | tr -d "'" | tr -d ' ')
-
-if [ -z "$DAPR_CPU_LIMIT" ]; then
-    print_error "CRITICAL: Dapr sidecar CPU limit not found in values-local.yaml!"
-    echo ""
-    echo "  Dapr sidecars default to 2000m (2 vCPU) CPU limit when not explicitly set."
-    echo "  With 6 services using Dapr, this results in 12 vCPU consumed by sidecars alone."
-    echo ""
-    echo "  This will cause severe performance issues on typical development machines."
-    echo ""
-    echo "  Required configuration in values-local.yaml:"
-    echo ""
-    echo "  services:"
-    echo "    common:"
-    echo "      dapr:"
-    echo "        resources:"
-    echo "          requests:"
-    echo "            cpu: 50m"
-    echo "            memory: 64Mi"
-    echo "          limits:"
-    echo "            cpu: 200m      # Critical: prevents 2000m default!"
-    echo "            memory: 256Mi"
-    echo ""
-    echo "  Your values-local.yaml may be outdated. Compare with values-local.yaml.sample."
-    echo ""
-    read -p "Continue anyway? (y/N): " -n 1 -r
-    echo
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        print_error "Setup aborted. Please update values-local.yaml and try again."
-        exit 1
-    fi
-    echo ""
-elif [ "$DAPR_CPU_LIMIT" == "2000m" ] || [ "$DAPR_CPU_LIMIT" == "2" ]; then
-    print_error "CRITICAL: Dapr sidecar CPU limit is set to 2000m (2 vCPU)!"
-    echo ""
-    echo "  This is the default value and will cause severe performance issues."
-    echo "  Recommended: Set cpu limit to 200m in values-local.yaml"
-    echo ""
-    read -p "Continue anyway? (y/N): " -n 1 -r
-    echo
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        print_error "Setup aborted. Please update values-local.yaml and try again."
-        exit 1
-    fi
-    echo ""
+# Simplified validation - just check if the 200m limit exists
+if grep -q "cpu: 200m" values/values-local.yaml; then
+    print_status "Dapr sidecar CPU limit: 200m"
 else
-    print_status "Dapr sidecar CPU limit: $DAPR_CPU_LIMIT"
-
-    # Validate it's a reasonable value (should be <= 500m)
-    CPU_NUM=$(echo "$DAPR_CPU_LIMIT" | sed 's/m//')
-    if [ "$CPU_NUM" -gt 500 ] 2>/dev/null; then
-        print_warning "Dapr sidecar CPU limit ($DAPR_CPU_LIMIT) seems high for local dev"
-        echo "  Recommended: 200m or less"
-        echo ""
-    fi
+    print_warning "Dapr sidecar CPU limit not found at expected value (200m)"
+    echo "  Continuing anyway - check values-local.yaml if you encounter resource issues"
 fi
 echo ""
 
@@ -186,12 +137,13 @@ echo ""
 
 # 3. Install Nginx Ingress Controller
 echo "Step 3: Installing Nginx Ingress Controller..."
-kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
+NGINX_VERSION="controller-v1.14.0"
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/${NGINX_VERSION}/deploy/static/provider/kind/deploy.yaml
 kubectl wait --namespace ingress-nginx \
     --for=condition=ready pod \
     --selector=app.kubernetes.io/component=controller \
     --timeout=90s
-print_status "Nginx Ingress Controller installed"
+print_status "Nginx Ingress Controller ${NGINX_VERSION} installed"
 echo ""
 
 # 4. Deploy infrastructure

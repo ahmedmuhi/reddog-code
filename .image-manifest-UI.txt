@@ -1,0 +1,39 @@
+═══════════════════════════════════════════════════════════════
+                   IMAGE BUILD MANIFEST
+═══════════════════════════════════════════════════════════════
+
+Service:       UI
+Build Date:    2025-11-13 22:53:21 UTC
+Build Time:    66s
+Load Time:     32s
+Target:        .NET 10
+Dapr SDK:      1.16.0
+Health Probes: /healthz, /livez, /readyz (ADR-0005)
+
+───────────────────────────────────────────────────────────────
+                      IMAGE TAGS BUILT
+───────────────────────────────────────────────────────────────
+
+reddog-ui:net10	309MB	2025-11-14 11:52:38 +1300 NZDT
+reddog-ui:net10-test	309MB	2025-11-14 11:52:38 +1300 NZDT
+ghcr.io/ahmedmuhi/reddog-ui:latest	309MB	2025-11-14 11:52:38 +1300 NZDT
+ghcr.io/ahmedmuhi/reddog-ui:local	309MB	2025-11-14 11:52:38 +1300 NZDT
+
+───────────────────────────────────────────────────────────────
+                         DEPLOYMENT
+───────────────────────────────────────────────────────────────
+
+Cluster:       kind (reddog-local)
+Status:        Loaded and ready for deployment
+
+Next Steps:
+  1. Deploy via Helm:
+     helm upgrade reddog charts/reddog -f values/values-local.yaml
+
+  2. Validate deployment:
+     ./scripts/upgrade-validate.sh UI
+
+  3. Check pod status:
+     kubectl get pods -l app=ui-service
+
+═══════════════════════════════════════════════════════════════

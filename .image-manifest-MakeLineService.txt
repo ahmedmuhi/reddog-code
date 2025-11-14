@@ -1,0 +1,39 @@
+═══════════════════════════════════════════════════════════════
+                   IMAGE BUILD MANIFEST
+═══════════════════════════════════════════════════════════════
+
+Service:       MakeLineService
+Build Date:    2025-11-13 22:47:12 UTC
+Build Time:    28s
+Load Time:     19s
+Target:        .NET 10
+Dapr SDK:      1.16.0
+Health Probes: /healthz, /livez, /readyz (ADR-0005)
+
+───────────────────────────────────────────────────────────────
+                      IMAGE TAGS BUILT
+───────────────────────────────────────────────────────────────
+
+reddog-makelineservice:net10	236MB	2025-11-14 11:46:50 +1300 NZDT
+reddog-makelineservice:net10-test	236MB	2025-11-14 11:46:50 +1300 NZDT
+ghcr.io/ahmedmuhi/reddog-makelineservice:latest	236MB	2025-11-14 11:46:50 +1300 NZDT
+ghcr.io/ahmedmuhi/reddog-makelineservice:local	236MB	2025-11-14 11:46:50 +1300 NZDT
+
+───────────────────────────────────────────────────────────────
+                         DEPLOYMENT
+───────────────────────────────────────────────────────────────
+
+Cluster:       kind (reddog-local)
+Status:        Loaded and ready for deployment
+
+Next Steps:
+  1. Deploy via Helm:
+     helm upgrade reddog charts/reddog -f values/values-local.yaml
+
+  2. Validate deployment:
+     ./scripts/upgrade-validate.sh MakeLineService
+
+  3. Check pod status:
+     kubectl get pods -l app=makelineservice-service
+
+═══════════════════════════════════════════════════════════════

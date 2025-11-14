@@ -92,6 +92,14 @@ ingress:
           pathType: Prefix
           service: orderservice
           port: 80
+        - path: /api/makeline
+          pathType: Prefix
+          service: makelineservice
+          port: 80
+        - path: /api/accounting
+          pathType: Prefix
+          service: accountingservice
+          port: 80
 
 # Infrastructure Components
 infrastructure:

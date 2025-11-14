@@ -1,0 +1,12 @@
+# Azure-specific Nginx Ingress configuration
+# Use with values-base.yaml for complete configuration
+
+ingress-nginx:
+  controller:
+    service:
+      annotations:
+        # Azure-specific: DNS label for predictable FQDN
+        # Creates: <dns-label>.region.cloudapp.azure.com
+        service.beta.kubernetes.io/azure-dns-label-name: "reddog-{{.Values.global.environment}}"
+        # Azure Load Balancer SKU (Standard required for zone redundancy)
+        service.beta.kubernetes.io/azure-load-balancer-sku: "Standard"

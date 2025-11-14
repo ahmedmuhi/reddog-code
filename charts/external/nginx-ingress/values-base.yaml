@@ -1,0 +1,46 @@
+# Common Nginx Ingress settings across all clouds
+# Use with cloud-specific values files (values-azure.yaml, values-aws.yaml, values-gcp.yaml)
+
+ingress-nginx:
+  controller:
+    # Resource limits for cost control
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+
+    # High availability
+    replicaCount: 2
+
+    # Metrics for observability
+    metrics:
+      enabled: true
+      serviceMonitor:
+        enabled: false  # Enable when Prometheus deployed
+
+    # Service configuration
+    service:
+      type: LoadBalancer
+      externalTrafficPolicy: Local  # Preserve client IPs
+
+    # Pod anti-affinity for HA
+    affinity:
+      podAntiAffinity:
+        preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app.kubernetes.io/name: ingress-nginx
+              topologyKey: kubernetes.io/hostname
+
+    # Health probes
+    livenessProbe:
+      initialDelaySeconds: 10
+      periodSeconds: 10
+    readinessProbe:
+      initialDelaySeconds: 10
+      periodSeconds: 10

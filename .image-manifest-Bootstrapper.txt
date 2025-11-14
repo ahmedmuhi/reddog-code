@@ -1,0 +1,39 @@
+═══════════════════════════════════════════════════════════════
+                   IMAGE BUILD MANIFEST
+═══════════════════════════════════════════════════════════════
+
+Service:       Bootstrapper
+Build Date:    2025-11-14 01:58:44 UTC
+Build Time:    29s
+Load Time:     23s
+Target:        .NET 10
+Dapr SDK:      1.16.0
+Health Probes: /healthz, /livez, /readyz (ADR-0005)
+
+───────────────────────────────────────────────────────────────
+                      IMAGE TAGS BUILT
+───────────────────────────────────────────────────────────────
+
+reddog-bootstrapper:net10	231MB	2025-11-14 14:58:19 +1300 NZDT
+reddog-bootstrapper:net10-test	231MB	2025-11-14 14:58:19 +1300 NZDT
+ghcr.io/ahmedmuhi/reddog-bootstrapper:latest	231MB	2025-11-14 14:58:19 +1300 NZDT
+ghcr.io/ahmedmuhi/reddog-bootstrapper:local	231MB	2025-11-14 14:58:19 +1300 NZDT
+
+───────────────────────────────────────────────────────────────
+                         DEPLOYMENT
+───────────────────────────────────────────────────────────────
+
+Cluster:       kind (reddog-local)
+Status:        Loaded and ready for deployment
+
+Next Steps:
+  1. Deploy via Helm:
+     helm upgrade reddog charts/reddog -f values/values-local.yaml
+
+  2. Validate deployment:
+     ./scripts/upgrade-validate.sh Bootstrapper
+
+  3. Check pod status:
+     kubectl get pods -l app=bootstrapper-service
+
+═══════════════════════════════════════════════════════════════

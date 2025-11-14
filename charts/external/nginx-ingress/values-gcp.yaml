@@ -1,0 +1,11 @@
+# GCP-specific Nginx Ingress configuration
+# Use with values-base.yaml for complete configuration
+
+ingress-nginx:
+  controller:
+    service:
+      annotations:
+        # GCP External Load Balancer (internet-facing)
+        cloud.google.com/load-balancer-type: "External"
+        # Regional backend service for better performance
+        cloud.google.com/backend-config: '{"default": "nginx-backend-config"}'

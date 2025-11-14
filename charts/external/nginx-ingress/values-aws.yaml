@@ -1,0 +1,13 @@
+# AWS-specific Nginx Ingress configuration
+# Use with values-base.yaml for complete configuration
+
+ingress-nginx:
+  controller:
+    service:
+      annotations:
+        # AWS Network Load Balancer (faster than CLB, preserves client IP)
+        service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+        # Cross-zone load balancing for HA
+        service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
+        # Preserve client IPs (required for externalTrafficPolicy: Local)
+        service.beta.kubernetes.io/aws-load-balancer-backend-protocol: "tcp"

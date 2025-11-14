@@ -1,0 +1,39 @@
+═══════════════════════════════════════════════════════════════
+                   IMAGE BUILD MANIFEST
+═══════════════════════════════════════════════════════════════
+
+Service:       OrderService
+Build Date:    2025-11-13 22:46:25 UTC
+Build Time:    39s
+Load Time:     19s
+Target:        .NET 10
+Dapr SDK:      1.16.0
+Health Probes: /healthz, /livez, /readyz (ADR-0005)
+
+───────────────────────────────────────────────────────────────
+                      IMAGE TAGS BUILT
+───────────────────────────────────────────────────────────────
+
+reddog-orderservice:net10	237MB	2025-11-14 11:46:04 +1300 NZDT
+reddog-orderservice:net10-test	237MB	2025-11-14 11:46:04 +1300 NZDT
+ghcr.io/ahmedmuhi/reddog-orderservice:latest	237MB	2025-11-14 11:46:04 +1300 NZDT
+ghcr.io/ahmedmuhi/reddog-orderservice:local	237MB	2025-11-14 11:46:04 +1300 NZDT
+
+───────────────────────────────────────────────────────────────
+                         DEPLOYMENT
+───────────────────────────────────────────────────────────────
+
+Cluster:       kind (reddog-local)
+Status:        Loaded and ready for deployment
+
+Next Steps:
+  1. Deploy via Helm:
+     helm upgrade reddog charts/reddog -f values/values-local.yaml
+
+  2. Validate deployment:
+     ./scripts/upgrade-validate.sh OrderService
+
+  3. Check pod status:
+     kubectl get pods -l app=orderservice-service
+
+═══════════════════════════════════════════════════════════════
