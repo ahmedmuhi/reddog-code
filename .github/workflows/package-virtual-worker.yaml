@@ -1,14 +1,11 @@
 name: package-virtual-worker
-
 on:
   push:
     branches:
       - 'master'
     paths:
       - 'RedDog.VirtualWorker/**'
-
   workflow_dispatch:
-
 jobs:
   set-env:
     name: Set Environment Variables
@@ -18,33 +15,49 @@ jobs:
       created: ${{ steps.main.outputs.created }}
       project: ${{ steps.main.outputs.project }}
       image: ${{ steps.main.outputs.image }}
-      repository: ${{ steps.main.outputs.repository }}  
+      repository: ${{ steps.main.outputs.repository }}
     steps:
       - id: main
         run: |
-          echo ::set-output name=version::$(echo ${GITHUB_SHA} | cut -c1-7)
-          echo ::set-output name=created::$(date -u +'%Y-%m-%dT%H:%M:%SZ')
-          echo ::set-output name=project::VirtualWorker
-          echo ::set-output name=image::reddog-retail-virtual-worker
-          echo ::set-output name=repository::ghcr.io/azure/reddog-retail-demo
-
+          short_sha=$(echo "${GITHUB_SHA}" | cut -c1-7)
+          created=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+          {
+            echo "version=${short_sha}"
+            echo "created=${created}"
+            echo "project=VirtualWorker"
+            echo "image=reddog-retail-virtual-worker"
+            echo "repository=ghcr.io/azure/reddog-retail-demo"
+          } >> "$GITHUB_OUTPUT"
   package-service:
     name: Package Service
     runs-on: ubuntu-latest
     needs: set-env
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v5.0.0
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v5.0.0
+        with:
+          global-json-file: global.json
+          dotnet-quality: ga
+          cache: true
+      - name: Cache NuGet packages
+        uses: actions/cache@v4.0.2
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', 'global.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v3.7.1
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v1 
+        uses: docker/login-action@v3.2.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.CR_PAT }}
       - name: Build and push
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v6.4.1
         with:
           context: .
           file: RedDog.${{ needs.set-env.outputs.project }}/Dockerfile
@@ -52,6 +65,8 @@ jobs:
           tags: |
             ${{ needs.set-env.outputs.repository }}/${{ needs.set-env.outputs.image }}:latest
             ${{ needs.set-env.outputs.repository }}/${{ needs.set-env.outputs.image }}:${{ needs.set-env.outputs.version }}
+            ${{ needs.set-env.outputs.repository }}/${{ needs.set-env.outputs.image }}:${{ github.sha }}
+            ${{ needs.set-env.outputs.repository }}/${{ needs.set-env.outputs.image }}:${{ github.ref_name }}
           labels: |
             org.opencontainers.image.source=${{ github.repositoryUrl }}
             org.opencontainers.image.created=${{ needs.set-env.outputs.created }}
@@ -72,12 +87,12 @@ jobs:
           cat manifests/branch/base/deployments/virtual-worker.yaml
       - name: Promote deployment
         uses: dmnemec/copy_file_to_another_repo_action@main
-        env: 
+        env:
           API_TOKEN_GITHUB: ${{ secrets.CR_PAT }}
         with:
           source_file: manifests/branch/base/deployments/virtual-worker.yaml
           destination_repo: Azure/reddog-retail-demo
           destination_folder: manifests/branch/base/deployments
           git_server: github.com
-          user_email: lynn.orrell@microsoft.com
-          user_name: lynn-orrell
+          user_email: ae.muhi@outlook.com
+          user_name: Ahmed Muhi

@@ -73,6 +73,32 @@ This plan upgrades every workflow under `.github/workflows/` to comply with `pla
 
 **Completion Criteria (Phase 3):** All workflows run successfully on PR and main; artifacts exist; branch protection gating is satisfied.
 
+## 2.5 Prioritized Modernization Waves
+
+To keep CI/CD throughput reasonable while rolling out the modernization requirements, tackle the work in the following waves. Each wave keeps runtimes bounded (<15 minutes pipeline wall clock) by isolating heavier checks until the underlying plumbing is stable.
+
+### Wave 0 – Workflow Inventory & Baseline Upgrades (Highest Priority)
+- *Inventory & gap report*: script-driven sweep of `.github/workflows/*.yaml`, capturing triggers, jobs, images, and missing tooling in `artifacts/workflows/workflow-inventory.md`.
+- *Upgrade core actions*: standardize on the latest verified releases as of 2025-11-14 (`actions/checkout@v5.0.0`, `actions/setup-dotnet@v5.0.0`, `docker/setup-buildx-action@v3.7.1`, `docker/login-action@v3.2.0`, `docker/build-push-action@v6.4.1`, `actions/setup-node@v5.0.0`, `actions/cache@v4.0.2`, `actions/upload-artifact@v4.4.3`).
+- *SDK/Node pinning + caching*: align with `global.json` (install .NET 10 SDKs with `dotnet-quality: ga`, NuGet cache keyed on `global.json` + `.csproj` hash) and Node 24.x + npm cache for UI.
+- *Container tag policy*: ensure BuildKit-enabled workflows tag GHCR images with both `${GITHUB_SHA}` and human-friendly refs (branch/semver) and pass build metadata for traceability.
+
+### Wave 1 – Tooling Audit & Quality Gates
+- *Tooling audit job*: lightweight job per workflow that runs Upgrade Assistant in `analyze` mode, `dotnet workload update`, `dotnet list package --vulnerable`, API Analyzer, and `dotnet format --verify-no-changes` (UI uses `npm audit --audit-level=high`). Upload results to `artifacts/tooling/<service>/<runId>/`. Fail on medium+ findings to satisfy SEC-001 while keeping runtime <5 minutes by skipping heavy code fixes.
+- *Build/test enhancements*: for .NET workloads add `dotnet build -warnaserror`, `dotnet test --collect:"XPlat Code Coverage"`, and publish coverage artifacts; for UI add `npm run lint && npm run test --if-present`. Keep lint/test optional on push-to-feature branches if runtime spikes (guard via `if:` conditions).
+- *Job dependencies*: enforce `build-test` depending on `tooling-audit`, and `docker-build-and-publish` depending on `build-test`, so branch protections can key off those three consistent checks.
+
+### Wave 2 – Security & Deployment Hardening
+- *GHCR authentication*: switch docker pushes to OIDC federated login (repository secrets limited to `permissions: id-token: write` ) and remove long-lived PATs (`CR_PAT`).
+- *Reusable workflow/composite actions*: codify the audit/build/test steps inside `.github/workflows/reusable-ci.yml` or `./.github/actions/dotnet-ci/` to eliminate 9× duplicated YAML and ease future policy changes.
+- *Manifest promotion workflow*: refactor `promote-manifests.yaml` to use reusable components above, add approvals for production branches, and ensure YAML mutations happen in dedicated PRs (no direct commits).
+
+### Wave 3 – Performance Optimizations & Metrics
+- *Matrix builds / batching*: evaluate grouping related services (e.g., loyalty + makeline) in a matrix job to reuse docker layers while respecting runtime budgets; fall back to per-service workflows if caches prove ineffective.
+- *Observability*: emit per-job timing + summary metrics (GitHub step summary or OTLP) to spot regressions; optionally integrate `gh api repos/{repo}/actions/runs` telemetry dumps into `artifacts/workflows/workflow-validation.md`.
+
+> Version sources were rechecked on 2025-11-14 via `https://github.com/<owner>/<action>/releases`; repeat the release check whenever starting Wave 0 in case newer tags ship.
+
 ## 3. Alternatives
 
 - **ALT-001**: Migrate to Azure DevOps pipelines — rejected (modernization strategy is GitHub-only).

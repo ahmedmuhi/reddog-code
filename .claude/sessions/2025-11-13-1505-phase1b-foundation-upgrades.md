@@ -419,3 +419,59 @@ Successfully shutdown Dapr sidecar.
 - Continue with cert-manager Helm charts for cloud TLS
 - Update environment readiness checklist with validated migration workflow
 
+### Update - 2025-11-14 15:10 NZDT
+
+**Summary:** Closed the Bootstrapper debt (tracked migrations + Helm redeploy) and documented the GitHub Actions modernization waves to unblock CI/CD work.
+
+**Actions:**
+1. Generated a fresh `InitialCreate` migration under `RedDog.AccountingModel`, switched Bootstrapper back to `Database.MigrateAsync()`, rebuilt the container, reset the local SQL DB, and redeployed via Helm. Verified `kubectl logs job/reddog-bootstrapper` shows migrations succeeding end-to-end.
+2. Captured session + repo state in commits `ab26f34` (Bootstrapper fix) and `603f4e9` (image manifests, values tweaks, nginx chart), pushed to origin/master so the environment stays reproducible.
+3. Added a “Prioritized Modernization Waves” section to `plan/upgrade-github-workflows-implementation-1.md`, outlining Wave 0→3 (inventory/core action updates, tooling audit, security hardening, performance) per the CI/CD strategy. Noted that action versions must be rechecked once network access is available (current sandbox blocked live queries).
+
+**Open Items:**
+- Need to perform the actual remote verification of latest `actions/*` versions once outbound requests are allowed.
+- Wave 0 work (workflow inventory + baseline upgrades) still pending execution—plan text is ready, but YAML edits and artifacts are TBD.
+
+### Update - 2025-11-14 19:30 NZDT
+
+**Summary:** Finalized the CI/CD modernization plan with verified GitHub Actions versions and documented guardrails so we can start Wave 0 confidently.
+
+**Actions:**
+1. Performed live release checks for every core action (`actions/checkout`, `actions/setup-dotnet`, `actions/setup-node`, `docker/*`, `actions/cache`, `actions/upload-artifact`) and captured the exact versions (v5.0.0 / v3.7.1 / v6.4.1 / etc.) in `plan/upgrade-github-workflows-implementation-1.md:80-85` with a timestamped note.
+2. Updated the plan’s wave section to reflect those tags and reworded the note so future contributors re-check releases before touching workflows.
+3. Recorded best-practice guardrails (workflow concurrency auto-cancel, dependency cache scope, GHCR OIDC auth, small immutable artifacts) that the user requested we enforce during implementation.
+4. Presented the plan + verification results to the user; they approved the approach and asked that the session log capture this decision.
+
+**Next Steps:**
+- Begin Wave 0 implementation: script workflow inventory (TASK-000) and prep PRs that bump shared action versions while keeping pipeline runtime <15 minutes.
+- Once inventory + baseline upgrades are complete, proceed to Wave 1 tooling jobs per plan.
+
+### Update - 2025-11-14 20:45 NZDT
+
+**Summary:** Executed Wave 0 baseline upgrades—generated the workflow inventory artifact, installed `yq` for future YAML edits, and bumped every packaging workflow to the verified action versions while removing the deprecated `set-output` usage.
+
+**Actions:**
+1. Installed `mikefarah/yq` v4.48.1 via Homebrew so we have a first-class YAML CLI for the remaining modernization tasks.
+2. Generated `artifacts/workflows/workflow-inventory.md` (Ruby script against `psych`) capturing triggers/jobs/notes for all 10 workflows; reran after edits to keep the timestamp current.
+3. Updated `.github/workflows/package-*.yaml` to:
+   - use `actions/checkout@v5.0.0`, `docker/setup-buildx-action@v3.7.1`, `docker/login-action@v3.2.0`, and `docker/build-push-action@v6.4.1`.
+   - rewrite the `set-env` job step to append outputs via `$GITHUB_OUTPUT` with local `short_sha`/`created` variables (no more deprecated `::set-output`).
+4. Confirmed no workflows currently call `actions/setup-dotnet`/`actions/setup-node`; those will be added in the SDK/Node pinning sub-step.
+
+**Next Steps:**
+- Move to Wave 0 Step 2.2: add toolchain installers + caching to the workflows and ensure container tag policy compliance before tackling Wave 1 tooling jobs.
+- Once inventory + baseline upgrades are complete, proceed to Wave 1 tooling jobs per plan.
+
+### Update - 2025-11-14 21:30 NZDT
+
+**Summary:** Finished Wave 0 by adding toolchain installers, dependency caching, container tag policy updates, and maintainer attribution fixes across all packaging workflows.
+
+**Actions:**
+1. Inserted `actions/setup-dotnet@v5.0.0` + NuGet cache steps into every .NET packaging workflow and `actions/setup-node@v5.0.0` with npm caching into `package-ui.yaml`, ensuring `.github/workflows/package-*.yaml` aligns with the environment readiness checklist.
+2. Extended the GHCR tag list to include `${{ github.sha }}` and `${{ github.ref_name }}` so images always have immutable + human-readable tags per container policy.
+3. Updated all `dmnemec/copy_file_to_another_repo_action` invocations to use Ahmed Muhi’s contact info (`ae.muhi@outlook.com`, `Ahmed Muhi`) so future automation emails stay within our team.
+4. Regenerated `artifacts/workflows/workflow-inventory.md` so the inventory reflects the new steps and tooling context.
+
+**Next Steps:**
+- Begin Wave 1: add `tooling-audit`, enriched `build-test`, and dependency chaining (needs: `tooling-audit` → `build-test` → `docker-build-and-publish`).
+- Prep PR(s) that trigger the upgraded workflows and archive validation run URLs once Wave 1 changes are in place.
