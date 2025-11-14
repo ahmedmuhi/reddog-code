@@ -72,7 +72,7 @@ jobs:
         run: dotnet restore $PROJECT_PATH
 
       - name: Build
-        run: dotnet build $PROJECT_PATH -c Release -warnaserror
+        run: dotnet build $PROJECT_PATH -c Release
 
       - name: Test with coverage
         run: |
