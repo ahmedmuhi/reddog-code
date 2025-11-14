@@ -1,0 +1,83 @@
+name: reusable-node-tooling-audit
+
+on:
+  workflow_call:
+    inputs:
+      service-name:
+        type: string
+        required: true
+        description: Name of the service (artifact naming)
+      working-directory:
+        type: string
+        default: '.'
+        description: Directory that contains package.json
+      cache-dependency-path:
+        type: string
+        default: ''
+        description: Optional glob(s) for npm cache dependency files
+      audit-level:
+        type: string
+        default: high
+        description: npm audit threshold (info|low|moderate|high|critical)
+
+jobs:
+  tooling-audit:
+    name: Tooling Audit (Node)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+        working-directory: ${{ inputs.working-directory }}
+    env:
+      SERVICE_NAME: ${{ inputs.service-name }}
+      ARTIFACT_DIR: artifacts/tooling/${{ inputs.service-name }}
+      AUDIT_LEVEL: ${{ inputs.audit-level }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '24.x'
+          cache: npm
+          cache-dependency-path: ${{ inputs.cache-dependency-path }}
+
+      - name: Prepare artifact directory
+        run: mkdir -p "$ARTIFACT_DIR"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: npm audit
+        id: npm_audit
+        run: |
+          set +e
+          npm audit --audit-level="$AUDIT_LEVEL" | tee "$ARTIFACT_DIR/npm-audit.txt"
+          status=$?
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test (if present)
+        run: npm run-script --if-present test
+
+      - name: Build
+        run: npm run build -- --mode production
+
+      - name: Summaries
+        run: |
+          echo "## Tooling Audit – $SERVICE_NAME (Node)" >> "$GITHUB_STEP_SUMMARY"
+          if [[ "${{ steps.npm_audit.outputs.status }}" == "0" ]]; then
+            echo "- npm audit: ✅" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "- npm audit: ⚠️ check $ARTIFACT_DIR/npm-audit.txt" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload tooling artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: tooling-${{ inputs.service-name }}-${{ github.run_id }}
+          path: ${{ env.ARTIFACT_DIR }}

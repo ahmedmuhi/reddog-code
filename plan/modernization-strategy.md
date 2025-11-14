@@ -168,8 +168,8 @@ The phases below represent the **planned modernization work**:
 The following prerequisites must be completed before starting Phase 1A:
 
 1. **Tooling Readiness** ✅ **COMPLETE** (2025-11-10)
-   - Install and verify Upgrade Assistant, API Analyzer, `dotnet workload update`, `dotnet list` scripts, and Dapr CLI per *Tool Installation Requirements* in `plan/testing-validation-strategy.md`.
-   - Ensure artifact directories (`artifacts/upgrade-assistant/`, `artifacts/api-analyzer/`, `artifacts/dependencies/`) exist and are writable.
+   - Install and verify API Analyzer, `dotnet format`, `dotnet list` scripts, and Dapr CLI per *Tool Installation Requirements* in `plan/testing-validation-strategy.md`. (Upgrade Assistant CLI retired; modernization notes now captured via IDE/Copilot guidance.)
+   - Ensure artifact directories (`artifacts/upgrade-assistant/` modernization notes, `artifacts/api-analyzer/`, `artifacts/dependencies/`) exist and are writable.
    - **Status:** All tools installed and verified. See `plan/testing-validation-strategy.md` Phase 0 completion summary.
 2. **Testing & Validation Baseline** ✅ **COMPLETE** (2025-11-10)
    - Performance baseline established for OrderService (.NET 6.0.36)
@@ -356,10 +356,10 @@ These components satisfy Phase 1A (.NET 10 upgrade) requirements. The upgrades b
 - Swashbuckle → Microsoft.AspNetCore.OpenApi + Scalar; Serilog → OpenTelemetry.
 
 **Tooling & Automation Requirements:**
-- Run `.NET Upgrade Assistant` for each project before manual edits: `upgrade-assistant upgrade <Project>.csproj --entry-point <Project>.csproj --non-interactive --skip-backup false`, storing logs in `artifacts/upgrade-assistant/<project>.md`.
+- Run `dotnet format --verify-no-changes` for each project before manual edits, storing output/notes under `artifacts/upgrade-assistant/<project>-format.txt` (folder name retained for modernization notes).
 - Execute `.NET API Analyzer` (`dotnet tool run api-analyzer -f net10.0 -p <Project>.csproj`) and capture reports in `artifacts/api-analyzer/<project>.md`.
 - Capture dependency status with `dotnet list <Project>.csproj package --outdated --include-transitive`, `dotnet list <Project>.csproj package --vulnerable`, and `dotnet list <Project>.csproj reference --graph`, saving outputs to `artifacts/dependencies/<project>-outdated.txt`, `...-vulnerable.txt`, and `...-graph.txt`.
-- Run `dotnet workload restore` and `dotnet workload update` prior to every `dotnet build` to keep workloads aligned with the .NET 10 SDK.
+- Run `dotnet workload restore` prior to major build/test milestones (but not every CI job) to keep workloads aligned with the .NET 10 SDK.
 
 **Deliverables:**
 - All 9 .NET projects running on .NET 10 + Dapr 1.16
@@ -451,7 +451,7 @@ These components satisfy Phase 1A (.NET 10 upgrade) requirements. The upgrades b
 1. **Health Probe Drift** - Code exposed ADR-0005 endpoints but Helm charts still referenced legacy paths → HTTP 404 → CrashLoopBackOff
 2. **Missing Dapr Sidecars** - Declared success with `1/1` pods instead of verifying `2/2` → pub/sub didn't work
 3. **Configuration Drift** - Connection string key mismatches, password substitution failures, missing env vars → database failures
-4. **Stale Image Tags** - Built `:net10` but forgot to rebuild `:local`, kind used old images → deployments ran .NET 6 code
+4. **Stale Image Tags** - Built `:net10` locally but forgot to push `ghcr.io/...:latest`, cluster pulled old images → deployments ran .NET 6 code
 
 **Root Causes:**
 - Code-first workflow (Helm charts updated as afterthought)
@@ -465,7 +465,7 @@ Created automation and documentation to prevent these issues for remaining 4 ser
 
 **1. Automation Scripts (4 new scripts):**
 - `scripts/upgrade-preflight.sh` - Pre-flight checks (Dapr injector, stuck rollouts, images, probe paths)
-- `scripts/upgrade-build-images.sh` - Build ALL image tags at once (`:net10`, `:net10-test`, `:local`, `:latest`)
+- `scripts/upgrade-build-images.sh` - Build all tags at once (`:net10`, `:net10-test`, `ghcr.io/...:latest`) and push to GHCR
 - `scripts/upgrade-validate.sh` - Post-deployment validation (MANDATORY `2/2` check, health endpoints, probe failures)
 - `scripts/upgrade-dotnet10.sh` - Complete orchestrator (all steps with checkpoints)
 
@@ -482,7 +482,7 @@ Created automation and documentation to prevent these issues for remaining 4 ser
 **3. Prevention Principles:**
 - **Code and Infrastructure Move Together** - Never commit code without Helm updates
 - **Verify Before Declaring Success** - ALWAYS check `2/2` pods, test health endpoints
-- **Build All Image Tags** - Build ALL tags in one operation, verify in kind
+- **Build All Image Tags** - Build/push ALL tags in one operation, optionally load into kind
 - **Configuration as Code** - Copy working patterns, validate keys match
 - **Automation Over Memory** - Use scripts to enforce checklists
 
@@ -763,7 +763,7 @@ Created automation and documentation to prevent these issues for remaining 4 ser
 
 ### Risk: Automated tooling skipped causes undetected regressions
 **Mitigation:**
-- Enforce execution of Upgrade Assistant, API Analyzer, and dotnet list commands for every project (artifacts saved under `artifacts/upgrade-assistant/`, `artifacts/api-analyzer/`, `artifacts/dependencies/`) before reviews.
+- Enforce execution of `dotnet format --verify-no-changes`, API Analyzer, and `dotnet list` commands for every project (artifacts saved under `artifacts/upgrade-assistant/` modernization notes, `artifacts/api-analyzer/`, `artifacts/dependencies/`) before reviews.
 - Block merges unless CI tooling checks pass (API Analyzer reports no critical warnings, `dotnet list package --vulnerable` returns none, dependency reports uploaded).
 
 ---

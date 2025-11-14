@@ -147,8 +147,10 @@ services:
   # Common settings for all services
   common:
     image:
-      pullPolicy: IfNotPresent  # Use local images (loaded via kind load)
+      pullPolicy: Always
       tag: latest
+      pullSecrets:
+        - name: ghcr-cred
     resources:
       requests:
         cpu: 100m

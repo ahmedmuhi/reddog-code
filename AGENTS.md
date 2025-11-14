@@ -103,6 +103,7 @@ This repository uses structured documentation to separate concerns and provide c
 - Follow [ADR-0013](docs/adr/adr-0013-secret-management-strategy.md): all workloads consume credentials exclusively from Kubernetes Secrets; never embed passwords or connection strings in manifests/ConfigMaps.
 - Local dev: place throwaway values in `values/values-local.yaml` so Helm renders `sqlserver-secret`, RabbitMQ/KEDA secrets, etc. `.env/local` is only for scripts that run outside Kubernetes.
 - Cloud environments: hydrate the same secret names via External Secrets Operator or CSI providers backed by Key Vault / Secrets Manager so manifests stay identical across AKS/EKS/GKE.
+- GHCR pulls: create/update the `ghcr-cred` pull secret in your cluster (`kubectl create secret docker-registry ghcr-cred ...`) or run `./scripts/refresh-ghcr-secret.sh default` after exporting `GHCR_PAT`. `values/values-local.yaml` already references this secret under `services.common.image.pullSecrets`.
 
 ### Build & Restore
 ```bash

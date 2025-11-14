@@ -1,0 +1,89 @@
+name: reusable-dotnet-tooling-audit
+
+on:
+  workflow_call:
+    inputs:
+      service-name:
+        type: string
+        description: Name of the service (used for artifact naming)
+        required: true
+      project-path:
+        type: string
+        description: Path to the .csproj file to audit (e.g., RedDog.OrderService/RedDog.OrderService.csproj)
+        required: true
+      working-directory:
+        type: string
+        description: Optional working directory (defaults to repo root)
+        default: '.'
+      artifact-root:
+        type: string
+        description: Base folder for tooling artifacts
+        default: artifacts/tooling
+
+jobs:
+  tooling-audit:
+    name: Tooling Audit
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+        working-directory: ${{ inputs.working-directory }}
+    env:
+      SERVICE_NAME: ${{ inputs.service-name }}
+      PROJECT_PATH: ${{ inputs.project-path }}
+      ARTIFACT_DIR: ${{ inputs.artifact-root }}/${{ inputs.service-name }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+          dotnet-quality: ga
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', 'global.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Prepare artifact directory
+        run: |
+          mkdir -p "$ARTIFACT_DIR"
+
+      - name: Restore project
+        run: |
+          dotnet restore "$PROJECT_PATH"
+
+      - name: Format verification
+        id: format
+        run: |
+          dotnet format "$PROJECT_PATH" \
+            --verify-no-changes \
+            --report "$ARTIFACT_DIR/dotnet-format-report.json"
+
+      - name: Dependency audit (outdated)
+        run: |
+          dotnet list "$PROJECT_PATH" package --outdated --include-transitive \
+            | tee "$ARTIFACT_DIR/outdated-packages.txt"
+
+      - name: Dependency audit (vulnerable)
+        run: |
+          dotnet list "$PROJECT_PATH" package --vulnerable --include-transitive \
+            | tee "$ARTIFACT_DIR/vulnerable-packages.txt"
+
+      - name: Summaries
+        run: |
+          echo "## Tooling Audit – $SERVICE_NAME" >> "$GITHUB_STEP_SUMMARY"
+          echo "- dotnet format: ✅" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Outdated packages report saved to $ARTIFACT_DIR/outdated-packages.txt" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Vulnerability report saved to $ARTIFACT_DIR/vulnerable-packages.txt" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload tooling artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: tooling-${{ inputs.service-name }}-${{ github.run_id }}
+          path: ${{ env.ARTIFACT_DIR }}

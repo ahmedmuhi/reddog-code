@@ -31,6 +31,12 @@ spec:
         dapr.io/sidecar-cpu-limit: {{ .Values.services.common.dapr.resources.limits.cpu | quote }}
         dapr.io/sidecar-memory-limit: {{ .Values.services.common.dapr.resources.limits.memory | quote }}
     spec:
+      {{- if .Values.services.common.image.pullSecrets }}
+      imagePullSecrets:
+      {{- range .Values.services.common.image.pullSecrets }}
+        - name: {{ .name }}
+      {{- end }}
+      {{- end }}
       containers:
       - name: virtual-customers
         image: {{ .Values.services.virtualcustomers.image.repository }}:{{ .Values.services.common.image.tag }}

@@ -3,9 +3,9 @@
 ═══════════════════════════════════════════════════════════════
 
 Service:       OrderService
-Build Date:    2025-11-13 22:46:25 UTC
-Build Time:    39s
-Load Time:     19s
+Build Date:    2025-11-14 20:08:56 UTC
+Build Time:    18s
+Load Time:     n/a
 Target:        .NET 10
 Dapr SDK:      1.16.0
 Health Probes: /healthz, /livez, /readyz (ADR-0005)
@@ -23,8 +23,8 @@ ghcr.io/ahmedmuhi/reddog-orderservice:local	237MB	2025-11-14 11:46:04 +1300 NZDT
                          DEPLOYMENT
 ───────────────────────────────────────────────────────────────
 
-Cluster:       kind (reddog-local)
-Status:        Loaded and ready for deployment
+Cluster:       kind (optional via LOAD_INTO_KIND)
+Status:        Images pushed to ghcr.io/ahmedmuhi/orderservice
 
 Next Steps:
   1. Deploy via Helm:

@@ -2,10 +2,10 @@
                    IMAGE BUILD MANIFEST
 ═══════════════════════════════════════════════════════════════
 
-Service:       VirtualCustomers
-Build Date:    2025-11-13 22:50:11 UTC
-Build Time:    22s
-Load Time:     16s
+Service:       Bootstrapper
+Build Date:    2025-11-14 21:03:13 UTC
+Build Time:    26s
+Load Time:     n/a
 Target:        .NET 10
 Dapr SDK:      1.16.0
 Health Probes: /healthz, /livez, /readyz (ADR-0005)
@@ -14,26 +14,26 @@ Health Probes: /healthz, /livez, /readyz (ADR-0005)
                       IMAGE TAGS BUILT
 ───────────────────────────────────────────────────────────────
 
-reddog-virtualcustomers:net10	208MB	2025-11-14 11:49:53 +1300 NZDT
-reddog-virtualcustomers:net10-test	208MB	2025-11-14 11:49:53 +1300 NZDT
-ghcr.io/ahmedmuhi/reddog-virtualcustomers:latest	208MB	2025-11-14 11:49:53 +1300 NZDT
-ghcr.io/ahmedmuhi/reddog-virtualcustomers:local	208MB	2025-11-14 11:49:53 +1300 NZDT
+reddog-bootstrapper:net10	231MB	2025-11-14 14:58:19 +1300 NZDT
+reddog-bootstrapper:net10-test	231MB	2025-11-14 14:58:19 +1300 NZDT
+ghcr.io/ahmedmuhi/reddog-bootstrapper:latest	231MB	2025-11-14 14:58:19 +1300 NZDT
+ghcr.io/ahmedmuhi/reddog-bootstrapper:local	231MB	2025-11-14 14:58:19 +1300 NZDT
 
 ───────────────────────────────────────────────────────────────
                          DEPLOYMENT
 ───────────────────────────────────────────────────────────────
 
-Cluster:       kind (reddog-local)
-Status:        Loaded and ready for deployment
+Cluster:       kind (optional via LOAD_INTO_KIND)
+Status:        Images pushed to ghcr.io/ahmedmuhi/bootstrapper
 
 Next Steps:
   1. Deploy via Helm:
      helm upgrade reddog charts/reddog -f values/values-local.yaml
 
   2. Validate deployment:
-     ./scripts/upgrade-validate.sh VirtualCustomers
+     ./scripts/upgrade-validate.sh Bootstrapper
 
   3. Check pod status:
-     kubectl get pods -l app=virtualcustomers-service
+     kubectl get pods -l app=bootstrapper-service
 
 ═══════════════════════════════════════════════════════════════

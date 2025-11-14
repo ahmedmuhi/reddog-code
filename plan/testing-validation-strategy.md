@@ -56,11 +56,10 @@ Install and verify the following before executing any implementation plan:
    - Confirm via `dotnet --version`
    - Verify SDK list via `dotnet --list-sdks`
 
-2. **`Upgrade Assistant`** global tool
-   - Install: `dotnet tool install -g upgrade-assistant`
-   - Verify: `upgrade-assistant --version`
-   - **Artifact Location:** `artifacts/upgrade-assistant/<project>.md` (per dotnet-upgrade-analysis.md:98)
-   - **Integration:** Pre-build validation MUST execute Upgrade Assistant for each project
+2. **Modernization analysis notes (Copilot / IDE guidance)**
+   - The standalone `.NET Upgrade Assistant` CLI is deprecated; Microsoft now recommends Copilot-powered modernization experiences (Visual Studio, GitHub Copilot) plus SDK analyzers.
+   - Capture any manual modernization findings or IDE suggestions in `artifacts/upgrade-assistant/<project>.md` (legacy folder retained for continuity) until a new template replaces it.
+   - No CLI installation is required for CI pipelines.
 
 3. **`API Analyzer`** (compile-time deprecated API detection, built into .NET 5+ SDK)
    - **Package:** Already enabled by default in .NET 5+ projects
@@ -102,7 +101,7 @@ mkdir -p artifacts/performance
 ```
 
 **Directory Purposes:**
-- `artifacts/upgrade-assistant/`: Stores Upgrade Assistant analysis reports per project
+- `artifacts/upgrade-assistant/`: Stores modernization notes / analyzer findings per project (legacy name retained)
 - `artifacts/api-analyzer/`: Stores API Analyzer reports (CA1416 warnings)
 - `artifacts/dependencies/`: Stores dependency audits (outdated, vulnerable, graph)
 - `artifacts/performance/`: Stores k6 load test results and baselines
@@ -144,7 +143,7 @@ echo "✅ All prerequisites verified!"
 | Tool | Required Version | Installed Version | Status |
 |------|-----------------|------------------|--------|
 | .NET SDK | 10.0.100 | 10.0.100-rc.2 (.NET 10 GA releases Nov 11) | ✅ |
-| Upgrade Assistant | Latest | 1.0.518 | ✅ |
+| Modernization notes (Copilot/IDE) | N/A | IDE-based | ✅ |
 | ApiCompat | Latest | 9.0.306 | ✅ |
 | Dapr CLI | 1.16.0+ | 1.16.3 | ✅ |
 | Node.js | 24.x | 24.11.0 LTS | ✅ |
@@ -1042,16 +1041,14 @@ grep -r "\.Result\|\.Wait()" *.cs
 
 **Validation Checks:**
 
-1. ✅ Run `.NET Upgrade Assistant` for each project:
+1. ✅ Capture modernization/formatting notes for each project (store logs under `artifacts/upgrade-assistant/`):
 ```bash
-upgrade-assistant upgrade RedDog.OrderService/RedDog.OrderService.csproj \
-  --entry-point RedDog.OrderService/RedDog.OrderService.csproj \
-  --non-interactive \
-  --skip-backup false \
-  > artifacts/upgrade-assistant/orderservice.md
+dotnet format RedDog.OrderService/RedDog.OrderService.csproj \
+  --verify-no-changes \
+  > artifacts/upgrade-assistant/orderservice-format.txt
 ```
 
-2. ✅ Synchronize SDK workloads:
+2. ✅ Synchronize SDK workloads (run outside per-commit CI; manual verification only):
 ```bash
 dotnet workload restore
 dotnet workload update
@@ -1257,7 +1254,7 @@ curl -X POST http://localhost:3500/v1.0/publish/reddog.pubsub/orders \
 - Test automation setup: 8-12 hours (includes creating test projects)
 
 **Deliverables:**
-- [ ] Tooling artifacts captured (`artifacts/upgrade-assistant/`, `artifacts/dependencies/`, `artifacts/api-analyzer/`)
+- [ ] Tooling artifacts captured (`artifacts/upgrade-assistant/` modernization notes, `artifacts/dependencies/`, `artifacts/api-analyzer/`)
 - [ ] Pre-build validation completed (framework version, SDK, packages, Dockerfiles)
 - [ ] Multi-configuration build (Debug + Release with TreatWarningsAsErrors)
 - [ ] Build artifact verification (DLLs, runtime config)

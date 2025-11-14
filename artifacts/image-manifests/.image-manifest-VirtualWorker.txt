@@ -3,9 +3,9 @@
 ═══════════════════════════════════════════════════════════════
 
 Service:       VirtualWorker
-Build Date:    2025-11-12 23:07:39 UTC
-Build Time:    43s
-Load Time:     13s
+Build Date:    2025-11-14 21:02:31 UTC
+Build Time:    18s
+Load Time:     n/a
 Target:        .NET 10
 Dapr SDK:      1.16.0
 Health Probes: /healthz, /livez, /readyz (ADR-0005)
@@ -14,18 +14,17 @@ Health Probes: /healthz, /livez, /readyz (ADR-0005)
                       IMAGE TAGS BUILT
 ───────────────────────────────────────────────────────────────
 
-reddog-virtualworker:net10-test	349MB	2025-11-13 12:07:14 +1300 NZDT
-ghcr.io/ahmedmuhi/reddog-virtualworker:latest	349MB	2025-11-13 12:07:14 +1300 NZDT
-ghcr.io/ahmedmuhi/reddog-virtualworker:local	349MB	2025-11-13 12:07:14 +1300 NZDT
-reddog-virtualworker:net10	349MB	2025-11-13 12:07:14 +1300 NZDT
-reddog-virtualworker:local	311MB	2025-11-11 08:06:45 +1300 NZDT
+reddog-virtualworker:net10	236MB	2025-11-14 11:50:32 +1300 NZDT
+reddog-virtualworker:net10-test	236MB	2025-11-14 11:50:32 +1300 NZDT
+ghcr.io/ahmedmuhi/reddog-virtualworker:latest	236MB	2025-11-14 11:50:32 +1300 NZDT
+ghcr.io/ahmedmuhi/reddog-virtualworker:local	236MB	2025-11-14 11:50:32 +1300 NZDT
 
 ───────────────────────────────────────────────────────────────
                          DEPLOYMENT
 ───────────────────────────────────────────────────────────────
 
-Cluster:       kind (reddog-local)
-Status:        Loaded and ready for deployment
+Cluster:       kind (optional via LOAD_INTO_KIND)
+Status:        Images pushed to ghcr.io/ahmedmuhi/virtualworker
 
 Next Steps:
   1. Deploy via Helm:

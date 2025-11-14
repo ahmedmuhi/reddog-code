@@ -34,6 +34,16 @@ spec:
       labels:
         app: ui
     spec:
+      {{- if .Values.services.common.image.pullSecrets }}
+      imagePullSecrets:
+      {{- range .Values.services.common.image.pullSecrets }}
+        - name: {{ .name }}
+      {{- end }}
+      {{- end }}
+      {{- $commonResources := .Values.services.common.resources }}
+      {{- $uiResources := .Values.services.ui.resources | default dict }}
+      {{- $uiRequests := $uiResources.requests | default dict }}
+      {{- $uiLimits := $uiResources.limits | default dict }}
       containers:
       - name: ui
         image: {{ .Values.services.ui.image.repository }}:{{ .Values.services.common.image.tag }}
@@ -48,9 +58,9 @@ spec:
           value: {{ .Values.services.ui.env.VUE_APP_ACCOUNTING_BASE_URL | quote }}
         resources:
           requests:
-            cpu: {{ .Values.services.common.resources.requests.cpu }}
-            memory: {{ .Values.services.common.resources.requests.memory }}
+            cpu: {{ default $commonResources.requests.cpu $uiRequests.cpu }}
+            memory: {{ default $commonResources.requests.memory $uiRequests.memory }}
           limits:
-            cpu: {{ .Values.services.common.resources.limits.cpu }}
-            memory: {{ .Values.services.common.resources.limits.memory }}
+            cpu: {{ default $commonResources.limits.cpu $uiLimits.cpu }}
+            memory: {{ default $commonResources.limits.memory $uiLimits.memory }}
 {{- end }}

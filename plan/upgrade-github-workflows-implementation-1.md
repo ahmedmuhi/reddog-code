@@ -23,13 +23,14 @@ This plan upgrades every workflow under `.github/workflows/` to comply with `pla
 ## 1. Requirements & Constraints
 
 - **REQ-001**: Workflows must use supported actions versions (`actions/checkout@v4`, `actions/setup-dotnet@v4`, `docker/build-push-action@v5`, `actions/setup-node@v4`).
-- **REQ-002**: Every workflow must include a `tooling-audit` job executing Upgrade Assistant / workload updates / dependency audits / API Analyzer for the targeted project, storing artifacts under `artifacts/`.
-- **REQ-003**: Build jobs must run `dotnet build`, `dotnet test`, `dotnet list package --vulnerable`, and container builds with .NET 10 base images (or Node 24 + Vite for UI).
+- **REQ-002**: Every workflow must include a `tooling-audit` job that runs supported analyzers only (`dotnet format --verify-no-changes`, `dotnet list package --outdated/--vulnerable --include-transitive`, API Analyzer warnings surfaced via MSBuild, lint/test commands for Node) and stores artifacts under `artifacts/`.
+- **REQ-003**: Build jobs must run `dotnet build -warnaserror` (compiler warnings only), `dotnet test --collect:"XPlat Code Coverage"`, and upload coverage artifacts; UI workflows must run `npm run lint`, `npm run test --if-present`, and `npm run build` using Node 24 LTS.
 - **REQ-004**: Publishing jobs must push to GHCR with Git SHA/tag naming.
 - **REQ-005**: Workflow artifacts must include tooling outputs and validation reports for audit.
-- **SEC-001**: Fail workflows if API Analyzer reports severity ≥ Medium or `dotnet list package --vulnerable` finds vulnerabilities.
+- **SEC-001**: During Wave 1, `tooling-audit` jobs must surface API Analyzer warnings ≥ Medium and vulnerable packages in Step Summaries/artifacts; failing the workflow on those findings is deferred until the remediation backlog is resolved.
 - **CON-001**: All workflows triggered on PR and main branch (push) must enforce status checks referenced in branch protection.
 - **GUD-001**: Use composite actions or reusable workflow templates where possible to reduce duplication (optional but encouraged).
+- **GUD-002**: `dotnet workload update` is **not** run inside per-commit jobs; workload maintenance happens in dedicated environment tasks to keep Wave 1 pipelines fast.
 
 ## 2. Implementation Steps
 
@@ -54,9 +55,9 @@ This plan upgrades every workflow under `.github/workflows/` to comply with `pla
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| **TASK-006** | Add `tooling-audit` job to each workflow: run Upgrade Assistant, workload restore/update, `dotnet list ...`, API Analyzer, store outputs in workflow artifacts (`artifacts/upgrade-assistant/`, `artifacts/dependencies/`, `artifacts/api-analyzer/`), fail on warnings/vulnerabilities. | | |
-| **TASK-007** | Add/adjust `build-and-test` job: `dotnet build -warnaserror`, `dotnet test --collect:"XPlat Code Coverage"`, `dotnet list package --vulnerable`, upload coverage reports; for UI, run `npm run lint/test/build`. | | |
-| **TASK-008** | Add `docker-build-and-publish` job: build container with .NET 10 runtime, tag `ghcr.io/azure/reddog-<service>:$GITHUB_SHA`, push only on `main`. | | |
+| **TASK-006** | Add `tooling-audit` job to each workflow (preferably via reusable workflow): restore caches, run `dotnet format --verify-no-changes`, `dotnet list package --outdated/--vulnerable --include-transitive`, surface API Analyzer warnings, and upload logs + summaries under `artifacts/tooling/<service>/<runId>/`. For UI, run `npm ci`, `npm audit --audit-level=high`, and lint/test scripts. | | |
+| **TASK-007** | Add/adjust `build-and-test` job: `dotnet build -warnaserror` (compiler warnings only), `dotnet test --collect:"XPlat Code Coverage"`, `reportgenerator` to publish coverage artifacts; for UI, run `npm run lint && npm run test --if-present && npm run build`. | | |
+| **TASK-008** | Add `docker-build-and-publish` job: build container with .NET 10 runtime, tag `ghcr.io/ahmedmuhi/reddog-<service>` with `latest`, branch, and SHA tags, and push only on `master/main`. | | |
 | **TASK-009** | Configure workflow-level `workflow_call` or `workflow_run` dependencies: `build-and-test` depends on `tooling-audit`; `docker-build-and-publish` depends on `build-and-test`. | | |
 | **TASK-010** | Upload tooling artifacts using `actions/upload-artifact@v4` (naming convention `tooling-<service>-<runId>`). | | |
 | **TASK-011** | Ensure status checks (`tooling-audit`, `build-and-test`, `docker-build-and-publish`) match branch protection rules defined in modernization strategy. | | |
@@ -84,9 +85,9 @@ To keep CI/CD throughput reasonable while rolling out the modernization requirem
 - *Container tag policy*: ensure BuildKit-enabled workflows tag GHCR images with both `${GITHUB_SHA}` and human-friendly refs (branch/semver) and pass build metadata for traceability.
 
 ### Wave 1 – Tooling Audit & Quality Gates
-- *Tooling audit job*: lightweight job per workflow that runs Upgrade Assistant in `analyze` mode, `dotnet workload update`, `dotnet list package --vulnerable`, API Analyzer, and `dotnet format --verify-no-changes` (UI uses `npm audit --audit-level=high`). Upload results to `artifacts/tooling/<service>/<runId>/`. Fail on medium+ findings to satisfy SEC-001 while keeping runtime <5 minutes by skipping heavy code fixes.
-- *Build/test enhancements*: for .NET workloads add `dotnet build -warnaserror`, `dotnet test --collect:"XPlat Code Coverage"`, and publish coverage artifacts; for UI add `npm run lint && npm run test --if-present`. Keep lint/test optional on push-to-feature branches if runtime spikes (guard via `if:` conditions).
-- *Job dependencies*: enforce `build-test` depending on `tooling-audit`, and `docker-build-and-publish` depending on `build-test`, so branch protections can key off those three consistent checks.
+- *Tooling audit job*: reusable job per workflow that runs `dotnet format --verify-no-changes`, `dotnet list package --outdated/--vulnerable --include-transitive`, and surfaces API Analyzer warnings in step summaries (UI uses `npm audit --audit-level=high`). Outputs land under `artifacts/tooling/<service>/<runId>/`. Findings are informational in Wave 1; failure gates come after remediation.
+- *Build/test enhancements*: for .NET workloads add `dotnet build -warnaserror` (compiler warnings only), `dotnet test --collect:"XPlat Code Coverage"`, and publish coverage artifacts; for UI add `npm run lint && npm run test --if-present && npm run build`. Keep lint/test optional on feature branches if runtime spikes (guard via `if:` conditions).
+- *Job dependencies*: enforce `build-test` depending on `tooling-audit`, and `docker-build-and-publish` depending on `build-test`, so branch protections can key off those three consistent checks without race conditions.
 
 ### Wave 2 – Security & Deployment Hardening
 - *GHCR authentication*: switch docker pushes to OIDC federated login (repository secrets limited to `permissions: id-token: write` ) and remove long-lived PATs (`CR_PAT`).
@@ -125,7 +126,7 @@ To keep CI/CD throughput reasonable while rolling out the modernization requirem
 ## 7. Risks & Assumptions
 
 - **RISK-001**: Tooling commands increase workflow runtime. *Mitigation*: Use caching, limit `tooling-audit` to PR + protected branches.
-- **RISK-002**: Upgrade Assistant or API Analyzer may fail for projects lacking prerequisites. *Mitigation*: ensure repo contains `global.json`, required tools installed in job step.
+- **RISK-002**: Tooling audit commands (`dotnet format`, API Analyzer, npm audit) may fail for projects lacking prerequisites. *Mitigation*: ensure `global.json` pins SDKs, Node workflows install matching dependencies, and reusable tooling workflows centralize setup logic.
 - **ASSUMPTION-001**: Secrets for GHCR push already configured (`GHCR_TOKEN`).
 
 ## 8. Related Specifications / Further Reading

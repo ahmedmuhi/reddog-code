@@ -3,9 +3,9 @@
 ═══════════════════════════════════════════════════════════════
 
 Service:       MakeLineService
-Build Date:    2025-11-12 21:02:59 UTC
-Build Time:    138s
-Load Time:     8s
+Build Date:    2025-11-13 22:47:12 UTC
+Build Time:    28s
+Load Time:     19s
 Target:        .NET 10
 Dapr SDK:      1.16.0
 Health Probes: /healthz, /livez, /readyz (ADR-0005)
@@ -14,11 +14,10 @@ Health Probes: /healthz, /livez, /readyz (ADR-0005)
                       IMAGE TAGS BUILT
 ───────────────────────────────────────────────────────────────
 
-reddog-makelineservice:net10	349MB	2025-11-13 08:24:31 +1300 NZDT
-reddog-makelineservice:net10-test	349MB	2025-11-13 08:24:31 +1300 NZDT
-ghcr.io/ahmedmuhi/reddog-makelineservice:local	349MB	2025-11-13 08:24:31 +1300 NZDT
-ghcr.io/ahmedmuhi/reddog-makelineservice:latest	349MB	2025-11-13 08:24:31 +1300 NZDT
-reddog-makelineservice:local	316MB	2025-11-11 07:42:13 +1300 NZDT
+reddog-makelineservice:net10	236MB	2025-11-14 11:46:50 +1300 NZDT
+reddog-makelineservice:net10-test	236MB	2025-11-14 11:46:50 +1300 NZDT
+ghcr.io/ahmedmuhi/reddog-makelineservice:latest	236MB	2025-11-14 11:46:50 +1300 NZDT
+ghcr.io/ahmedmuhi/reddog-makelineservice:local	236MB	2025-11-14 11:46:50 +1300 NZDT
 
 ───────────────────────────────────────────────────────────────
                          DEPLOYMENT

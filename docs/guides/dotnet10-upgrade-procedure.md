@@ -56,7 +56,7 @@ helm upgrade reddog charts/reddog -f values/values-local.yaml
 **Prevention:** Validate configuration keys match between code and Helm
 
 ### 4. Stale Image Tags
-**Problem:** Built `:net10` tag but forgot to rebuild `:local` tag, kind cluster uses old image
+**Problem:** Built `:net10` tag locally but forgot to push to GHCR, cluster keeps pulling old image
 
 **Result:** Deployment succeeds but runs old .NET 6 code lacking health endpoints
 
@@ -241,19 +241,31 @@ grep "name:" charts/reddog/templates/<service-name>-service.yaml | grep -E "(Con
 
 Run `./scripts/upgrade-build-images.sh <ServiceName>` to:
 
-- [ ] Build **all** image tags (`:net10`, `:net10-test`, `:local`, `:latest`)
-- [ ] Load all images into kind cluster
-- [ ] Verify images available locally and in cluster
+- [ ] Build **all** image tags (`:net10`, `:net10-test`, `ghcr.io/...:latest`)
+- [ ] Push the GHCR tags (script now runs `docker push` for you)
+- [ ] Optionally load images into kind (`LOAD_INTO_KIND=true`)
 - [ ] Generate image manifest (`.image-manifest-<ServiceName>.txt`)
 
 **Why build all tags?**
-- Helm uses `:local` tag in `values-local.yaml`
-- If you only build `:net10`, deployment will use stale `:local` image
+- Helm pulls `ghcr.io/...:latest` in every environment
+- If you only build locally without pushing to GHCR, deployments will continue using the stale registry image
 - This causes HTTP 404 on health endpoints (old code lacks endpoints)
 
 ---
 
 ## Deployment Checklist
+
+### 0. Configure Registry Credentials (One-Time per Cluster)
+
+```bash
+kubectl create secret docker-registry ghcr-cred \
+  --docker-server=ghcr.io \
+  --docker-username=<your-gh-username> \
+  --docker-password="${GHCR_PAT}" \
+  --namespace=default
+```
+
+Then reference `ghcr-cred` via `services.common.image.pullSecrets` in `values/values-local.yaml`. Skip this step if your cluster uses managed identity/Workload Identity to pull from GHCR/ACR/ECR directly.
 
 ### 1. Helm Dry-Run (Optional)
 
@@ -264,7 +276,7 @@ helm upgrade reddog charts/reddog -f values/values-local.yaml --dry-run --debug 
 Verify:
 - Probe paths are `/healthz`, `/livez`, `/readyz`
 - Environment variables are correct
-- Image tag references `:local`
+- Image tag references `ghcr.io/...:latest`
 
 ### 2. Deploy
 
@@ -504,7 +516,7 @@ Before moving to next service, verify:
 
 **Actions:**
 - Validates Dockerfile exists
-- Builds 4 image tags (`:net10`, `:net10-test`, `:local`, `:latest`)
+- Builds 3 image tags (`:net10`, `:net10-test`, `ghcr.io/...:latest`)
 - Loads all images into kind cluster
 - Verifies images available
 - Generates image manifest
@@ -588,7 +600,7 @@ Before moving to next service, verify:
 - Skip kind image load step
 
 **DO:**
-- Build ALL tags in one operation (`:net10`, `:net10-test`, `:local`, `:latest`)
+- Build/push ALL tags in one operation (`:net10`, `:net10-test`, `ghcr.io/...:latest`)
 - Load all tags into kind cluster
 - Verify images with `docker images` and `kind get images`
 - Track build times in manifest

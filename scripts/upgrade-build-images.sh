@@ -42,16 +42,20 @@ echo ""
 
 # Define all required image tags
 # These tags cover all scenarios:
-# - :net10 - Standard .NET 10 tag
+# - :net10 - Standard .NET 10 tag (local-only)
 # - :net10-test - Testing tag for experimental builds
-# - :local - Local development tag (used by Helm values-local.yaml)
-# - :latest - Latest tag for convenience
+# - ghcr.io/...:latest - Tag pulled by Kubernetes in every environment
 TAGS=(
   "reddog-${SERVICE_LOWER}:net10"
   "reddog-${SERVICE_LOWER}:net10-test"
-  "ghcr.io/ahmedmuhi/reddog-${SERVICE_LOWER}:local"
   "ghcr.io/ahmedmuhi/reddog-${SERVICE_LOWER}:latest"
 )
+
+REMOTE_TAGS=(
+  "ghcr.io/ahmedmuhi/reddog-${SERVICE_LOWER}:latest"
+)
+
+LOAD_TIME=""
 
 echo "✓ Will build ${#TAGS[@]} image tags:"
 for TAG in "${TAGS[@]}"; do
@@ -102,49 +106,73 @@ docker images --format "table {{.Repository}}:{{.Tag}}\t{{.Size}}\t{{.CreatedAt}
 }
 echo ""
 
-# Load images into kind cluster
+# Push remote tags
 echo "╔════════════════════════════════════════════════════════════════╗"
-echo "║              LOADING IMAGES INTO KIND CLUSTER"
+echo "║                     PUSHING REMOTE TAGS"
 echo "╚════════════════════════════════════════════════════════════════╝"
 echo ""
 
-LOAD_START=$(date +%s)
+for TAG in "${REMOTE_TAGS[@]}"; do
+  echo "Pushing: $TAG"
+  if docker push "$TAG"; then
+    echo "  ✓ Pushed: $TAG"
+  else
+    echo "  ❌ FAILED to push: $TAG"
+    exit 1
+  fi
+done
+echo ""
 
-echo "Loading ${#TAGS[@]} images into kind cluster 'reddog-local'..."
-if kind load docker-image "${TAGS[@]}" --name reddog-local; then
-  echo "✓ All images loaded into kind cluster"
-else
-  echo "❌ FAILED to load images into kind cluster"
+if [[ "${LOAD_INTO_KIND:-false}" == "true" ]]; then
+  KIND_CLUSTER_NAME=${KIND_CLUSTER_NAME:-reddog-local}
+  echo "╔════════════════════════════════════════════════════════════════╗"
+  echo "║              LOADING IMAGES INTO KIND CLUSTER"
+  echo "╚════════════════════════════════════════════════════════════════╝"
   echo ""
-  echo "Troubleshooting:"
-  echo "  1. Check cluster exists: kind get clusters"
-  echo "  2. Verify cluster name: should be 'reddog-local'"
-  echo "  3. Try loading one tag manually:"
-  echo "     kind load docker-image ${TAGS[0]} --name reddog-local"
-  exit 1
+
+  LOAD_START=$(date +%s)
+
+  echo "Loading ${#TAGS[@]} images into kind cluster '${KIND_CLUSTER_NAME}'..."
+  if kind load docker-image "${TAGS[@]}" --name "$KIND_CLUSTER_NAME"; then
+    echo "✓ All images loaded into kind cluster"
+  else
+    echo "❌ FAILED to load images into kind cluster"
+    echo ""
+    echo "Troubleshooting:"
+    echo "  1. Check cluster exists: kind get clusters"
+    echo "  2. Verify cluster name via KIND_CLUSTER_NAME env var"
+    echo "  3. Try loading one tag manually:"
+    echo "     kind load docker-image ${TAGS[0]} --name ${KIND_CLUSTER_NAME}"
+    exit 1
+  fi
+
+  LOAD_END=$(date +%s)
+  LOAD_TIME=$((LOAD_END - LOAD_START))
+  echo ""
+  echo "✓ Loaded images in ${LOAD_TIME}s"
+  echo ""
 fi
 
-LOAD_END=$(date +%s)
-LOAD_TIME=$((LOAD_END - LOAD_START))
-echo ""
-echo "✓ Loaded images in ${LOAD_TIME}s"
-echo ""
+LOAD_TIME_DISPLAY=${LOAD_TIME:-"n/a"}
 
-# Verify images available in kind cluster
-echo "╔════════════════════════════════════════════════════════════════╗"
-echo "║            VERIFYING IMAGES IN KIND CLUSTER"
-echo "╚════════════════════════════════════════════════════════════════╝"
-echo ""
+if [[ "${LOAD_INTO_KIND:-false}" == "true" ]]; then
+  echo "╔════════════════════════════════════════════════════════════════╗"
+  echo "║            VERIFYING IMAGES IN KIND CLUSTER"
+  echo "╚════════════════════════════════════════════════════════════════╝"
+  echo ""
 
-echo "Images in kind cluster:"
-kind get images --name reddog-local 2>/dev/null | grep "${SERVICE_LOWER}" || {
-  echo "⚠️  WARNING: Images not visible in kind cluster"
-  echo "This may be a display issue; images may still be loaded."
-}
-echo ""
+  echo "Images in kind cluster:"
+  kind get images --name "${KIND_CLUSTER_NAME:-reddog-local}" 2>/dev/null | grep "${SERVICE_LOWER}" || {
+    echo "⚠️  WARNING: Images not visible in kind cluster"
+    echo "This may be a display issue; images may still be loaded."
+  }
+  echo ""
+fi
 
 # Create image manifest
-MANIFEST_FILE=".image-manifest-${SERVICE_NAME}.txt"
+MANIFEST_DIR="artifacts/image-manifests"
+mkdir -p "$MANIFEST_DIR"
+MANIFEST_FILE="${MANIFEST_DIR}/.image-manifest-${SERVICE_NAME}.txt"
 cat <<EOF > "$MANIFEST_FILE"
 ═══════════════════════════════════════════════════════════════
                    IMAGE BUILD MANIFEST
@@ -153,7 +181,7 @@ cat <<EOF > "$MANIFEST_FILE"
 Service:       ${SERVICE_NAME}
 Build Date:    $(date -u +"%Y-%m-%d %H:%M:%S UTC")
 Build Time:    ${BUILD_TIME}s
-Load Time:     ${LOAD_TIME}s
+Load Time:     ${LOAD_TIME_DISPLAY}
 Target:        .NET 10
 Dapr SDK:      1.16.0
 Health Probes: /healthz, /livez, /readyz (ADR-0005)
@@ -168,8 +196,8 @@ $(docker images --format "{{.Repository}}:{{.Tag}}\t{{.Size}}\t{{.CreatedAt}}" |
                          DEPLOYMENT
 ───────────────────────────────────────────────────────────────
 
-Cluster:       kind (reddog-local)
-Status:        Loaded and ready for deployment
+Cluster:       kind (optional via LOAD_INTO_KIND)
+Status:        Images pushed to ghcr.io/ahmedmuhi/${SERVICE_LOWER}
 
 Next Steps:
   1. Deploy via Helm:

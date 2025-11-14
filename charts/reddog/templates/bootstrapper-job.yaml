@@ -24,6 +24,12 @@ spec:
         dapr.io/enable-metrics: "true"
         dapr.io/metrics-port: "9090"
     spec:
+      {{- if .Values.services.common.image.pullSecrets }}
+      imagePullSecrets:
+      {{- range .Values.services.common.image.pullSecrets }}
+        - name: {{ .name }}
+      {{- end }}
+      {{- end }}
       restartPolicy: Never
       containers:
         - name: bootstrapper

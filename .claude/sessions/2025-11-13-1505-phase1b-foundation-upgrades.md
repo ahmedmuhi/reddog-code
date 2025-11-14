@@ -514,3 +514,44 @@ Successfully shutdown Dapr sidecar.
 **Next Steps:**
 - Remove the now-unused `CR_PAT` and `PROMOTE_TOKEN` repo secrets to finalize the PAT-free CI story.
 - Proceed to Wave 1 (tooling-audit + build/test) with confidence that the baseline workflows are healthy.
+
+### Update - 2025-11-15 02:40 NZDT
+
+**Summary:** Shifted local deployments to pull straight from GHCR (no more `:local` tags) and added registry-auth plumbing across Helm + docs.
+
+**Actions:**
+1. Added `services.common.image.pullSecrets` + `pullPolicy: Always` to `values/values-local.yaml` (and sample) and wired the same list through every deployment template/job via an optional `imagePullSecrets` block.
+2. Created the `ghcr-cred` secret in `default` and documented the `kubectl create secret docker-registry ...` command in `docs/guides/dotnet10-upgrade-procedure.md` so other developers can replicate it.
+3. Reworked `scripts/upgrade-build-images.sh` to drop the `:local` tag, push `ghcr.io/...:latest`, and make kind-loading optional (toggled via `LOAD_INTO_KIND=true`). Manifest text now reflects push status instead of assuming kind.
+4. Updated modernization and upgrade docs to remove legacy `:local` references and explain the new “build + push + optional kind load” workflow.
+
+**Next Steps:**
+- Update any local onboarding docs (CLAUDE/AGENTS) to mention `ghcr-cred` creation.
+- Consider adding a helper script to refresh the GHCR pull secret when the PAT rotates.
+
+### Update - 2025-11-15 10:40 NZDT
+
+**Summary:** Finished the GHCR rollout end-to-end—images now live in GHCR, the cluster pulls them via a refreshed secret, Helm upgrades are healthy again, and the UI pod has dedicated memory settings.
+
+**Actions:**
+1. Ran `./scripts/upgrade-build-images.sh <Service>` across every workload (Order, MakeLine, Accounting, Loyalty, ReceiptGeneration, UI, VirtualCustomers, VirtualWorker, Bootstrapper) to publish `ghcr.io/ahmedmuhi/<service>:latest`; each run dropped an audit trail under `artifacts/image-manifests/.image-manifest-*.txt`.
+2. Rotated the GHCR PAT (packages read/write), recreated the `ghcr-cred` docker-registry secret in `default`, and documented the `scripts/refresh-ghcr-secret.sh` helper so future token rotations are a single command instead of hand-editing secrets. Old PAT-based secrets (`CR_PAT`, `PROMOTE_TOKEN`) were removed from repo settings to enforce the new strategy.
+3. Fixed the Helm release getting stuck in `pending-upgrade`: rolled back to revision 26, deleted the immutable bootstrapper job, refreshed the secret, restarted every app pod so it re-pulled from GHCR, and then reran `helm upgrade ... --atomic`. Release `reddog` now sits at revision 30 with all pods `Running` and the bootstrapper job completing cleanly.
+4. Resolved the UI crashloop by updating `charts/reddog/templates/ui.yaml` to support service-specific resource overrides and setting the UI limit to 1 Gi / request 256 Mi via `values/values-local.yaml`. A fresh Helm upgrade confirmed the template change works (new pod shows the higher limit and stays healthy).
+
+**Next Steps:**
+- Fold today’s procedure into the CI/CD modernization plan (document how builds publish + how to refresh GHCR creds for clusters).
+- Monitor the UI pod over a longer run; if memory still spikes investigate bundle size / Vue build configs.
+
+### Update - 2025-11-15 11:35 NZDT
+
+**Summary:** Began Wave 1 by introducing reusable tooling-audit workflows and piloting them in OrderService.
+
+**Actions:**
+1. Created `.github/workflows/reusable-dotnet-tooling-audit.yaml` (format verification + `dotnet list package --outdated/--vulnerable` with artifacts) and `.github/workflows/reusable-node-tooling-audit.yaml` (npm audit/lint/test/build) so every service can reuse the same audit logic.
+2. Updated `package-order-service.yaml` to call the reusable audit job, added a dedicated `build-and-test` job (dotnet build/test with coverage artifacts), and chained the Docker job to depend on those gates.
+3. Uploaded coverage/tooling artifacts and step summaries, giving us runtime data before cloning the pattern to the remaining workflows.
+
+**Next Steps:**
+- Monitor the pilot workflow run to ensure runtimes stay <15 minutes and tweak caching/report generation if needed.
+- Roll the reusable jobs out to the other packaging workflows once the pilot proves stable, then update branch protection to require the three Wave 1 checks.
