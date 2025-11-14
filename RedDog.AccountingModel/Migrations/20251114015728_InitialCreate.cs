@@ -1,10 +1,14 @@
 ﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
-namespace RedDog.Bootstrapper.Migrations
+#nullable disable
+
+namespace RedDog.AccountingModel.Migrations
 {
+    /// <inheritdoc />
     public partial class InitialCreate : Migration
     {
+        /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
@@ -21,6 +25,24 @@ namespace RedDog.Bootstrapper.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "StoreLocation",
+                columns: table => new
+                {
+                    StoreId = table.Column<string>(type: "nvarchar(54)", nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(255)", nullable: true),
+                    City = table.Column<string>(type: "nvarchar(100)", nullable: false),
+                    StateProvince = table.Column<string>(type: "nvarchar(100)", nullable: false),
+                    PostalCode = table.Column<string>(type: "nvarchar(30)", nullable: false),
+                    Country = table.Column<string>(type: "nvarchar(54)", nullable: false),
+                    Latitude = table.Column<decimal>(type: "decimal(12,6)", nullable: false),
+                    Longitude = table.Column<decimal>(type: "decimal(12,6)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_StoreLocation", x => x.StoreId);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Order",
                 columns: table => new
                 {
@@ -28,7 +50,7 @@ namespace RedDog.Bootstrapper.Migrations
                     StoreId = table.Column<string>(type: "nvarchar(50)", nullable: false),
                     PlacedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
                     CompletedDate = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    CustomerLoyaltyId = table.Column<string>(type: "nvarchar(36)", nullable: true),
+                    CustomerLoyaltyId = table.Column<string>(type: "nvarchar(36)", nullable: false),
                     OrderTotal = table.Column<decimal>(type: "decimal(18,2)", nullable: false)
                 },
                 constraints: table =>
@@ -39,7 +61,7 @@ namespace RedDog.Bootstrapper.Migrations
                         column: x => x.CustomerLoyaltyId,
                         principalTable: "Customer",
                         principalColumn: "LoyaltyId",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -53,6 +75,7 @@ namespace RedDog.Bootstrapper.Migrations
                     Quantity = table.Column<int>(type: "int", nullable: false),
                     UnitCost = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     UnitPrice = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    ImageUrl = table.Column<string>(type: "nvarchar(255)", nullable: true),
                     OrderId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
                 },
                 constraints: table =>
@@ -77,10 +100,14 @@ namespace RedDog.Bootstrapper.Migrations
                 column: "OrderId");
         }
 
+        /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
                 name: "OrderItem");
+
+            migrationBuilder.DropTable(
+                name: "StoreLocation");
 
             migrationBuilder.DropTable(
                 name: "Order");

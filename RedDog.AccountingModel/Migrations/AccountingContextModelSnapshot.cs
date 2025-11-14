@@ -3,23 +3,24 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
-using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using RedDog.AccountingModel;
 
-namespace RedDog.Bootstrapper.Migrations
+#nullable disable
+
+namespace RedDog.AccountingModel.Migrations
 {
     [DbContext(typeof(AccountingContext))]
-    [Migration("20210505072819_InitialCreate")]
-    partial class InitialCreate
+    partial class AccountingContextModelSnapshot : ModelSnapshot
     {
-        protected override void BuildTargetModel(ModelBuilder modelBuilder)
+        protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("Relational:MaxIdentifierLength", 128)
-                .HasAnnotation("ProductVersion", "5.0.5")
-                .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+                .HasAnnotation("ProductVersion", "10.0.0")
+                .HasAnnotation("Relational:MaxIdentifierLength", 128);
+
+            SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
             modelBuilder.Entity("RedDog.AccountingModel.Customer", b =>
                 {
@@ -49,6 +50,7 @@ namespace RedDog.Bootstrapper.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("CustomerLoyaltyId")
+                        .IsRequired()
                         .HasColumnType("nvarchar(36)");
 
                     b.Property<decimal>("OrderTotal")
@@ -72,8 +74,12 @@ namespace RedDog.Bootstrapper.Migrations
                 {
                     b.Property<int>("OrderItemId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("OrderItemId"));
+
+                    b.Property<string>("ImageUrl")
+                        .HasColumnType("nvarchar(255)");
 
                     b.Property<Guid>("OrderId")
                         .HasColumnType("uniqueidentifier");
@@ -101,11 +107,48 @@ namespace RedDog.Bootstrapper.Migrations
                     b.ToTable("OrderItem");
                 });
 
+            modelBuilder.Entity("RedDog.AccountingModel.StoreLocation", b =>
+                {
+                    b.Property<string>("StoreId")
+                        .HasColumnType("nvarchar(54)");
+
+                    b.Property<string>("City")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Country")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(54)");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<decimal>("Latitude")
+                        .HasColumnType("decimal(12,6)");
+
+                    b.Property<decimal>("Longitude")
+                        .HasColumnType("decimal(12,6)");
+
+                    b.Property<string>("PostalCode")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("StateProvince")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("StoreId");
+
+                    b.ToTable("StoreLocation");
+                });
+
             modelBuilder.Entity("RedDog.AccountingModel.Order", b =>
                 {
                     b.HasOne("RedDog.AccountingModel.Customer", "Customer")
                         .WithMany()
-                        .HasForeignKey("CustomerLoyaltyId");
+                        .HasForeignKey("CustomerLoyaltyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Customer");
                 });

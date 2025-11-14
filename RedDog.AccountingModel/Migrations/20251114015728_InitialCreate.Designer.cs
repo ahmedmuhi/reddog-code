@@ -3,21 +3,27 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using RedDog.AccountingModel;
 
-namespace RedDog.Bootstrapper.Migrations
+#nullable disable
+
+namespace RedDog.AccountingModel.Migrations
 {
     [DbContext(typeof(AccountingContext))]
-    partial class AccountingContextModelSnapshot : ModelSnapshot
+    [Migration("20251114015728_InitialCreate")]
+    partial class InitialCreate
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("Relational:MaxIdentifierLength", 128)
-                .HasAnnotation("ProductVersion", "5.0.5")
-                .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+                .HasAnnotation("ProductVersion", "10.0.0")
+                .HasAnnotation("Relational:MaxIdentifierLength", 128);
+
+            SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
             modelBuilder.Entity("RedDog.AccountingModel.Customer", b =>
                 {
@@ -47,6 +53,7 @@ namespace RedDog.Bootstrapper.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("CustomerLoyaltyId")
+                        .IsRequired()
                         .HasColumnType("nvarchar(36)");
 
                     b.Property<decimal>("OrderTotal")
@@ -70,8 +77,9 @@ namespace RedDog.Bootstrapper.Migrations
                 {
                     b.Property<int>("OrderItemId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("OrderItemId"));
 
                     b.Property<string>("ImageUrl")
                         .HasColumnType("nvarchar(255)");
@@ -141,7 +149,9 @@ namespace RedDog.Bootstrapper.Migrations
                 {
                     b.HasOne("RedDog.AccountingModel.Customer", "Customer")
                         .WithMany()
-                        .HasForeignKey("CustomerLoyaltyId");
+                        .HasForeignKey("CustomerLoyaltyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Customer");
                 });

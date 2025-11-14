@@ -35,6 +35,7 @@ internal sealed class Program : IDesignTimeDbContextFactory<AccountingContext>
     {
         // For design-time tools (dotnet ef), read from environment variable
         var connectionString = Environment.GetEnvironmentVariable("reddog-sql")
+            ?? Environment.GetEnvironmentVariable("ConnectionStrings__RedDog")
             ?? throw new InvalidOperationException(
                 "Database connection string 'reddog-sql' not found in environment variables. " +
                 "Set the environment variable before running EF Core tools.");
@@ -47,7 +48,6 @@ internal sealed class Program : IDesignTimeDbContextFactory<AccountingContext>
         var optionsBuilder = new DbContextOptionsBuilder<AccountingContext>()
             .UseSqlServer(connectionString, sqlOptions =>
             {
-                sqlOptions.MigrationsAssembly("RedDog.Bootstrapper");
                 sqlOptions.EnableRetryOnFailure(
                     maxRetryCount: 5,
                     maxRetryDelay: TimeSpan.FromSeconds(10),
