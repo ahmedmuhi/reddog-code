@@ -61,9 +61,13 @@ jobs:
       - name: Format verification
         id: format
         run: |
+          set +e
           dotnet format "$PROJECT_PATH" \
             --verify-no-changes \
             --report "$ARTIFACT_DIR/dotnet-format-report.json"
+          status=$?
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          exit 0
 
       - name: Dependency audit (outdated)
         run: |
@@ -78,7 +82,11 @@ jobs:
       - name: Summaries
         run: |
           echo "## Tooling Audit – $SERVICE_NAME" >> "$GITHUB_STEP_SUMMARY"
-          echo "- dotnet format: ✅" >> "$GITHUB_STEP_SUMMARY"
+          if [[ "${{ steps.format.outputs.status }}" == "0" ]]; then
+            echo "- dotnet format: ✅" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "- dotnet format: ⚠️ see $ARTIFACT_DIR/dotnet-format-report.json" >> "$GITHUB_STEP_SUMMARY"
+          fi
           echo "- Outdated packages report saved to $ARTIFACT_DIR/outdated-packages.txt" >> "$GITHUB_STEP_SUMMARY"
           echo "- Vulnerability report saved to $ARTIFACT_DIR/vulnerable-packages.txt" >> "$GITHUB_STEP_SUMMARY"
 
