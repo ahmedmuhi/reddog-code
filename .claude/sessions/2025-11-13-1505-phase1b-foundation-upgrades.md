@@ -475,3 +475,28 @@ Successfully shutdown Dapr sidecar.
 **Next Steps:**
 - Begin Wave 1: add `tooling-audit`, enriched `build-test`, and dependency chaining (needs: `tooling-audit` → `build-test` → `docker-build-and-publish`).
 - Prep PR(s) that trigger the upgraded workflows and archive validation run URLs once Wave 1 changes are in place.
+
+### Update - 2025-11-15 00:15 NZDT
+
+**Summary:** Shifted GHCR pushes to our fork-owned namespace with OIDC-friendly auth so Wave 0 pipelines run without PAT secrets.
+
+**Actions:**
+1. Updated all packaging workflows to set `repository=ghcr.io/ahmedmuhi/reddog-retail-demo` and added workflow-level `permissions` (`contents: read`, `packages: write`, `id-token: write`).
+2. Switched `docker/login-action` to use the built-in `GITHUB_TOKEN`, removing the need for `CR_PAT` during image pushes while leaving the existing PAT in place only for `dmnemec/copy_file_to_another_repo_action`.
+3. Re-ran `package-order-service` workflow (run `19371740669`)—GHCR login/build/push now succeeds; the only remaining failure is the promotion step trying to push to `Azure/reddog-retail-demo` (expected 403 since we lack access).
+
+**Next Steps:**
+- Decide whether to retarget the promotion steps to our fork (or skip them) before enabling Wave 1 gating, or provision the necessary PAT with access to `Azure/reddog-retail-demo` if upstream promotion remains required.
+
+### Update - 2025-11-15 01:05 NZDT
+
+**Summary:** Completed the in-repo promotion change—manifest updates now commit directly to `ahmedmuhi/reddog-code` and the failing Azure promotion steps are removed.
+
+**Actions:**
+1. For every packaging workflow, pinned `fjogeleit/yaml-update-action` to `v0.16.1`, set `commitChange: 'true'`, added explicit `targetBranch/masterBranchName`, and injected `token: ${{ secrets.GITHUB_TOKEN }}` so YAML edits are committed back to `master` without PATs.
+2. Deleted all `dmnemec/copy_file_to_another_repo_action` steps (including the dual corporate variants in Accounting), removing the dependency on `CR_PAT`/`PROMOTE_TOKEN` and eliminating the 403 failures against `Azure/reddog-retail-demo`.
+3. Verified via `rg` that no workflows reference those secrets anymore—once we double-check other tooling, `CR_PAT` and `PROMOTE_TOKEN` can be deleted from repo secrets.
+
+**Next Steps:**
+- Remove the unused secrets after confirming no other automation depends on them.
+- Rerun a packaging workflow to confirm it now finishes green and observe the manifest commit produced on `master` as proof of the new flow.

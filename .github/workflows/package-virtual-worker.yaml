@@ -77,27 +77,19 @@ jobs:
             org.opencontainers.image.created=${{ needs.set-env.outputs.created }}
             org.opencontainers.image.revision=${{ needs.set-env.outputs.version }}
       - name: Update deployment yaml
-        uses: fjogeleit/yaml-update-action@master
+        uses: fjogeleit/yaml-update-action@v0.16.1
         with:
           valueFile: 'manifests/branch/base/deployments/virtual-worker.yaml'
           propertyPath: 'spec.template.spec.containers.0.image'
           value: ${{ needs.set-env.outputs.repository }}/${{ needs.set-env.outputs.image }}:${{ needs.set-env.outputs.version }}
-          commitChange: 'false'
+          commitChange: 'true'
           branch: 'master'
+          targetBranch: 'master'
+          masterBranchName: 'master'
           message: 'Updated virtual worker deployment manifest.'
+          token: ${{ secrets.GITHUB_TOKEN }}
           createPR: 'false'
           updateFile: 'true'
       - name: Echo yaml
         run: |
           cat manifests/branch/base/deployments/virtual-worker.yaml
-      - name: Promote deployment
-        uses: dmnemec/copy_file_to_another_repo_action@main
-        env:
-          API_TOKEN_GITHUB: ${{ secrets.CR_PAT }}
-        with:
-          source_file: manifests/branch/base/deployments/virtual-worker.yaml
-          destination_repo: Azure/reddog-retail-demo
-          destination_folder: manifests/branch/base/deployments
-          git_server: github.com
-          user_email: ae.muhi@outlook.com
-          user_name: Ahmed Muhi
