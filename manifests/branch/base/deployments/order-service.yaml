@@ -22,7 +22,7 @@ spec:
     spec:
       containers:
         - name: order-service
-          image: ghcr.io/ahmedmuhi/reddog-retail-demo/reddog-retail-order-service:82a0a0b
+          image: ghcr.io/ahmedmuhi/reddog-retail-demo/reddog-retail-order-service:cdafc06
           ports:
             - containerPort: 80
           imagePullPolicy: Always
