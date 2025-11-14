@@ -34,10 +34,69 @@ jobs:
             echo "image=reddog-retail-receipt-generation-service"
             echo "repository=ghcr.io/ahmedmuhi/reddog-retail-demo"
           } >> "$GITHUB_OUTPUT"
-  package-service:
-    name: Package Service
+  tooling-audit:
+    name: Tooling Audit
+    uses: ./.github/workflows/reusable-dotnet-tooling-audit.yaml
+    secrets: inherit
+    with:
+      service-name: receiptgenerationservice
+      project-path: RedDog.ReceiptGenerationService/RedDog.ReceiptGenerationService.csproj
+
+  build-and-test:
+    name: Build and Test
     runs-on: ubuntu-latest
-    needs: set-env
+    needs:
+      - tooling-audit
+    env:
+      PROJECT_PATH: RedDog.ReceiptGenerationService/RedDog.ReceiptGenerationService.csproj
+      COVERAGE_DIR: artifacts/coverage/receiptgenerationservice
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5.0.0
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v5.0.0
+        with:
+          global-json-file: global.json
+          dotnet-quality: ga
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', 'global.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Restore
+        run: dotnet restore $PROJECT_PATH
+
+      - name: Build
+        run: dotnet build $PROJECT_PATH -c Release
+
+      - name: Test with coverage
+        run: |
+          mkdir -p "$COVERAGE_DIR"
+          dotnet test $PROJECT_PATH -c Release --collect:"XPlat Code Coverage" --results-directory "$COVERAGE_DIR"
+
+      - name: Upload coverage artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-receiptgenerationservice-${{ github.run_id }}
+          path: ${{ env.COVERAGE_DIR }}
+
+      - name: Build/Test summary
+        run: |
+          echo "## Build & Test – ReceiptGenerationService" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Build: ✅" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Test results uploaded from $COVERAGE_DIR" >> "$GITHUB_STEP_SUMMARY"
+
+  package-service:
+    name: Docker Build & Publish
+    runs-on: ubuntu-latest
+    needs:
+      - set-env
+      - build-and-test
     steps:
       - name: Checkout
         uses: actions/checkout@v5.0.0
