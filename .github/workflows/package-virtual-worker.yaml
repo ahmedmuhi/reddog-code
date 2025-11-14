@@ -6,6 +6,12 @@ on:
     paths:
       - 'RedDog.VirtualWorker/**'
   workflow_dispatch:
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+
+
 jobs:
   set-env:
     name: Set Environment Variables
@@ -26,7 +32,7 @@ jobs:
             echo "created=${created}"
             echo "project=VirtualWorker"
             echo "image=reddog-retail-virtual-worker"
-            echo "repository=ghcr.io/azure/reddog-retail-demo"
+            echo "repository=ghcr.io/ahmedmuhi/reddog-retail-demo"
           } >> "$GITHUB_OUTPUT"
   package-service:
     name: Package Service
@@ -54,7 +60,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.CR_PAT }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build and push
         uses: docker/build-push-action@v6.4.1
         with:
