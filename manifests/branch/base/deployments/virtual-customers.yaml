@@ -15,29 +15,29 @@ spec:
       labels:
         app: virtual-customers
       annotations:
-        dapr.io/enabled: "true"
-        dapr.io/app-id: "virtual-customers"
-        dapr.io/config: "reddog.config"
+        dapr.io/enabled: 'true'
+        dapr.io/app-id: virtual-customers
+        dapr.io/config: reddog.config
     spec:
       containers:
         - name: virtual-customers
-          image: "ghcr.io/cloudnativegbb/paas-vnext/reddog-virtual-customers:latest"
+          image: ghcr.io/ahmedmuhi/reddog-retail-demo/reddog-retail-virtual-customers:d6a433f
           imagePullPolicy: Always
           env:
-          - name: STORE_ID
-            valueFrom:
-              secretKeyRef:
+            - name: STORE_ID
+              valueFrom:
+                secretKeyRef:
                   name: branch.config
                   key: store_id
-          - name: MAX_ITEM_QUANTITY
-            value: "9"
-          - name: MIN_SEC_TO_PLACE_ORDER
-            value: "2"
-          - name: MAX_SEC_TO_PLACE_ORDER
-            value: "8"
-          - name: MIN_SEC_BETWEEN_ORDERS
-            value: "2"
-          - name: MAX_SEC_BETWEEN_ORDERS
-            value: "8"
-          - name: NUM_ORDERS
-            value: "-1"
+            - name: MAX_ITEM_QUANTITY
+              value: '9'
+            - name: MIN_SEC_TO_PLACE_ORDER
+              value: '2'
+            - name: MAX_SEC_TO_PLACE_ORDER
+              value: '8'
+            - name: MIN_SEC_BETWEEN_ORDERS
+              value: '2'
+            - name: MAX_SEC_BETWEEN_ORDERS
+              value: '8'
+            - name: NUM_ORDERS
+              value: '-1'
