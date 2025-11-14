@@ -42,7 +42,7 @@ jobs:
           dotnet-quality: ga
           cache: true
       - name: Cache NuGet packages
-        uses: actions/cache@v4.0.3
+        uses: actions/cache@v4
         with:
           path: ~/.nuget/packages
           key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', 'global.json') }}
