@@ -500,3 +500,17 @@ Successfully shutdown Dapr sidecar.
 **Next Steps:**
 - Remove the unused secrets after confirming no other automation depends on them.
 - Rerun a packaging workflow to confirm it now finishes green and observe the manifest commit produced on `master` as proof of the new flow.
+
+### Update - 2025-11-15 02:05 NZDT
+
+**Summary:** Manually validated every packaging workflow on `master`—all nine jobs now build, push, and commit manifests successfully using only `GITHUB_TOKEN`.
+
+**Actions:**
+1. Cleaned up the accounting/loyalty workflows to drop references to the non-existent `manifests/corporate/...` files, ensuring the YAML commit step only targets real manifests.
+2. Triggered each workflow via `gh workflow run … --ref master` and watched them complete:
+   - Runs: `19373472125` (accounting), `19373526141` (bootstrapper), `19373564065` (loyalty), `19373594205` (make-line), `19373778190` (order), `19373621972` (receipt-generation), `19373652967` (ui), `19373699894` (virtual-customers), `19373732043` (virtual-worker).
+   - All concluded with `success`; remaining annotations are just Roslyn analyzer warnings we already plan to tackle in Wave 1 tooling jobs.
+
+**Next Steps:**
+- Remove the now-unused `CR_PAT` and `PROMOTE_TOKEN` repo secrets to finalize the PAT-free CI story.
+- Proceed to Wave 1 (tooling-audit + build/test) with confidence that the baseline workflows are healthy.
