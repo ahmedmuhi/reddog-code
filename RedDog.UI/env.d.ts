@@ -3,7 +3,7 @@
 import type { SidebarGlobals } from './src/components/SidebarPlugin';
 import type {
   NotificationGlobals,
-  NotificationInput
+  NotificationInput,
 } from './src/components/NotificationPlugin';
 
 declare const __APP_CONFIG__: {
@@ -14,6 +14,23 @@ declare const __APP_CONFIG__: {
   MAKELINE_BASE_URL?: string;
   ACCOUNTING_BASE_URL?: string;
 };
+
+interface ImportMetaEnv {
+  readonly VITE_IS_CORP?: string;
+  readonly VITE_STORE_ID?: string;
+  readonly VITE_SITE_TYPE?: string;
+  readonly VITE_SITE_TITLE?: string;
+  readonly VITE_MAKELINE_BASE_URL?: string;
+  readonly VITE_ACCOUNTING_BASE_URL?: string;
+  readonly BASE_URL: string;
+  readonly DEV: boolean;
+  readonly PROD: boolean;
+  readonly MODE: string;
+}
+
+interface ImportMeta {
+  readonly env: ImportMetaEnv;
+}
 
 declare module '@vue/runtime-core' {
   interface ComponentCustomProperties {

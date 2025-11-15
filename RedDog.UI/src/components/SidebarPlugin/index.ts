@@ -27,8 +27,8 @@ const SidebarPlugin = {
       displaySidebar
     };
 
-    app.component('side-bar', Sidebar);
-    app.component('sidebar-link', SidebarLink);
+    app.component('SideBar', Sidebar);
+    app.component('SidebarLink', SidebarLink);
   }
 };
 

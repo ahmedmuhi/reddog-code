@@ -1,9 +1,11 @@
 <template>
-  <div class="form-group"
-       :class="{
-          'input-group': hasIcon,
-          'input-group-focus': focused
-       }">
+  <div
+    class="form-group"
+    :class="{
+      'input-group': hasIcon,
+      'input-group-focus': focused
+    }"
+  >
     <slot name="label">
       <label v-if="label" class="control-label">
         {{label}}
@@ -20,9 +22,10 @@
       <input
         :value="value"
         v-bind="$attrs"
-        v-on="listeners"
         class="form-control"
-        aria-describedby="addon-right addon-left">
+        aria-describedby="addon-right addon-left"
+        v-on="listeners"
+      />
     </slot>
     <slot name="addonRight">
       <span v-if="addonRightIcon" class="input-group-append">
@@ -36,30 +39,31 @@
 </template>
 <script>
   export default {
+    name: "BaseInput",
     inheritAttrs: false,
-    name: "base-input",
     props: {
+      modelValue: {
+        type: [String, Number],
+        default: '',
+        description: 'Input value'
+      },
       label: {
         type: String,
+        default: '',
         description: "Input label"
-      },
-      value: {
-        type: [String, Number],
-        description: "Input value"
       },
       addonRightIcon: {
         type: String,
+        default: '',
         description: "Input icon on the right"
       },
       addonLeftIcon: {
         type: String,
+        default: '',
         description: "Input icon on the left"
       },
     },
-    model: {
-      prop: 'value',
-      event: 'input'
-    },
+    emits: ['update:modelValue', 'input', 'focus', 'blur'],
     data() {
       return {
         focused: false
@@ -68,11 +72,15 @@
     computed: {
       hasIcon() {
         const { addonRight, addonLeft } = this.$slots;
-        return addonRight !== undefined || addonLeft !== undefined || this.addonRightIcon !== undefined || this.addonLeftIcon !== undefined;
+        return (
+          addonRight !== undefined ||
+          addonLeft !== undefined ||
+          this.addonRightIcon !== undefined ||
+          this.addonLeftIcon !== undefined
+        );
       },
       listeners() {
         return {
-          ...this.$listeners,
           input: this.onInput,
           blur: this.onBlur,
           focus: this.onFocus
@@ -81,13 +89,16 @@
     },
     methods: {
       onInput(evt) {
+        this.$emit('update:modelValue', evt.target.value);
         this.$emit('input', evt.target.value)
       },
       onFocus() {
         this.focused = true;
+        this.$emit('focus');
       },
       onBlur() {
         this.focused = false;
+        this.$emit('blur');
       }
     }
   }

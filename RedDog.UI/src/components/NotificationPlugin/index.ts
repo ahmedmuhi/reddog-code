@@ -92,7 +92,7 @@ const NotificationsPlugin = {
       removeNotification
     };
 
-    app.component('Notifications', Notifications);
+    app.component('AppNotifications', Notifications);
   }
 };
 

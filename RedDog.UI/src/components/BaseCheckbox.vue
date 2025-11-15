@@ -1,14 +1,16 @@
-/* eslint-disable vue/return-in-computed-property */
-
 <template>
-  <div class="form-check"
-       :class="[{disabled: disabled}, inlineClass]">
+  <div
+    class="form-check"
+    :class="[{ disabled: disabled }, inlineClass]"
+  >
     <label :for="cbId" class="form-check-label">
-      <input :id="cbId"
-             class="form-check-input"
-             type="checkbox"
-             :disabled="disabled"
-             v-model="model"/>
+      <input
+        :id="cbId"
+        v-model="model"
+        class="form-check-input"
+        type="checkbox"
+        :disabled="disabled"
+      />
       <span class="form-check-sign"></span>
       <slot>
         <span v-if="inline">&nbsp;</span>
@@ -18,24 +20,28 @@
 </template>
 <script>
   export default {
-    name: "base-checkbox",
+    name: "BaseCheckbox",
     model: {
       prop: "checked"
     },
     props: {
       checked: {
         type: [Array, Boolean],
+        default: false,
         description: "Whether checkbox is checked"
       },
       disabled: {
         type: Boolean,
+        default: false,
         description: "Whether checkbox is disabled"
       },
       inline: {
         type: Boolean,
+        default: false,
         description: "Whether checkbox should be inline with other checkboxes"
       }
     },
+    emits: ['input', 'update:checked'],
     data() {
       return {
         cbId: '',
@@ -52,12 +58,11 @@
             this.touched = true
           }
           this.$emit('input', check)
+          this.$emit('update:checked', check)
         }
       },
       inlineClass() {
-        if (this.inline) {
-          return `form-check-inline`
-        }
+        return this.inline ? 'form-check-inline' : ''
       }
     },
     created() {

@@ -1,5 +1,3 @@
-/* eslint-disable vue/no-use-v-if-with-v-for */
-
 <template>
   <table class="table tablesorter" :class="tableClass">
     <thead :class="theadClasses">
@@ -12,11 +10,11 @@
     <tbody :class="tbodyClasses">
     <tr v-for="(item, index) in data" :key="index">
       <slot :row="item">
-        <td v-for="(column, index) in columns"
-            :key="index"
-            v-if="hasValue(item, column)">
-          {{itemValue(item, column)}}
-        </td>
+        <template v-for="column in columns" :key="column">
+          <td v-if="hasValue(item, column)">
+            {{itemValue(item, column)}}
+          </td>
+        </template>
       </slot>
     </tr>
     </tbody>
@@ -24,7 +22,7 @@
 </template>
 <script>
   export default {
-    name: 'base-table',
+    name: 'BaseTable',
     props: {
       columns: {
         type: Array,
@@ -59,10 +57,12 @@
     },
     methods: {
       hasValue(item, column) {
-        return item[column.toLowerCase()] !== "undefined";
+        const key = column.toLowerCase();
+        return typeof item[key] !== 'undefined';
       },
       itemValue(item, column) {
-        return item[column.toLowerCase()];
+        const key = column.toLowerCase();
+        return item[key];
       }
     }
   };

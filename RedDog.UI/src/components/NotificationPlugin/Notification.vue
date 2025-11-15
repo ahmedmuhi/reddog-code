@@ -1,11 +1,12 @@
 <template>
-  <div @click="tryClose"
-       data-notify="container"
+  <div
+data-notify="container"
        class="alert open"
        :class="[{'alert-with-icon': icon}, verticalAlign, horizontalAlign, alertType]"
        role="alert"
        :style="customPosition"
-       data-notify-position="top-center">
+       data-notify-position="top-center"
+       @click="tryClose">
     <button
       v-if="showClose"
       type="button"
@@ -19,26 +20,28 @@
     <span v-if="icon" data-notify="icon" :class="['alert-icon', icon]"></span>
     <div data-notify="message">
       <div v-if="title" class="title"><b>{{title}}<br/></b></div>
+      <!-- eslint-disable-next-line vue/no-v-html -->
       <div v-if="message" v-html="message"></div>
-      <content-render v-if="!message && component" :component="component"></content-render>
+      <component :is="component" v-else-if="component"></component>
     </div>
   </div>
 </template>
 <script>
-export default {
-  name: 'notification',
-  components: {
-    contentRender: {
-      props: ['component'],
-      render(h) {
-        return h(this.component)
-      }
-    }
-  },
+  export default {
+    name: 'AppNotification',
   props: {
-    message: String,
-    title: String,
-    icon: String,
+      message: {
+        type: String,
+        default: ''
+      },
+      title: {
+        type: String,
+        default: ''
+      },
+      icon: {
+        type: String,
+        default: ''
+      },
     verticalAlign: {
       type: String,
       default: 'top',
@@ -80,9 +83,10 @@ export default {
       type: Date,
       default: () => new Date()
     },
-    component: {
-      type: [Object, Function]
-    },
+      component: {
+        type: [Object, Function],
+        default: null
+      },
     showClose: {
       type: Boolean,
       default: true
@@ -91,8 +95,12 @@ export default {
       type: Boolean,
       default: true
     },
-    clickHandler: Function
+    clickHandler: {
+      type: Function,
+      default: null
+    }
   },
+  emits: ['close'],
   data() {
     return {
       elmHeight: 0
@@ -128,6 +136,12 @@ export default {
       return styles;
     }
   },
+  mounted() {
+    this.elmHeight = this.$el.clientHeight;
+    if (this.timeout) {
+      setTimeout(this.close, this.timeout);
+    }
+  },
   methods: {
     close() {
       this.$emit('close', this.timestamp);
@@ -139,12 +153,6 @@ export default {
       if (this.closeOnClick) {
         this.close();
       }
-    }
-  },
-  mounted() {
-    this.elmHeight = this.$el.clientHeight;
-    if (this.timeout) {
-      setTimeout(this.close, this.timeout);
     }
   }
 };

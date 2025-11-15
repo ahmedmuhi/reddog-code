@@ -3,23 +3,23 @@
     <div class="row justify-content-lg-left">
       <div class="col-lg-6">
         <div class="row">
-          <div class="col-lg-12" v-if="isCorp === true || isCorp === 'true'">
+          <div v-if="isCorp === true || isCorp === 'true'" class="col-lg-12">
             <div class="card" :class="[cardClass]">
               <div class="card-header-title">
                 ORDERS / ITEMS OVER TIME <small>ALL LOCATIONS</small>
               </div>
               <div class="card-body chart-body">
-                <StreamChart v-if="corpLoaded" :chartData="corpChartData" :options="corpChartOptions"/>
+                <StreamChart v-if="corpLoaded" :chart-data="corpChartData" :options="corpChartOptions"/>
               </div>
             </div>
           </div>
-           <div class="col-lg-12" v-else>
+           <div v-else class="col-lg-12">
             <div class="card" :class="[cardClass]">
               <div class="card-header-title">
                 ORDERS OVER TIME <small>VERSUS 10 MINUTES AGO</small>
               </div>
               <div class="card-body chart-body">
-                <StreamChart v-if="loaded" :chartData="chartData" :options="chartOptions"/>
+                <StreamChart v-if="loaded" :chart-data="chartData" :options="chartOptions"/>
               </div>
             </div>
           </div>
@@ -31,14 +31,14 @@
        <div class="row">
           <div class="col-lg-12">
             <div class="card" :class="[cardClass]">
-              <div class="card-header-title" v-if="isCorp === true || isCorp === 'true'">
+              <div v-if="isCorp === true || isCorp === 'true'" class="card-header-title">
                 SALES AND PROFIT <small>ALL LOCATIONS</small>
               </div>
-              <div class="card-header-title" v-else>
+              <div v-else class="card-header-title">
                 SALES AND PROFIT <small>FOR {{storeId.toUpperCase()}} LOCATION</small>
               </div>
               <div class="card-body chart-body">
-                <StreamChart v-if="salesChartLoaded" :chartData="salesChartData" :options="salesChartOptions"/>
+                <StreamChart v-if="salesChartLoaded" :chart-data="salesChartData" :options="salesChartOptions"/>
               </div>
               </div>
             </div>
@@ -48,17 +48,17 @@
     <div class="row justify-content-lg-left">
       <div class="col-lg-6">
         <div class="row">
-          <div class="col-lg-12" v-if="isCorp === true || isCorp === 'true'">
+          <div v-if="isCorp === true || isCorp === 'true'" class="col-lg-12">
             <div class="card" :class="[cardClass]">
              <div class="card-header-title">
                 TOP STORE SALES <small>OVER TIME</small>
               </div>
               <div class="card-body chart-body">
-                <StreamChart v-if="topStoreSalesLoaded" :chartData="topSalesChartData" :options="topSalesChartOptions"/>
+                <StreamChart v-if="topStoreSalesLoaded" :chart-data="topSalesChartData" :options="topSalesChartOptions"/>
               </div>
             </div>
           </div>
-          <div class="col-lg-12" v-else>
+          <div v-else class="col-lg-12">
            <div class="card" :class="[cardClass]">
               <div class="card-header-title">
                 ORDER QUEUE <small>BEING PREPARED</small>
@@ -75,12 +75,12 @@
                       </tr>
                     </thead>
                     <tbody>
-                      <tr v-for="(order, i) in inflight" class="tr-item-queue">
+                      <tr v-for="(order, i) in inflight" :key="order.id || i" class="tr-item-queue">
                         <td scope="row" class="col-1 td-queue-position">{{ i+1 }}</td>  
                         <td class="col-2 td-time">{{ order.timeIn }}</td>  
                         <td class="col-4 td-name">{{ order.first + ' ' + order.last}}</td> 
                         <td class="col-5 td-count">
-                          <ul v-for="oi in order.itemDetails" class="list-unstyled inflight-items">
+                          <ul v-for="(oi, oiIndex) in order.itemDetails" :key="oi.orderItemId || oiIndex" class="list-unstyled inflight-items">
                             <li><span class="td-product">{{oi.productName}}</span><span class="td-price">${{oi.unitPrice}}</span></li>
                           </ul>
                         </td>  
@@ -127,24 +127,18 @@
 <script>
 import moment from 'moment'
 import currency from 'currency.js'
-import Chart from 'chart.js'
-
-Chart.defaults.global.defaultFontColor = '#c0c0c0';
-Chart.defaults.global.defaultFontFamily = "'Exo', sans-serif";
-Chart.defaults.global.defaultFontSize = 11;
-Chart.defaults.global.defaultFontStyle = 500;
-// Chart.defaults.global.gridLines.display = false;
-// Chart.defaults.plugins.legend.display = false;
+import { appConfig } from '@/config/appConfig';
 
 import StreamChart from '../components/RedDog/StreamChart.vue'
 
 export default {
+  name: 'DashboardView',
   components: {
     StreamChart
   },
   data() {
     return {
-      isCorp: (process.env.VUE_APP_IS_CORP || false),
+      isCorp: appConfig.isCorp,
       cardClass: "card-trans-branch",
       orderChartSegment: 1,
       orderChartSegmentName: 'MINUTES',
@@ -178,7 +172,7 @@ export default {
       salesChartData: null,
       salesChartOptions: null,
       salesChartLoaded: false,
-      storeId: "CORP",
+      storeId: appConfig.isCorp ? 'CORP' : (appConfig.storeId || 'redmond'),
       topStoreSalesLoaded: false,
       topSalesChartData: null,
       topSalesChartOptions: null
@@ -192,6 +186,50 @@ export default {
     isRTL() {
       return this.$rtl.isRTL;
     },
+  },
+  mounted() {
+    this.i18n = this.$i18n;
+    if (this.enableRTL) {
+      this.i18n.locale = "ar";
+      this.$rtl.enableRTL();
+    }
+    document.title = 'Red Dog - ' + (appConfig.storeId || 'Redmond');
+  },
+  beforeUnmount() {
+    
+    clearInterval(this.pollingOrderMetrics)
+    clearInterval(this.pollingInflight)
+    clearInterval(this.orderChartInterval)
+    clearInterval(this.pollingSalesProfit)
+    clearInterval(this.pollingSalesProfitCorp)
+    clearInterval(this.pollingTopStoresMetrics)
+    
+    if (this.$rtl.isRTL) {
+      this.i18n.locale = "en";
+      this.$rtl.disableRTL();
+    }
+  },
+  created() {
+
+    if (this.isCorp){
+      
+      this.getAccountingOrderMetrics();
+      this.getSalesProfitMetricsCorp();
+      this.getTopStoresMetrics();
+      this.cardClass="card-trans-corp"
+
+    }
+    else{
+
+      this.storeId = (appConfig.storeId || 'redmond').toLowerCase();
+      this.getOrderChartBranch();
+      this.getAccountingOrderMetrics();
+      this.getSalesProfitMetricsBranch();
+      this.getCurrentOrders();
+      this.cardClass="card-trans-branch"
+
+    }
+
   },
   methods: {
     fillBranchOrderChart(data){
@@ -220,7 +258,6 @@ export default {
     getAccountingOrderMetrics() {
       clearInterval(this.pollingOrderMetrics)
       this.pollingOrderMetrics = setInterval(() => {
-        let salesLabels = [], salesValues = [], profitLabels =[], profitValues=[]
         fetch("/orders/metrics")
           .then((response) => response.json())
           .then((data) => {
@@ -709,52 +746,6 @@ export default {
       ];
       return colors[index]
     }
-  },
-  mounted() {
-    this.i18n = this.$i18n;
-    if (this.enableRTL) {
-      this.i18n.locale = "ar";
-      this.$rtl.enableRTL();
-    }
-    document.title = 'Red Dog - ' + (process.env.VUE_APP_STORE_ID || 'Redmond');
-  },
-  beforeDestroy() {
-    
-    clearInterval(this.pollingOrderMetrics)
-    clearInterval(this.pollingInflight)
-    clearInterval(this.orderChartInterval)
-    clearInterval(this.pollingSalesProfit)
-    clearInterval(this.pollingSalesProfitCorp)
-    clearInterval(this.pollingTopStoresMetrics)
-    
-    if (this.$rtl.isRTL) {
-      this.i18n.locale = "en";
-      this.$rtl.disableRTL();
-    }
-  },
-  created() {
-
-    if (process.env.VUE_APP_IS_CORP === true || process.env.VUE_APP_IS_CORP === 'true'){
-      
-      this.isCorp = true;
-      this.getAccountingOrderMetrics();
-      this.getSalesProfitMetricsCorp();
-      this.getTopStoresMetrics();
-      this.cardClass="card-trans-corp"
-
-    }
-    else{
-
-      this.isCorp = false;
-      this.storeId = process.env.VUE_APP_STORE_ID || 'redmond'
-      this.getOrderChartBranch();
-      this.getAccountingOrderMetrics();
-      this.getSalesProfitMetricsBranch();
-      this.getCurrentOrders();
-      this.cardClass="card-trans-branch"
-
-    }
-
   },
 };
 </script>

@@ -7,6 +7,7 @@ import BlackDashboard from './plugins/blackDashboard';
 
 import './assets/sass/black-dashboard.scss';
 import './assets/css/nucleo-icons.css';
+import './assets/css/transitions.css';
 
 const app = createApp(App);
 

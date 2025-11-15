@@ -2,10 +2,10 @@
 
 import { register } from 'register-service-worker'
 
-if (process.env.NODE_ENV === 'production') {
-  register(`${process.env.BASE_URL}service-worker.js`, {
+if (import.meta.env.PROD) {
+  register(`${import.meta.env.BASE_URL}service-worker.js`, {
     registrationOptions: {
-      scope: process.env.BASE_URL,
+      scope: import.meta.env.BASE_URL,
     },
     ready () {
       console.log(

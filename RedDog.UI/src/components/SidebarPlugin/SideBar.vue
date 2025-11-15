@@ -1,12 +1,13 @@
 <template>
-  <div class="sidebar"
+  <div
+class="sidebar"
        :data="backgroundColor">
     <!--
             Tip 1: you can change the color of the sidebar's background using: data-background-color="white | black | darkblue"
             Tip 2: you can change the color of the active button using the data-active-color="primary | info | success | warning | danger"
         -->
     <!-- -->
-    <div class="sidebar-wrapper" id="style-3">
+    <div id="style-3" class="sidebar-wrapper">
       
       <slot>
 
@@ -14,7 +15,8 @@
       <ul class="nav">
         <!--By default vue-router adds an active class to each route link. This way the links are colored when clicked-->
         <slot name="links">
-          <sidebar-link v-for="(link,index) in sidebarLinks"
+          <sidebar-link
+v-for="(link,index) in sidebarLinks"
                         :key="index"
                         :to="link.path"
                         :name="link.name"
@@ -29,6 +31,16 @@
   import SidebarLink from "./SidebarLink";
 
   export default {
+    components: {
+      SidebarLink
+    },
+    provide() {
+      return {
+        autoClose: this.autoClose,
+        addLink: this.addLink,
+        removeLink: this.removeLink
+      };
+    },
     props: {
       title: {
         type: String,
@@ -61,15 +73,15 @@
         default: true
       }
     },
-    provide() {
+    data() {
       return {
-        autoClose: this.autoClose,
-        addLink: this.addLink,
-        removeLink: this.removeLink
+        linkHeight: 65,
+        activeLinkIndex: 0,
+        windowWidth: 0,
+        isWindows: false,
+        hasAutoHeight: false,
+        links: []
       };
-    },
-    components: {
-      SidebarLink
     },
     computed: {
       /**
@@ -85,15 +97,10 @@
           .join('').toUpperCase();
       }
     },
-    data() {
-      return {
-        linkHeight: 65,
-        activeLinkIndex: 0,
-        windowWidth: 0,
-        isWindows: false,
-        hasAutoHeight: false,
-        links: []
-      };
+    mounted() {
+      this.$watch("$route", this.findActiveLink, {
+        immediate: true
+      });
     },
     methods: {
       findActiveLink() {
@@ -104,8 +111,7 @@
         });
       },
       addLink(link) {
-        const index = this.$slots.links.indexOf(link.$vnode);
-        this.links.splice(index, 0, link);
+        this.links.push(link);
       },
       removeLink(link) {
         const index = this.links.indexOf(link);
@@ -113,11 +119,6 @@
           this.links.splice(index, 1);
         }
       }
-    },
-    mounted() {
-      this.$watch("$route", this.findActiveLink, {
-        immediate: true
-      });
     }
   };
 </script>

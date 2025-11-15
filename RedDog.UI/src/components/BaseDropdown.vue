@@ -1,9 +1,11 @@
 <template>
-  <component :is="tag"
-             class="dropdown"
-             :class="{show:isOpen}"
-             @click="toggleDropDown"
-             v-click-outside="closeDropDown">
+  <component
+    :is="tag"
+    v-click-outside="closeDropDown"
+    class="dropdown"
+    :class="{ show: isOpen }"
+    @click="toggleDropDown"
+  >
     <slot name="title-container" :is-open="isOpen">
       <component
         :is="titleTag"
@@ -11,21 +13,22 @@
         :class="titleClasses"
         :aria-expanded="isOpen"
         :aria-label="title || ariaLabel"
-        data-toggle="dropdown">
+        data-toggle="dropdown"
+      >
         <slot name="title" :is-open="isOpen">
           <i :class="icon"></i>
           {{title}}
         </slot>
       </component>
     </slot>
-    <ul class="dropdown-menu" :class="[{show:isOpen}, {'dropdown-menu-right': menuOnRight}, menuClasses]">
+    <ul class="dropdown-menu" :class="[{ show: isOpen }, { 'dropdown-menu-right': menuOnRight }, menuClasses]">
       <slot></slot>
     </ul>
   </component>
 </template>
 <script>
   export default {
-    name: "base-dropdown",
+    name: "BaseDropdown",
     props: {
       tag: {
         type: String,
@@ -39,27 +42,36 @@
       },
       title: {
         type: String,
+        default: '',
         description: "Dropdown title",
 
       },
       icon: {
         type: String,
+        default: '',
         description: "Dropdown icon"
       },
       titleClasses: {
         type: [String, Object, Array],
+        default: () => [],
         description: "Title css classes"
       },
       menuClasses: {
-        type: [String, Object],
+        type: [String, Object, Array],
+        default: () => [],
         description: "Menu css classes"
       },
       menuOnRight: {
         type: Boolean,
+        default: false,
         description: "Whether menu should appear on the right"
       },
-      ariaLabel: String
+      ariaLabel: {
+        type: String,
+        default: ''
+      }
     },
+    emits: ['change'],
     data() {
       return {
         isOpen: false

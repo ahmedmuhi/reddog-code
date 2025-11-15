@@ -1,14 +1,12 @@
 <template>
-  <div id="locationMap" v-bind:style="mapLayout">
+  <div id="locationMap" :style="mapLayout">
   </div>
 </template>
 <script>
 let svgIcon = `<svg id="svg_icon" data-name="sgv icon" xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 276.8091 258.1755"><defs><style>.cls-1{fill:#c1272d;}</style></defs><ellipse class="cls-1" cx="50.5014" cy="147.1987" rx="37.5474" ry="45.9683" transform="translate(-70.5218 7.946) rotate(-25.9532)"/><ellipse class="cls-1" cx="96.8048" cy="53.5" rx="40" ry="53.5"/><ellipse class="cls-1" cx="178.8048" cy="53.5" rx="40" ry="53.5"/><ellipse class="cls-1" cx="248.8571" cy="146.7143" rx="45.9683" ry="37.5474" transform="translate(0.5821 282.7843) rotate(-65.3697)"/><path class="cls-1" d="M242.5,227.5c3.93,14.0724-8.6725,29.0464-12,33-21.1938,25.1818-57.47,25.995-80,26.5-24.0362.5388-67.0485,1.503-85-25.5-1.4277-2.1476-11.75-17.8794-7-33,3.1221-9.9393,9.4086-8.944,19-26,5.2441-9.3253,9.2406-16.4322,11.0586-25.2523a63.7424,63.7424,0,0,1,4.7585-14.0421A35.86,35.86,0,0,1,97.5,156.5c15.8211-20.5323,47.0461-20.5052,53-20.5,8.4418.0074,33.0312.0287,48,16.5a37.0823,37.0823,0,0,1,5.1189,6.9933,66.0333,66.0333,0,0,1,2.9466,5.992,73.2927,73.2927,0,0,1,3.9076,11.7384c2.438,9.8945,9.4882,21.204,12.0269,25.2763C233.0946,219.4951,239.9314,218.3026,242.5,227.5Z" transform="translate(-11.1952 -29)"/></svg>`;
 
 export default {
-  created(){
-    window.addEventListener("resize", this.resized);
-  },
+    name: 'MapsPage',
     data() {
       var html = document.documentElement;
       var cnh =  html.clientHeight*.8;
@@ -24,16 +22,8 @@ export default {
   },
   computed: {
   },
-  methods: {
-    resized(e){
-      var rs;
-      clearTimeout(rs);
-      rs = setTimeout(this.updateUI, 250);
-    },
-    updateUI(){
-      var sidebar = document.getElementById('style-3').clientHeight;
-      this.mapLayout['height']=(sidebar*.9) + "px";
-    }
+  created(){
+    window.addEventListener("resize", this.resized);
   },
   mounted() {
       var map, markers=[];
@@ -108,6 +98,17 @@ export default {
         
           GetMap();
 
+  },
+  methods: {
+    resized(){
+      var rs;
+      clearTimeout(rs);
+      rs = setTimeout(this.updateUI, 250);
+    },
+    updateUI(){
+      var sidebar = document.getElementById('style-3').clientHeight;
+      this.mapLayout['height']=(sidebar*.9) + "px";
+    }
   }
 };
 </script>

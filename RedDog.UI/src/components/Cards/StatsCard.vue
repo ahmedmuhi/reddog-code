@@ -2,10 +2,10 @@
   <card>
     <div>
       <div class="row">
-        <div class="col-5" v-if="$slots.header">
+        <div v-if="$slots.header" class="col-5">
           <slot name="header"></slot>
         </div>
-        <div class="col-7" v-if="$slots.content">
+        <div v-if="$slots.content" class="col-7">
           <slot name="content"></slot>
         </div>
       </div>
@@ -21,7 +21,7 @@
 import Card from "./Card.vue";
 
 export default {
-  name: "stats-card",
+  name: "StatsCard",
   components: {
     Card
   }

@@ -1,5 +1,6 @@
 <template>
-    <nav class="navbar"
+    <nav
+class="navbar"
          :class="[
             {'navbar-expand-lg': expand},
             {[`navbar-${effect}`]: effect},
@@ -14,14 +15,15 @@
                     {{title}}
                 </a>
             </slot>
-            <navbar-toggle-button :toggled="toggled"
+            <navbar-toggle-button
+:toggled="toggled"
                                   :target="contentId"
-                                  @click.native.stop="toggled = !toggled">
+                                  @click.stop="toggled = !toggled">
             </navbar-toggle-button>
 
             <slot name="container-after"></slot>
 
-            <div class="collapse navbar-collapse" :class="{show: toggled}" :id="contentId" v-click-outside="closeMenu">
+            <div :id="contentId" v-click-outside="closeMenu" class="collapse navbar-collapse" :class="{show: toggled}">
                 <div class="navbar-collapse-header">
                     <slot name="content-header" :close-menu="closeMenu"></slot>
                 </div>
@@ -31,13 +33,11 @@
     </nav>
 </template>
 <script>
-import { FadeTransition } from "vue2-transitions";
 import NavbarToggleButton from "./NavbarToggleButton";
 
 export default {
-  name: "base-nav",
+  name: "BaseNav",
   components: {
-    //FadeTransition,
     NavbarToggleButton
   },
   props: {
@@ -78,6 +78,7 @@ export default {
       description: "Whether navbar should contain `navbar-expand-lg` class"
     }
   },
+  emits: ['title-click'],
   data() {
     return {
       toggled: false

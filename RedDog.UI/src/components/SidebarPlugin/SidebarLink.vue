@@ -1,9 +1,9 @@
 <template>
-  <component :is="tag"
-             @click.native="hideSidebar"
+  <component
+:is="tag"
              class="nav-item"
              v-bind="$attrs"
-             tag="li">
+             @click="hideSidebar">
     <a class="nav-link">
       <slot>
         <i v-if="icon" :class="icon"></i>
@@ -14,8 +14,7 @@
 </template>
 <script>
 export default {
-  name: "sidebar-link",
-  inheritAttrs: false,
+  name: "SidebarLink",
   inject: {
     autoClose: {
       default: true
@@ -27,12 +26,32 @@ export default {
       default: ()=>{}
     }
   },
+  inheritAttrs: false,
   props: {
-    name: String,
-    icon: String,
+    name: {
+      type: String,
+      default: ''
+    },
+    icon: {
+      type: String,
+      default: ''
+    },
     tag: {
       type: String,
       default: "router-link"
+    }
+  },
+  mounted() {
+    if (this.addLink) {
+      this.addLink(this);
+    }
+  },
+  beforeUnmount() {
+    if (this.$el && this.$el.parentNode) {
+      this.$el.parentNode.removeChild(this.$el)
+    }
+    if (this.removeLink) {
+      this.removeLink(this);
     }
   },
   methods: {
@@ -43,19 +62,6 @@ export default {
     },
     isActive() {
       return this.$el.classList.contains("active");
-    }
-  },
-  mounted() {
-    if (this.addLink) {
-      this.addLink(this);
-    }
-  },
-  beforeDestroy() {
-    if (this.$el && this.$el.parentNode) {
-      this.$el.parentNode.removeChild(this.$el)
-    }
-    if (this.removeLink) {
-      this.removeLink(this);
     }
   }
 };

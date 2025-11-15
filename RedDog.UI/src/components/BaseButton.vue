@@ -3,7 +3,6 @@
     :is="tag"
     :type="tag === 'button' ? nativeType : ''"
     :disabled="disabled || loading"
-    @click="handleClick"
     class="btn"
     :class="[
       {'btn-round': round},
@@ -14,7 +13,8 @@
       {'btn-simple': simple},
       {'btn-link': link},
       {'disabled': disabled && tag !== 'button'}
-    ]">
+    ]"
+    @click="handleClick">
     <slot name="loading">
       <i v-if="loading" class="fas fa-spinner fa-spin"></i>
     </slot>
@@ -23,7 +23,7 @@
 </template>
 <script>
 export default {
-  name: "base-button",
+  name: "BaseButton",
   props: {
     tag: {
       type: String,
@@ -59,6 +59,7 @@ export default {
       description: "Whether button is a link (no borders or background)"
     },
   },
+  emits: ['click'],
   methods: {
     handleClick(evt) {
       this.$emit("click", evt);

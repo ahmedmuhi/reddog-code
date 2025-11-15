@@ -11,15 +11,14 @@
 ### QUI
 > To run locally with env vars
 
-- add a .env file to the root with the following in it, changing said variables as needed:
+- add a `.env` file to `RedDog.UI/` with the following (adjust per environment):
 ```shell
-VUE_APP_IS_CORP=false
-NODE_ENV=development
-VUE_APP_STORE_ID="Austin"
-VUE_APP_SITE_TYPE="Pharmacy"
-VUE_APP_SITE_TITLE="Contoso :: BODEGA"
-VUE_APP_MAKELINE_BASE_URL="http://austin.makeline.brianredmond.io"
-VUE_APP_ACCOUNTING_BASE_URL="http://austin.accounting.brianredmond.io"
+VITE_IS_CORP=false
+VITE_STORE_ID="Austin"
+VITE_SITE_TYPE="Pharmacy"
+VITE_SITE_TITLE="Contoso :: BODEGA"
+VITE_MAKELINE_BASE_URL="http://austin.makeline.brianredmond.io"
+VITE_ACCOUNTING_BASE_URL="http://austin.accounting.brianredmond.io"
 ```
 
 
@@ -27,8 +26,8 @@ VUE_APP_ACCOUNTING_BASE_URL="http://austin.accounting.brianredmond.io"
 
 > Then run
 ```shell
-npm ci ## this will overwrite any and all node_modules
-npm run serve
+npm install
+npm run dev
 ```
 
 

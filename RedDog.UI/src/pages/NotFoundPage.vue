@@ -14,7 +14,7 @@
         </div>
 
         <!-- Collect the nav links, forms, and other content for toggling -->
-        <div class="collapse navbar-collapse" id="navigation-example-2">
+        <div id="navigation-example-2" class="collapse navbar-collapse">
           <ul class="nav navbar-nav navbar-right">
             <li>
               <router-link :to="{path:'/'}">Home</router-link>

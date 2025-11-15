@@ -1,10 +1,12 @@
 <template>
-  <nav class="navbar navbar-expand-lg navbar-absolute" 
+  <nav
+class="navbar navbar-expand-lg navbar-absolute" 
        :class="{'bg-white': showMenu, 'navbar-transparent': !showMenu}">
     <div class="container-fluid">
       <div class="navbar-wrapper">
         <div class="navbar-toggle d-inline" :class="{toggled: $sidebar.showSidebar}">
-          <button type="button"
+          <button
+type="button"
                   class="navbar-toggler"
                   aria-label="Navbar toggle button"
                   @click="toggleSidebar">
@@ -15,39 +17,43 @@
         </div>
         <div class="logo-content">
           <div class="left-logo"><img src="img/reddog-logo-text.png" width="184px"/></div>
-          <div class="right-logo logo-simple-text" v-if="isCorp === true || isCorp === 'true'">CORP<small>headquarters</small></div>
-          <div class="right-logo logo-simple-text" v-else>{{ storeId }}<small class="branch">branch</small></div>
+          <div v-if="isCorp === true || isCorp === 'true'" class="right-logo logo-simple-text">CORP<small>headquarters</small></div>
+          <div v-else class="right-logo logo-simple-text">{{ storeId }}<small class="branch">branch</small></div>
         </div>
       </div>
-      <button class="navbar-toggler" type="button"
-              @click="toggleMenu"
+      <button
+class="navbar-toggler" type="button"
               data-toggle="collapse"
               data-target="#navigation"
               aria-controls="navigation-index"
-              aria-label="Toggle navigation">
+              aria-label="Toggle navigation"
+              @click="toggleMenu">
         <span class="navbar-toggler-bar navbar-kebab"></span>
         <span class="navbar-toggler-bar navbar-kebab"></span>
         <span class="navbar-toggler-bar navbar-kebab"></span>
       </button>
 
       <collapse-transition>
-        <div class="collapse navbar-collapse show" v-show="showMenu">
+        <div v-show="showMenu" class="collapse navbar-collapse show">
           <ul class="navbar-nav" :class="$rtl.isRTL ? 'mr-auto' : 'ml-auto'">
-            <base-dropdown tag="li"
+            <base-dropdown
+tag="li"
                            :menu-on-right="!$rtl.isRTL"
                            title-tag="a"
                            class="nav-item"
                            menu-classes="dropdown-navbar">
-              <a slot="title" href="#" class="dropdown-toggle nav-link" data-toggle="dropdown" aria-expanded="true">
-                <span class="site-name">{{ siteType }}</span>
-                <div class="photo">
-                  <img src="img/max-lord.png">
-                </div>
-                <!-- <b class="caret d-none d-lg-block d-xl-block"></b> -->
-                <p class="d-lg-none">
-                  Log out
-                </p>
-              </a>
+              <template #title>
+                <a href="#" class="dropdown-toggle nav-link" data-toggle="dropdown" aria-expanded="true">
+                  <span class="site-name">{{ siteType }}</span>
+                  <div class="photo">
+                    <img src="img/max-lord.png">
+                  </div>
+                  <!-- <b class="caret d-none d-lg-block d-xl-block"></b> -->
+                  <p class="d-lg-none">
+                    Log out
+                  </p>
+                </a>
+              </template>
               <li class="nav-link">
                 <a href="#" class="nav-item dropdown-item">Life is good...</a>
               </li>
@@ -69,13 +75,23 @@
   </nav>
 </template>
 <script>
-  import { CollapseTransition } from 'vue2-transitions';
-  import Modal from '@/components/Modal';
+  import CollapseTransition from '@/components/transitions/CollapseTransition';
+  import { appConfig } from '@/config/appConfig';
 
   export default {
+    name: 'DashboardTopNavbar',
     components: {
-      CollapseTransition,
-      Modal
+      CollapseTransition
+    },
+    data() {
+      const { isCorp, siteType, storeId } = appConfig;
+      return {
+        activeNotifications: false,
+        showMenu: false,
+        isCorp,
+        siteType,
+        storeId: storeId || 'REDMOND'
+      };
     },
     computed: {
       routeName() {
@@ -86,14 +102,14 @@
         return this.$rtl.isRTL;
       }
     },
-    data() {
-      return {
-        activeNotifications: false,
-        showMenu: false,
-        isCorp: (process.env.VUE_APP_IS_CORP || false),
-        siteType: (process.env.VUE_APP_SITE_TYPE || 'PHARMACY-NOENV'),
-        storeId: (process.env.VUE_APP_STORE_ID || 'REDMOND-NOENV'),
-      };
+    mounted(){
+      // SET PAGE TITLE
+      document.title = appConfig.siteTitle;
+
+      // SET BODY STYLE
+      document.body.className = this.isCorp ? 'corp' : 'branch';
+    },
+    created() {
     },
     methods: {
       capitalizeFirstLetter(string) {
@@ -114,19 +130,6 @@
       toggleMenu() {
         this.showMenu = !this.showMenu;
       }
-    },
-    mounted(){
-      // SET PAGE TITLE
-      document.title = process.env.VUE_APP_SITE_TITLE
-
-      // SET BODY STYLE
-      if (process.env.VUE_APP_IS_CORP === true || process.env.VUE_APP_IS_CORP === 'true'){
-        document.body.className = 'corp'
-      }else{
-        document.body.className = 'branch'
-      }
-    },
-    created() {
     }
   };
 </script>

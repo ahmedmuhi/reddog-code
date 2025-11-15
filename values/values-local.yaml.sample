@@ -277,8 +277,8 @@ services:
       repository: ghcr.io/ahmedmuhi/reddog-ui
     port: 8080
     env:
-      VUE_APP_MAKELINE_BASE_URL: http://localhost/api/makeline
-      VUE_APP_ACCOUNTING_BASE_URL: http://localhost/api/accounting
+      VITE_MAKELINE_BASE_URL: http://localhost/api/makeline
+      VITE_ACCOUNTING_BASE_URL: http://localhost/api/accounting
 
 # Bootstrapper (database initialization via EF migrations)
 bootstrapper:

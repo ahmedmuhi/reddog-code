@@ -1,0 +1,27 @@
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+.slide-up-enter-active,
+.slide-up-leave-active {
+  transition: transform var(--modal-transition-duration, 0.3s) ease,
+    opacity var(--modal-transition-duration, 0.3s) ease;
+}
+
+.slide-up-enter-from,
+.slide-up-leave-to {
+  transform: translate3d(0, 20px, 0);
+  opacity: 0;
+}
+
+.collapse-transition-enter-active,
+.collapse-transition-leave-active {
+  transition: height 0.3s ease, opacity 0.3s ease;
+  overflow: hidden;
+}

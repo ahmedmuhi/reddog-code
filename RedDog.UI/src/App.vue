@@ -6,23 +6,24 @@
 </template>
 
 <script>
-  export default {
-    methods: {
-      disableRTL() {
-        if (!this.$rtl.isRTL) {
-          this.$rtl.disableRTL();
-        }
-      },
-      toggleNavOpen() {
-        let root = document.getElementsByTagName('html')[0];
-        root.classList.toggle('nav-open');
+export default {
+  name: 'App',
+  mounted() {
+    this.$watch('$route', this.disableRTL, { immediate: true });
+    this.$watch('$sidebar.showSidebar', this.toggleNavOpen);
+  },
+  methods: {
+    disableRTL() {
+      if (!this.$rtl.isRTL) {
+        this.$rtl.disableRTL();
       }
     },
-    mounted() {
-      this.$watch('$route', this.disableRTL, { immediate: true });
-      this.$watch('$sidebar.showSidebar', this.toggleNavOpen)
+    toggleNavOpen() {
+      const root = document.documentElement;
+      root.classList.toggle('nav-open');
     }
-  };
+  }
+};
 </script>
 
 <style lang="scss"></style>
