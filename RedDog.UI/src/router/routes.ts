@@ -1,5 +1,5 @@
 import { RouteRecordRaw } from 'vue-router';
-import DashboardLayout from '@/layout/dashboard/DashboardLayout.vue';
+const DashboardLayout = () => import('@/layout/dashboard/DashboardLayout.vue');
 import NotFound from '@/pages/NotFoundPage.vue';
 
 const Dashboard = () => import('@/pages/Dashboard.vue');
