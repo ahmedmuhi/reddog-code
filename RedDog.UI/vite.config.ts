@@ -20,15 +20,27 @@ export default defineConfig(({ mode }) => {
               return;
             }
 
-            if (id.includes('vue') || id.includes('pinia') || id.includes('vue-router') || id.includes('vue-i18n')) {
-              return 'vendor-vue';
-            }
-
-            if (id.includes('chart.js') || id.includes('vue-chartjs') || id.includes('chartjs-plugin-streaming')) {
+            if (
+              id.includes('node_modules/chart.js/') ||
+              id.includes('node_modules/vue-chartjs/') ||
+              id.includes('node_modules/chartjs-plugin-streaming/')
+            ) {
               return 'vendor-charts';
             }
 
-            if (id.includes('moment') || id.includes('currency.js')) {
+            if (
+              id.includes('node_modules/vue/') ||
+              id.includes('node_modules/vue-router/') ||
+              id.includes('node_modules/pinia/') ||
+              id.includes('node_modules/vue-i18n/')
+            ) {
+              return 'vendor-vue';
+            }
+
+            if (
+              id.includes('node_modules/moment/') ||
+              id.includes('node_modules/currency.js/')
+            ) {
               return 'vendor-utils';
             }
 
