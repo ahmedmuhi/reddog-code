@@ -1,4 +1,6 @@
 @use 'sass:color' as color;
+@use '../variables' as *;
+@use '../functions' as *;
 @mixin alert-variant($background, $border, $color) {
     color: color-yiq($background);
     // @include gradient-bg($background);

@@ -1,3 +1,7 @@
+@use '../variables' as *;
+@use '../functions' as *;
+@use '../theme-maps' as *;
+@use 'hover' as *;
 @use 'sass:color' as color;
 @mixin badge-variant($bg) {
   color: color-yiq($bg);

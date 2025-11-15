@@ -1,4 +1,7 @@
 // The dropdown wrapper (`<div>`)
+@use 'variables' as *;
+@use 'mixins' as *;
+@use 'functions' as *;
 .dropup,
 .dropright,
 .dropdown,

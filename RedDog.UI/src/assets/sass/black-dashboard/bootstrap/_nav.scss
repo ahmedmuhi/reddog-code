@@ -3,6 +3,9 @@
 // Kickstart any navigation component with a set of style resets. Works with
 // `<nav>`s or `<ul>`s.
 
+@use 'variables' as *;
+@use 'mixins' as *;
+@use 'functions' as *;
 .nav {
   display: flex;
   flex-wrap: wrap;

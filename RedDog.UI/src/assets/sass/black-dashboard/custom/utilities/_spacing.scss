@@ -1,5 +1,9 @@
 // Spacing columns vertically
 
+@use '../../bootstrap/mixins' as *;
+@use '../../bootstrap/functions' as *;
+@use '../variables' as *;
+@use '../functions' as *;
 .row.row-grid > [class*="col-"] + [class*="col-"] {
     margin-top: 3rem;
 }

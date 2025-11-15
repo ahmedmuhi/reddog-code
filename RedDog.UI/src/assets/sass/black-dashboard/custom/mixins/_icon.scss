@@ -1,4 +1,6 @@
 @use 'sass:color' as color;
+@use '../variables' as *;
+@use '../functions' as *;
 @mixin icon-shape-variant($color) {
     color: saturate(color.adjust($color, $lightness: -10%), 10);
     background-color: transparentize(color.adjust($color, $lightness: 10%), .5);

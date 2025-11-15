@@ -1,3 +1,5 @@
+@use '../variables' as *;
+@use '../functions' as *;
 @mixin set-wizard-color($color) {
       .progress-with-circle .progress-bar{
           background: $color;

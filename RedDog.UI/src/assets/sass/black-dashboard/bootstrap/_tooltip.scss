@@ -1,4 +1,7 @@
 // Base class
+@use 'variables' as *;
+@use 'mixins' as *;
+@use 'functions' as *;
 .tooltip {
   position: absolute;
   z-index: $zindex-tooltip;

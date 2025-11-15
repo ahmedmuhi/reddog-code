@@ -8,6 +8,9 @@
 // https://www.phpied.com/delay-loading-your-print-css/
 // ==========================================================================
 
+@use 'variables' as *;
+@use 'mixins' as *;
+@use 'functions' as *;
 @if $enable-print-styles {
   @media print {
     *,

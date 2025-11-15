@@ -9,6 +9,8 @@
 //
 // Issue: https://github.com/twbs/bootstrap/issues/25195
 
+@use '../variables' as *;
+@use '../functions' as *;
 @mixin hover {
   &:hover { @content; }
 }

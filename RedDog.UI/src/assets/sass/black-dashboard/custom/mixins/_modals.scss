@@ -1,3 +1,6 @@
+@use '../variables' as *;
+@use '../functions' as *;
+@use 'inputs' as *;
 @mixin modal-colors($bg-color, $color) {
     .modal-content{
         background-color: $bg-color;

@@ -1,4 +1,6 @@
 
+@use '../variables' as *;
+@use '../functions' as *;
 @mixin transform-translate-x($value){
      -webkit-transform:  translate3d($value, 0, 0);
         -moz-transform: translate3d($value, 0, 0);

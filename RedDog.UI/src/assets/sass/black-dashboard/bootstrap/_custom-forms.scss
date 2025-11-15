@@ -7,6 +7,9 @@
 //
 // Base class takes care of all the key behavioral aspects.
 
+@use 'variables' as *;
+@use 'mixins' as *;
+@use 'functions' as *;
 .custom-control {
   position: relative;
   display: block;

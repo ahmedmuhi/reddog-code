@@ -2,6 +2,9 @@
 //
 // Easily usable on <ul>, <ol>, or <div>.
 
+@use 'variables' as *;
+@use 'mixins' as *;
+@use 'functions' as *;
 .list-group {
   display: flex;
   flex-direction: column;

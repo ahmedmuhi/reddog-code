@@ -1,4 +1,9 @@
 @use 'sass:color' as color;
+@use '../bootstrap/mixins' as *;
+@use '../bootstrap/functions' as *;
+@use 'variables' as *;
+@use 'mixins' as *;
+@use 'functions' as *;
 .dropdown-menu {
     border: 0;
     box-shadow: 0px 10px 50px 0px rgba(0, 0, 0, 0.2);

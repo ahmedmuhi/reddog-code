@@ -30,6 +30,9 @@
 
 
 
+@use '../../bootstrap/mixins' as *;
+@use '../variables' as *;
+@use '../mixins' as *;
 @charset "UTF-8";
 
 /*!

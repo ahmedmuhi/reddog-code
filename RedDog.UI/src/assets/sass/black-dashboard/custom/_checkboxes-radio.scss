@@ -1,4 +1,9 @@
 @use 'sass:color' as color;
+@use '../bootstrap/mixins' as *;
+@use '../bootstrap/functions' as *;
+@use 'variables' as *;
+@use 'mixins' as *;
+@use 'functions' as *;
 .form-check{
  margin-top: .5rem;
  padding-left: 0;

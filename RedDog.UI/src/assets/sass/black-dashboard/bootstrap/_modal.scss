@@ -4,6 +4,9 @@
 // .modal-content   - actual modal w/ bg and corners and stuff
 
 
+@use 'variables' as *;
+@use 'mixins' as *;
+@use 'functions' as *;
 .modal-open {
   // Kill the scroll on the body
   overflow: hidden;

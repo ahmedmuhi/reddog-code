@@ -1,4 +1,6 @@
 // CSS image replacement
+@use '../variables' as *;
+@use '../functions' as *;
 @mixin text-hide($ignore-warning: false) {
   // stylelint-disable-next-line font-family-no-missing-generic-family-keyword
   font: 0/0 a;

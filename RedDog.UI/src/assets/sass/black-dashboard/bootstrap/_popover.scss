@@ -1,5 +1,8 @@
 @use 'sass:color' as color;
 @use 'sass:math' as math;
+@use 'variables' as *;
+@use 'mixins' as *;
+@use 'functions' as *;
 .popover {
   position: absolute;
   top: 0;

@@ -1,5 +1,7 @@
 @use 'sass:color' as color;
 // Contextual backgrounds
+@use '../variables' as *;
+@use '../functions' as *;
 @mixin bg-variant($parent, $color) {
     #{$parent} {
         background-color: $color !important;

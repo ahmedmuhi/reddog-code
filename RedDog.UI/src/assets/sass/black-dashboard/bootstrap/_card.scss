@@ -2,6 +2,9 @@
 // Base styles
 //
 
+@use 'variables' as *;
+@use 'mixins' as *;
+@use 'functions' as *;
 .card {
   position: relative;
   display: flex;

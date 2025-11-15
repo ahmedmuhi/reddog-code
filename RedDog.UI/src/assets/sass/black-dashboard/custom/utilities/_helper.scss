@@ -1,5 +1,9 @@
 // Image
 
+@use '../../bootstrap/mixins' as *;
+@use '../../bootstrap/functions' as *;
+@use '../variables' as *;
+@use '../functions' as *;
 .img-center {
     display: block;
     margin-left: auto;

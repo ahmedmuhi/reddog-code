@@ -1,4 +1,6 @@
 @use 'sass:color' as color;
+@use '../variables' as *;
+@use '../functions' as *;
 @mixin form-control-focus() {
   &:focus {
     color: $input-focus-color;

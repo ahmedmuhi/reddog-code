@@ -1,6 +1,9 @@
 @use 'sass:math' as math;
 // Credit: Nicolas Gallagher and SUIT CSS.
 
+@use '../variables' as *;
+@use '../functions' as *;
+@use '../mixins' as *;
 .embed-responsive {
   position: relative;
   display: block;

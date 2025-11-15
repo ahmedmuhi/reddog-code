@@ -1,3 +1,7 @@
+@use '../../bootstrap/mixins' as *;
+@use '../../bootstrap/functions' as *;
+@use '../variables' as *;
+@use '../functions' as *;
 .floating {
 	animation: floating 3s ease infinite;
 	will-change: transform;

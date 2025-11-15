@@ -1,4 +1,9 @@
 @use 'sass:color' as color;
+@use '../bootstrap/mixins' as *;
+@use '../bootstrap/functions' as *;
+@use 'variables' as *;
+@use 'mixins' as *;
+@use 'functions' as *;
 /* Form controls */
 @include form-control-placeholder(#6c757c, 1);
 

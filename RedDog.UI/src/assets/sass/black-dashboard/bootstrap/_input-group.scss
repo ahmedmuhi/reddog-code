@@ -4,6 +4,9 @@
 // Base styles
 //
 
+@use 'variables' as *;
+@use 'mixins' as *;
+@use 'functions' as *;
 .input-group {
   position: relative;
   display: flex;

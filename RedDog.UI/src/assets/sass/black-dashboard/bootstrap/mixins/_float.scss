@@ -1,5 +1,7 @@
 // stylelint-disable declaration-no-important
 
+@use '../variables' as *;
+@use '../functions' as *;
 @mixin float-left {
   float: left !important;
 }

@@ -1,5 +1,8 @@
 // stylelint-disable selector-no-qualifying-type
 
+@use 'variables' as *;
+@use 'mixins' as *;
+@use 'functions' as *;
 .fade {
   @include transition($transition-fade);
 

@@ -18,6 +18,9 @@
 //    we force a non-overlapping, non-auto-hiding scrollbar to counteract.
 // 6. Change the default tap highlight to be completely transparent in iOS.
 
+@use 'variables' as *;
+@use 'mixins' as *;
+@use 'functions' as *;
 *,
 *::before,
 *::after {

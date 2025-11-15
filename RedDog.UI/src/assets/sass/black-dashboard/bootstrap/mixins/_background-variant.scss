@@ -1,4 +1,8 @@
+@use '../variables' as *;
+@use '../functions' as *;
+@use '../theme-maps' as *;
 @use 'sass:color' as color;
+@use 'hover' as *;
 // stylelint-disable declaration-no-important
 
 // Contextual backgrounds

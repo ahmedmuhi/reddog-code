@@ -1,3 +1,9 @@
+@use '../variables' as *;
+@use '../functions' as *;
+@use '../theme-maps' as *;
+@use 'gradients' as *;
+@use 'hover' as *;
+@use 'box-shadow' as *;
 @use 'sass:color' as color;
 // Button variants
 //

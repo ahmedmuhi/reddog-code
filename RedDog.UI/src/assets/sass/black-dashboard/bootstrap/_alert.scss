@@ -2,6 +2,9 @@
 // Base styles
 //
 
+@use 'variables' as *;
+@use 'mixins' as *;
+@use 'functions' as *;
 .alert {
   position: relative;
   padding: $alert-padding-y $alert-padding-x;

@@ -8,6 +8,9 @@
 // 4. .carousel-item-next.carousel-item-left and .carousel-item-prev.carousel-item-right
 //    is the upcoming slide in transition.
 
+@use 'variables' as *;
+@use 'mixins' as *;
+@use 'functions' as *;
 .carousel {
   position: relative;
 }

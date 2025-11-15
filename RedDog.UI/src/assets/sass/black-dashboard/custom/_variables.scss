@@ -1,9 +1,8 @@
 @use 'sass:color' as color;
 @use 'sass:map' as map;
-@import "../bootstrap/mixins";
-@import "../bootstrap/functions";
-@import "functions";
-@import "mixins";
+@use "../bootstrap/mixins" as *;
+@use "../bootstrap/functions" as *;
+@use "functions" as *;
 // Global settings
 
 $enable-caret:              true !default;
@@ -272,8 +271,8 @@ $grid-breakpoints: (
   xl: 1200px
 );
 
-@include _assert-ascending($grid-breakpoints, "$grid-breakpoints");
-@include _assert-starts-at-zero($grid-breakpoints);
+@include assert-ascending($grid-breakpoints, "$grid-breakpoints");
+@include assert-starts-at-zero($grid-breakpoints);
 
 
 // Grid containers

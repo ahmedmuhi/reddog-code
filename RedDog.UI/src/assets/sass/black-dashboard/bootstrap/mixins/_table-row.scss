@@ -1,3 +1,7 @@
+@use '../variables' as *;
+@use '../functions' as *;
+@use 'hover' as *;
+@use '../theme-maps' as *;
 @use 'sass:color' as color;
 // Tables
 

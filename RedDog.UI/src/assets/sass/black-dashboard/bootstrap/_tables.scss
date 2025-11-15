@@ -2,6 +2,9 @@
 // Basic Bootstrap table
 //
 
+@use 'variables' as *;
+@use 'mixins' as *;
+@use 'functions' as *;
 .table {
   width: 100%;
   margin-bottom: $spacer;

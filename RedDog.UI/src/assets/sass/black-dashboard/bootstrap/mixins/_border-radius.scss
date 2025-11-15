@@ -1,5 +1,7 @@
 // Single side border-radius
 
+@use '../variables' as *;
+@use '../functions' as *;
 @mixin border-radius($radius: $border-radius) {
   @if $enable-rounded {
     border-radius: $radius;

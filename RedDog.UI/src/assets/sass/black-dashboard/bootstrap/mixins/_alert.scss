@@ -1,4 +1,9 @@
+@use '../variables' as *;
+@use '../functions' as *;
+@use '../theme-maps' as *;
 @use 'sass:color' as color;
+@use 'gradients' as *;
+@use 'hover' as *;
 @mixin alert-variant($background, $border, $color) {
   color: $color;
   @include gradient-bg($background);

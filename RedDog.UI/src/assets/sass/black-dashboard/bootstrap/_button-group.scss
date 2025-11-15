@@ -1,6 +1,9 @@
 // stylelint-disable selector-no-qualifying-type
 
 // Make the div behave like a button
+@use 'variables' as *;
+@use 'mixins' as *;
+@use 'functions' as *;
 .btn-group,
 .btn-group-vertical {
   position: relative;

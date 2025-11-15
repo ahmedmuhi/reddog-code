@@ -2,6 +2,11 @@
 
 
 // Inline assets for tablesorter arrows so Vite doesn't warn about missing gifs
+@use '../bootstrap/mixins' as *;
+@use '../bootstrap/functions' as *;
+@use 'variables' as *;
+@use 'mixins' as *;
+@use 'functions' as *;
 $tablesorter-arrow-up: "data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 12 12%22%3E%3Cpolyline points=%222,8 6,4 10,8%22 fill=%22none%22 stroke=%22%23ffffff%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22/%3E%3C/svg%3E";
 $tablesorter-arrow-down: "data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 12 12%22%3E%3Cpolyline points=%222,4 6,8 10,4%22 fill=%22none%22 stroke=%22%23ffffff%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22/%3E%3C/svg%3E";
 

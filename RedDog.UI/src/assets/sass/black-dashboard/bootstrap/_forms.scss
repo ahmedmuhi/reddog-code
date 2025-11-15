@@ -4,6 +4,9 @@
 // Textual form controls
 //
 
+@use 'variables' as *;
+@use 'mixins' as *;
+@use 'functions' as *;
 .form-control {
   display: block;
   width: 100%;

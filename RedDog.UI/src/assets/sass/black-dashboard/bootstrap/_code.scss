@@ -1,4 +1,7 @@
 // Inline code
+@use 'variables' as *;
+@use 'mixins' as *;
+@use 'functions' as *;
 code {
   font-size: $code-font-size;
   color: $code-color;

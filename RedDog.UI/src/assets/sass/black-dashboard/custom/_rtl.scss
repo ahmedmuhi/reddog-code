@@ -1,3 +1,8 @@
+@use '../bootstrap/mixins' as *;
+@use '../bootstrap/functions' as *;
+@use 'variables' as *;
+@use 'mixins' as *;
+@use 'functions' as *;
 .rtl {
   .sidebar,
   .bootstrap-navbar{

@@ -1,4 +1,7 @@
 @use 'sass:color' as color;
+@use 'vendor-prefixes' as *;
+@use '../variables' as *;
+@use '../functions' as *;
 @mixin btn-styles($btn-color, $btn-states-color) {
   @include diagonal-gradient($btn-color, $btn-states-color);
     background-color: $btn-color;

@@ -1,10 +1,12 @@
+@use 'theme-maps' as *;
+
 // Bootstrap functions
 //
 // Utility mixins and functions for evaluating source code across our variables, maps, and mixins.
 
 // Ascending
 // Used to evaluate Sass maps like our grid breakpoints.
-@mixin _assert-ascending($map, $map-name) {
+@mixin assert-ascending($map, $map-name) {
   $prev-key: null;
   $prev-num: null;
   @each $key, $num in $map {
@@ -22,7 +24,7 @@
 
 // Starts at zero
 // Another grid mixin that ensures the min-width of the lowest breakpoint starts at 0.
-@mixin _assert-starts-at-zero($map) {
+@mixin assert-starts-at-zero($map) {
   $values: map-values($map);
   $first-value: nth($values, 1);
   @if $first-value != 0 {

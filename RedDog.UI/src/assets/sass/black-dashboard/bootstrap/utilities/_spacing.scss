@@ -2,6 +2,9 @@
 
 // Margin and Padding
 
+@use '../variables' as *;
+@use '../functions' as *;
+@use '../mixins' as *;
 @each $breakpoint in map-keys($grid-breakpoints) {
   @include media-breakpoint-up($breakpoint) {
     $infix: breakpoint-infix($breakpoint, $grid-breakpoints);

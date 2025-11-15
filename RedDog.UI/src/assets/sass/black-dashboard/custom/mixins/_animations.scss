@@ -1,0 +1,7 @@
+@use '../variables' as *;
+@use '../functions' as *;
+@use 'vendor-prefixes' as *;
+
+@mixin animation-transition-general() {
+  @include transitions($general-transition-time, $transition-ease);
+}

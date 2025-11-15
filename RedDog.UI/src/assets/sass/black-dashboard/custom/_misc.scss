@@ -1,4 +1,9 @@
 
+@use '../bootstrap/mixins' as *;
+@use '../bootstrap/functions' as *;
+@use 'variables' as *;
+@use 'mixins' as *;
+@use 'functions' as *;
 /* Animations */
 .nav-pills .nav-link,
 .navbar,
@@ -7,11 +12,13 @@
 .sidebar .nav a i,
 .sidebar .nav p,
 .navbar-collapse .navbar-nav .nav-link,
-.animation-transition-general,
 .tag,
-.tag [data-role="remove"],
-.animation-transition-general{
-    @include transitions($general-transition-time, $transition-ease);
+.tag [data-role="remove"]{
+    @include animation-transition-general();
+}
+
+.animation-transition-general {
+  @include animation-transition-general();
 }
 
 //transition for dropdown caret

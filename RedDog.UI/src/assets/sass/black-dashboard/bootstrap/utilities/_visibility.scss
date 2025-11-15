@@ -2,6 +2,9 @@
 // Visibility utilities
 //
 
+@use '../variables' as *;
+@use '../functions' as *;
+@use '../mixins' as *;
 .visible {
   @include invisible(visible);
 }

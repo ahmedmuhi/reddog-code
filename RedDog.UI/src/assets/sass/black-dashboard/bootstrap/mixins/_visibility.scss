@@ -2,6 +2,8 @@
 
 // Visibility
 
+@use '../variables' as *;
+@use '../functions' as *;
 @mixin invisible($visibility) {
   visibility: $visibility !important;
 }

@@ -15,6 +15,9 @@
 // Provide a static navbar from which we expand to create full-width, fixed, and
 // other navbar variations.
 
+@use 'variables' as *;
+@use 'mixins' as *;
+@use 'functions' as *;
 .navbar {
   position: relative;
   display: flex;

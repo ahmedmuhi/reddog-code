@@ -1,5 +1,9 @@
 // Height values in vh
 
+@use '../../bootstrap/mixins' as *;
+@use '../../bootstrap/functions' as *;
+@use '../variables' as *;
+@use '../functions' as *;
 .h-100vh {
 	height: 100vh !important;
 }
