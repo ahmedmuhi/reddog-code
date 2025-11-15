@@ -13,7 +13,7 @@
     "preview": "vite preview",
     "lint": "eslint . --ext .ts,.vue",
     "lint:fix": "eslint . --ext .ts,.vue --fix",
-    "build:theme": "sass --style=expanded --no-source-map src/assets/sass/black-dashboard.scss src/assets/css/black-dashboard.css"
+    "build:theme": "sass --quiet-deps --silence-deprecation=import --silence-deprecation=global-builtin --silence-deprecation=color-functions --silence-deprecation=slash-div --style=expanded --no-source-map src/assets/sass/black-dashboard.scss src/assets/css/black-dashboard.css"
   },
   "dependencies": {
     "chart.js": "^3.9.1",
