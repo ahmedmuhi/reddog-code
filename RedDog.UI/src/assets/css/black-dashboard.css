@@ -42,7 +42,7 @@
   --default: #344675;
   --white: #ffffff;
   --neutral: #ffffff;
-  --darker: black;
+  --darker: hsl(210, 10.8108108108%, -0.4901960784%);
   --breakpoint-xs: 0;
   --breakpoint-sm: 576px;
   --breakpoint-md: 768px;
@@ -1599,15 +1599,15 @@ pre code {
 .table-darker,
 .table-darker > th,
 .table-darker > td {
-  background-color: rgb(183.6, 183.6, 183.6);
+  background-color: rgb(183.2878378378, 183.25, 183.2121621622);
 }
 
 .table-hover .table-darker:hover {
-  background-color: rgb(170.85, 170.85, 170.85);
+  background-color: rgb(170.5445616348, 170.5, 170.4554383652);
 }
 .table-hover .table-darker:hover > td,
 .table-hover .table-darker:hover > th {
-  background-color: rgb(170.85, 170.85, 170.85);
+  background-color: rgb(170.5445616348, 170.5, 170.4554383652);
 }
 
 .table-active,
@@ -2532,30 +2532,30 @@ fieldset:disabled a.btn {
 
 .btn-darker {
   color: #ffffff;
-  background-color: black;
-  border-color: black;
+  background-color: hsl(210, 10.8108108108%, -0.4901960784%);
+  border-color: hsl(210, 10.8108108108%, -0.4901960784%);
   box-shadow: 0 4px 6px rgba(50, 50, 93, 0.11), 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 .btn-darker:hover {
   color: #ffffff;
-  background-color: black;
-  border-color: black;
+  background-color: hsl(210, 10.8108108108%, -7.9901960784%);
+  border-color: hsl(210, 10.8108108108%, -10.4901960784%);
 }
 .btn-darker:focus, .btn-darker.focus {
-  box-shadow: 0 4px 6px rgba(50, 50, 93, 0.11), 0 1px 3px rgba(0, 0, 0, 0.08), 0 0 0 0 rgba(0, 0, 0, 0.5);
+  box-shadow: 0 4px 6px rgba(50, 50, 93, 0.11), 0 1px 3px rgba(0, 0, 0, 0.08), 0 0 0 0 hsla(210, 10.8108108108%, -0.4901960784%, 0.5);
 }
 .btn-darker.disabled, .btn-darker:disabled {
   color: #ffffff;
-  background-color: black;
-  border-color: black;
+  background-color: hsl(210, 10.8108108108%, -0.4901960784%);
+  border-color: hsl(210, 10.8108108108%, -0.4901960784%);
 }
 .btn-darker:not(:disabled):not(.disabled):active, .btn-darker:not(:disabled):not(.disabled).active, .show > .btn-darker.dropdown-toggle {
   color: #ffffff;
-  background-color: black;
-  border-color: black;
+  background-color: hsl(210, 10.8108108108%, -10.4901960784%);
+  border-color: hsl(210, 10.8108108108%, -12.9901960784%);
 }
 .btn-darker:not(:disabled):not(.disabled):active:focus, .btn-darker:not(:disabled):not(.disabled).active:focus, .show > .btn-darker.dropdown-toggle:focus {
-  box-shadow: none, 0 0 0 0 rgba(0, 0, 0, 0.5);
+  box-shadow: none, 0 0 0 0 hsla(210, 10.8108108108%, -0.4901960784%, 0.5);
 }
 
 .btn-outline-primary {
@@ -2883,30 +2883,30 @@ fieldset:disabled a.btn {
 }
 
 .btn-outline-darker {
-  color: black;
+  color: hsl(210, 10.8108108108%, -0.4901960784%);
   background-color: transparent;
   background-image: none;
-  border-color: black;
+  border-color: hsl(210, 10.8108108108%, -0.4901960784%);
 }
 .btn-outline-darker:hover {
   color: #ffffff;
-  background-color: black;
-  border-color: black;
+  background-color: hsl(210, 10.8108108108%, -0.4901960784%);
+  border-color: hsl(210, 10.8108108108%, -0.4901960784%);
 }
 .btn-outline-darker:focus, .btn-outline-darker.focus {
-  box-shadow: 0 0 0 0 rgba(0, 0, 0, 0.5);
+  box-shadow: 0 0 0 0 hsla(210, 10.8108108108%, -0.4901960784%, 0.5);
 }
 .btn-outline-darker.disabled, .btn-outline-darker:disabled {
-  color: black;
+  color: hsl(210, 10.8108108108%, -0.4901960784%);
   background-color: transparent;
 }
 .btn-outline-darker:not(:disabled):not(.disabled):active, .btn-outline-darker:not(:disabled):not(.disabled).active, .show > .btn-outline-darker.dropdown-toggle {
   color: #ffffff;
-  background-color: black;
-  border-color: black;
+  background-color: hsl(210, 10.8108108108%, -0.4901960784%);
+  border-color: hsl(210, 10.8108108108%, -0.4901960784%);
 }
 .btn-outline-darker:not(:disabled):not(.disabled):active:focus, .btn-outline-darker:not(:disabled):not(.disabled).active:focus, .show > .btn-outline-darker.dropdown-toggle:focus {
-  box-shadow: 0 0 0 0 rgba(0, 0, 0, 0.5);
+  box-shadow: 0 0 0 0 hsla(210, 10.8108108108%, -0.4901960784%, 0.5);
 }
 
 .btn-link {
@@ -4774,12 +4774,12 @@ a.chart-segment:hover {
 
 .badge-darker {
   color: #ffffff;
-  background-color: black;
+  background-color: hsl(210, 10.8108108108%, -0.4901960784%);
 }
 .badge-darker[href]:hover, .badge-darker[href]:focus {
   color: #ffffff;
   text-decoration: none;
-  background-color: black;
+  background-color: hsl(210, 10.8108108108%, -10.4901960784%);
 }
 
 .jumbotron {
@@ -4972,15 +4972,15 @@ a.chart-segment:hover {
 }
 
 .alert-darker {
-  color: black;
-  background-color: rgb(40.8, 40.8, 40.8);
-  border-color: rgb(40.8, 40.8, 40.8);
+  color: hsl(210, 10.8108108108%, -0.4901960784%);
+  background-color: rgb(39.8635135135, 39.75, 39.6364864865);
+  border-color: rgb(39.8635135135, 39.75, 39.6364864865);
 }
 .alert-darker hr {
-  border-top-color: rgb(28.05, 28.05, 28.05);
+  border-top-color: rgb(27.0771035186, 27, 26.9228964814);
 }
 .alert-darker .alert-link {
-  color: black;
+  color: hsl(210, 10.8108108108%, -10.4901960784%);
 }
 
 @keyframes progress-bar-stripes {
@@ -5270,17 +5270,17 @@ a.chart-segment:hover {
 }
 
 .list-group-item-darker {
-  color: rgb(16.32, 20.16, 31.68);
-  background-color: rgb(183.6, 183.6, 183.6);
+  color: rgb(15.7402702703, 19.51, 30.9597297297);
+  background-color: rgb(183.2878378378, 183.25, 183.2121621622);
 }
 .list-group-item-darker.list-group-item-action:hover, .list-group-item-darker.list-group-item-action:focus {
-  color: rgb(16.32, 20.16, 31.68);
-  background-color: rgb(170.85, 170.85, 170.85);
+  color: rgb(15.7402702703, 19.51, 30.9597297297);
+  background-color: rgb(170.5445616348, 170.5, 170.4554383652);
 }
 .list-group-item-darker.list-group-item-action.active {
   color: #ffffff;
-  background-color: rgb(16.32, 20.16, 31.68);
-  border-color: rgb(16.32, 20.16, 31.68);
+  background-color: rgb(15.7402702703, 19.51, 30.9597297297);
+  border-color: rgb(15.7402702703, 19.51, 30.9597297297);
 }
 
 .close {
@@ -6072,13 +6072,13 @@ button.bg-neutral:focus {
 }
 
 .bg-darker {
-  background-color: black !important;
+  background-color: hsl(210, 10.8108108108%, -0.4901960784%) !important;
 }
 
 a.bg-darker:hover, a.bg-darker:focus,
 button.bg-darker:hover,
 button.bg-darker:focus {
-  background-color: black !important;
+  background-color: hsl(210, 10.8108108108%, -10.4901960784%) !important;
 }
 
 .bg-white {
@@ -6178,7 +6178,7 @@ button.bg-darker:focus {
 }
 
 .border-darker {
-  border-color: black !important;
+  border-color: hsl(210, 10.8108108108%, -0.4901960784%) !important;
 }
 
 .border-white {
@@ -9492,11 +9492,11 @@ a.text-neutral:hover, a.text-neutral:focus {
 }
 
 .text-darker {
-  color: black !important;
+  color: hsl(210, 10.8108108108%, -0.4901960784%) !important;
 }
 
 a.text-darker:hover, a.text-darker:focus {
-  color: black !important;
+  color: hsl(210, 10.8108108108%, -10.4901960784%) !important;
 }
 
 .text-body {

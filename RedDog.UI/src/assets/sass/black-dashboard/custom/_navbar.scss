@@ -1,3 +1,4 @@
+@use 'sass:color' as color;
 .navbar {
   padding: 10px 30px 10px 15px;
   width: 100%;
@@ -92,7 +93,7 @@
   }
 
   &.bg-success {
-    background-color: darken($success, 10%) !important;
+    background-color: color.adjust($success, $lightness: -10%) !important;
   }
 
   &.bg-danger {

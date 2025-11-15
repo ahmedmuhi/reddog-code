@@ -1,8 +1,9 @@
+@use 'sass:color' as color;
 /* Form controls */
 @include form-control-placeholder(#6c757c, 1);
 
 .form-control{
-  border-color: lighten($black,5%);
+  border-color: color.adjust($black, $lightness: 5%);
   border-radius: $border-radius-lg;
   font-size: $font-size-sm;
   @include transition-input-focus-color();
@@ -62,13 +63,13 @@
 .has-success .input-group-append .input-group-text,
 .has-success .input-group-prepend .input-group-text,
 .has-success .form-control{
-    border-color: lighten($black,5%);
+    border-color: color.adjust($black, $lightness: 5%);
 }
 
 .has-success .form-control:focus,
 .has-success.input-group-focus .input-group-append .input-group-text,
 .has-success.input-group-focus .input-group-prepend .input-group-text{
-  border-color: darken($success, 10%);
+  border-color: color.adjust($success, $lightness: -10%);
 }
 
 .has-danger .form-control,
@@ -76,7 +77,7 @@
 .has-danger .input-group-prepend .input-group-text,
 .has-danger.input-group-focus .input-group-prepend .input-group-text,
 .has-danger.input-group-focus .input-group-append .input-group-text{
-    border-color: lighten($danger-states,5%);
+    border-color: color.adjust($danger-states, $lightness: 5%);
     color: $danger-states;
     background-color: rgba(222,222,222, .1);
 

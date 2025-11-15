@@ -1,3 +1,5 @@
+@use 'sass:color' as color;
+@use 'sass:map' as map;
 @import "../bootstrap/mixins";
 @import "../bootstrap/functions";
 @import "functions";
@@ -32,7 +34,7 @@ $dark-background:            #555555 !default;
 
 
 $grays: () !default;
-$grays: map-merge((
+$grays: map.merge((
   "100": $gray-100,
   "200": $gray-200,
   "300": $gray-300,
@@ -78,7 +80,7 @@ $opacity-2:                  rgba(255,255,255, .2) !default;
 // end beniamin
 
 $colors: () !default;
-$colors: map-merge((
+$colors: map.merge((
   "blue":       $blue,
   "indigo":     $indigo,
   "purple":     $purple,
@@ -144,35 +146,35 @@ $active-blue:                #00bbff !default;
 
 $light:         $gray-500 !default;
 $dark:          $gray-900 !default;
-$darker:        darken($gray-900, 15%) !default;
+$darker:        color.adjust($gray-900, $lightness: -15%) !default;
 
 $facebook:              #3b5998 !default;
-$facebook-states:       darken($facebook, 5%) !default;
+$facebook-states:       color.adjust($facebook, $lightness: -5%) !default;
 $twitter:               #55acee !default;
-$twitter-states:        darken($twitter, 5%) !default;
+$twitter-states:        color.adjust($twitter, $lightness: -5%) !default;
 $google-plus:           #dd4b39 !default;
-$google-plus-states:    darken($google-plus, 5%) !default;
+$google-plus-states:    color.adjust($google-plus, $lightness: -5%) !default;
 $instagram:             #125688 !default;
-$instagram-states:      lighten($instagram, 6%) !default;
+$instagram-states:      color.adjust($instagram, $lightness: 6%) !default;
 $linkedin:              #0077B5 !default;
-$linkedin-states:       darken($linkedin, 5%) !default;
+$linkedin-states:       color.adjust($linkedin, $lightness: -5%) !default;
 $pinterest:             #cc2127 !default;
-$pinterest-states:      lighten($pinterest, 6%) !default;
+$pinterest-states:      color.adjust($pinterest, $lightness: 6%) !default;
 $youtube:               #e52d27 !default;
-$youtube-states:        lighten($youtube, 6%) !default;
+$youtube-states:        color.adjust($youtube, $lightness: 6%) !default;
 $dribbble:              #ea4c89 !default;
-$dribbble-states:       lighten($dribbble, 6%) !default;
+$dribbble-states:       color.adjust($dribbble, $lightness: 6%) !default;
 $github:                #333333 !default;
 $github-states:         #ccc !default;
 $reddit:                #ff4500 !default;
-$reddit-states:         lighten($reddit, 6%) !default;
+$reddit-states:         color.adjust($reddit, $lightness: 6%) !default;
 $tumblr:                #35465c !default;
-$tumblr-states:         lighten($tumblr, 6%) !default;
+$tumblr-states:         color.adjust($tumblr, $lightness: 6%) !default;
 $behance:               #1769ff !default;
-$behance-states:        lighten($behance, 6%) !default;
+$behance-states:        color.adjust($behance, $lightness: 6%) !default;
 
 $theme-colors: () !default;
-$theme-colors: map-merge((
+$theme-colors: map.merge((
   "default":      $default,
   "primary":      $primary,
   "secondary":    $secondary,
@@ -187,7 +189,7 @@ $theme-colors: map-merge((
 ), $theme-colors);
 
 $brand-colors: () !default;
-$brand-colors: map-merge((
+$brand-colors: map.merge((
   "facebook":     $facebook,
   "twitter":      $twitter,
   "google-plus":  $google-plus,
@@ -245,7 +247,7 @@ $body-color: $gray-700 !default;
 // Sections
 
 $section-colors: () !default;
-$section-colors: map-merge((
+$section-colors: map.merge((
   "primary":      $body-bg,
   "secondary":    $secondary,
   "light":        $gray-400,
@@ -257,7 +259,7 @@ $section-colors: map-merge((
 
 $link-color:                $primary !default;
 $link-decoration:           none !default;
-$link-hover-color:          darken($link-color, 15%);
+$link-hover-color:          color.adjust($link-color, $lightness: -15%);
 $link-hover-decoration:     none !default;
 
 // Grid breakpoints
@@ -283,7 +285,7 @@ $grid-breakpoints: (
 
 $spacer: 1rem !default;
 $spacers: () !default;
-$spacers: map-merge((
+$spacers: map.merge((
   0: 0,
   1: ($spacer * .25),
   2: ($spacer * .5),
@@ -316,7 +318,7 @@ $margin-base-vertical:         15px !default;
 // This variable affects the `.h-*` and `.w-*` classes.
 
 $sizes: () !default;
-$sizes: map-merge((
+$sizes: map.merge((
   25: 25%,
   50: 50%,
   75: 75%,
@@ -408,7 +410,7 @@ $font-paragraph:               1rem          !default;
 $font-weight-base:            $font-weight-normal !default;
 $shape-height-base:            1.428571 !default;
 
-$headings-margin-bottom:      ($spacer / 2);
+$headings-margin-bottom:      ($spacer * 0.5);
 $headings-font-family:        inherit !default;
 $headings-font-weight:        $font-weight-normal !default;
 $headings-line-height:        1.2 !default;
@@ -499,7 +501,7 @@ $table-head-color:            $gray-700 !default;
 $table-dark-bg:               $gray-900 !default;
 $table-dark-accent-bg:        rgba($white, .05);
 $table-dark-hover-bg:         rgba($white, .075);
-$table-dark-border-color:     lighten($gray-900, 7.5%);
+$table-dark-border-color:     color.adjust($gray-900, $lightness: 7.5%);
 $table-dark-color:            $body-bg !default;
 
 
@@ -660,9 +662,9 @@ $custom-toggle-checked-bg:  theme-color("primary") !default;
 
 // Form validation
 
-$form-feedback-valid-bg:         lighten($success, 15%);
+$form-feedback-valid-bg:         color.adjust($success, $lightness: 15%);
 $form-feedback-valid-color:      theme-color("success") !default;
-$form-feedback-invalid-bg:       lighten($warning, 15%);
+$form-feedback-invalid-bg:       color.adjust($warning, $lightness: 15%);
 $form-feedback-invalid-color:    theme-color("warning") !default;
 
 
@@ -722,7 +724,7 @@ $nav-pills-border-color:            theme-color("primary") !default;
 $nav-pills-border-radius:           $border-radius !default;
 
 $nav-pills-link-color:              theme-color("primary") !default;
-$nav-pills-link-hover-color:        darken(theme-color("primary"), 5%);
+$nav-pills-link-hover-color:        color.adjust(theme-color("primary"), $lightness: -5%);
 $nav-pills-link-active-color:       color-yiq(theme-color("primary"));
 $nav-pills-link-active-bg:          theme-color("primary") !default;
 $nav-pills-box-shadow:              $btn-box-shadow !default;
@@ -962,7 +964,7 @@ $datepicker-border-radius: $card-border-radius !default;
 $datepicker-dropdown-padding: 20px 22px !default;
 
 $datepicker-cell-transition: $transition-base !default;
-$datepicker-cell-hover-background: lighten($gray-400, 55%);
+$datepicker-cell-hover-background: color.adjust($gray-400, $lightness: 55%);
 $datepicker-cell-border-radius: 50% !default;
 $datepicker-cell-width: 36px !default;
 $datepicker-cell-height: 36px !default;
@@ -977,11 +979,11 @@ $datepicker-active-background: theme-color("primary") !default;
 $datepicker-active-box-shadow:      none !default;
 
 $datepicker-range-background: theme-color("primary") !default;
-$datepicker-range-cell-focused-background: darken($datepicker-range-background, 5%);
+$datepicker-range-cell-focused-background: color.adjust($datepicker-range-background, $lightness: -5%);
 $datepicker-range-color: $white !default;
 $datepicker-range-highlighted-bg: $gray-200 !default;
 
-$datepicker-dropdown-border: lighten($gray-400, 40%);
+$datepicker-dropdown-border: color.adjust($gray-400, $lightness: 40%);
 $datepicker-dropdown-bg: $white !default;
 $datepicker-highlighted-bg: $datepicker-active-background !default;
 

@@ -1,3 +1,4 @@
+@use 'sass:color' as color;
 .dropdown-menu {
     border: 0;
     box-shadow: 0px 10px 50px 0px rgba(0, 0, 0, 0.2);
@@ -194,23 +195,23 @@
     }
 
     &.dropdown-primary {
-        @include dropdown-colors(darken($primary, 3%),$opacity-8,$white, $opacity-2);
+        @include dropdown-colors(color.adjust($primary, $lightness: -3%),$opacity-8,$white, $opacity-2);
     }
 
     &.dropdown-info {
-        @include dropdown-colors(darken($info, 3%),$opacity-8,$white, $opacity-2);
+        @include dropdown-colors(color.adjust($info, $lightness: -3%),$opacity-8,$white, $opacity-2);
     }
 
     &.dropdown-danger {
-        @include dropdown-colors(darken($danger, 3%),$opacity-8,$white, $opacity-2);
+        @include dropdown-colors(color.adjust($danger, $lightness: -3%),$opacity-8,$white, $opacity-2);
     }
 
     &.dropdown-success {
-        @include dropdown-colors(darken($success, 3%),$opacity-8,$white, $opacity-2);
+        @include dropdown-colors(color.adjust($success, $lightness: -3%),$opacity-8,$white, $opacity-2);
     }
 
     &.dropdown-warning {
-        @include dropdown-colors(darken($warning, 3%),$opacity-8,$white, $opacity-2);
+        @include dropdown-colors(color.adjust($warning, $lightness: -3%),$opacity-8,$white, $opacity-2);
     }
 
     .dropdown &,

@@ -1,3 +1,4 @@
+@use 'sass:color' as color;
 .white-content{
 
   background: $light-bg;
@@ -147,7 +148,7 @@
   }
 
   .has-success .form-control:focus, .has-success.input-group-focus .input-group-append .input-group-text, .has-success.input-group-focus .input-group-prepend .input-group-text {
-    border-color: darken($success, 10%);
+    border-color: color.adjust($success, $lightness: -10%);
   }
 
   .btn.btn-link{
@@ -289,10 +290,10 @@
    }
 
    .nav-pills .nav-item .nav-link:not(.active){
-     background: darken($light-bg,10%);
+     background: color.adjust($light-bg, $lightness: -10%);
      color: $black-states;
      &:hover{
-       background: darken($white,20%);
+       background: color.adjust($white, $lightness: -20%);
 
      }
    }

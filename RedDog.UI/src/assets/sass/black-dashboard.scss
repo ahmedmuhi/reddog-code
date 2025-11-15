@@ -15,6 +15,10 @@
 
  // Core
 
+@use 'sass:color';
+@use 'sass:map';
+@use 'sass:math';
+
 @import "black-dashboard/custom/functions";
 @import "black-dashboard/bootstrap/functions";
 

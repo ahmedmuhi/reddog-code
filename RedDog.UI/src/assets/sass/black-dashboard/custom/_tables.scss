@@ -1,3 +1,4 @@
+@use 'sass:color' as color;
 
 
 // Inline assets for tablesorter arrows so Vite doesn't warn about missing gifs
@@ -22,7 +23,7 @@ $tablesorter-arrow-down: "data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2
   }
 
   > tbody > tr.table-success > td{
-    background-color: darken($success,10%);
+    background-color: color.adjust($success, $lightness: -10%);
   }
 
   > tbody > tr.table-info > td{

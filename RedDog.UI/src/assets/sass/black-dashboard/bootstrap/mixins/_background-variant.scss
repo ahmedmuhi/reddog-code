@@ -1,3 +1,4 @@
+@use 'sass:color' as color;
 // stylelint-disable declaration-no-important
 
 // Contextual backgrounds
@@ -9,7 +10,7 @@
   a#{$parent},
   button#{$parent} {
     @include hover-focus {
-      background-color: darken($color, 10%) !important;
+      background-color: color.adjust($color, $lightness: -10%) !important;
     }
   }
 }

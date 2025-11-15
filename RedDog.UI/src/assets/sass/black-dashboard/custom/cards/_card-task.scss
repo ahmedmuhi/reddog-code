@@ -1,3 +1,4 @@
+@use 'sass:color' as color;
 .card-tasks {
   height: 473px;
 
@@ -14,7 +15,7 @@
 
     .dropdown {
       float: right;
-      color: darken($white, 20%);
+      color: color.adjust($white, $lightness: -20%);
     }
   }
 

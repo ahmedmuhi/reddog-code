@@ -1,3 +1,4 @@
+@use 'sass:color' as color;
 .alert{
     border: 0;
     color: $white;
@@ -7,7 +8,7 @@
     }
 
     &.alert-success{
-      background-color: darken($success, 10%);
+      background-color: color.adjust($success, $lightness: -10%);
     }
 
     i.fa,

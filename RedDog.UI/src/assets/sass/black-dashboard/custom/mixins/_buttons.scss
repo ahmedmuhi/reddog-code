@@ -1,3 +1,4 @@
+@use 'sass:color' as color;
 @mixin btn-styles($btn-color, $btn-states-color) {
   @include diagonal-gradient($btn-color, $btn-states-color);
     background-color: $btn-color;
@@ -189,7 +190,7 @@
     }
 }
 
-@mixin button-variant($background, $border, $hover-background: darken($background, 0%), $hover-border: darken($border, 0%), $active-background: darken($background, 10%), $active-border: darken($border, 0%)) {
+@mixin button-variant($background, $border, $hover-background: color.adjust($background, $lightness: -0%), $hover-border: color.adjust($border, $lightness: -0%), $active-background: color.adjust($background, $lightness: -10%), $active-border: color.adjust($border, $lightness: -0%)) {
     color: color-yiq($background);
     @include gradient-bg($background);
     border-color: $border;
@@ -296,7 +297,7 @@
 
 // for social buttons
 @mixin social-buttons-color ($color, $state-color){
-  @include diagonal-gradient($color, darken($color,20%));
+  @include diagonal-gradient($color, color.adjust($color, $lightness: -20%));
     //background-color: $color;
     color: $white;
     background-size: 210% 210%;
@@ -307,10 +308,10 @@
     &:active,
     &:hover{
         background-color: $state-color;
-        background-image: linear-gradient(to bottom left, $color, darken($color,20%), $color) !important;
-        background-image: -webkit-linear-gradient(to bottom left, $color, darken($color,20%), $color) !important;
-        background-image: -o-linear-gradient(to bottom left, $color, darken($color,20%), $color) !important;
-        background-image: -moz-linear-gradient(to bottom left, $color, darken($color,20%), $color) !important;
+        background-image: linear-gradient(to bottom left, $color, color.adjust($color, $lightness: -20%), $color) !important;
+        background-image: -webkit-linear-gradient(to bottom left, $color, color.adjust($color, $lightness: -20%), $color) !important;
+        background-image: -o-linear-gradient(to bottom left, $color, color.adjust($color, $lightness: -20%), $color) !important;
+        background-image: -moz-linear-gradient(to bottom left, $color, color.adjust($color, $lightness: -20%), $color) !important;
         color: $white;
     }
 
