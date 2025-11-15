@@ -9,8 +9,8 @@
   </div>
 </template>
 <script>
-  import EditProfileForm from './Profile/EditProfileForm';
-  import UserCard from './Profile/UserCard'
+  import EditProfileForm from './Profile/EditProfileForm.vue';
+  import UserCard from './Profile/UserCard.vue';
   export default {
     name: 'ProfilePage',
     components: {
