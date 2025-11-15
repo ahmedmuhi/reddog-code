@@ -223,7 +223,7 @@ To understand past development work:
 The repository uses the same session-tracking system described in `CLAUDE.md`. Quick reminders for agents:
 
 - **Where sessions live**: `.claude/sessions/` (Markdown files named `YYYY-MM-DD-HHMM.md`). The active session name is stored in `.claude/sessions/.current-session`.
-- **What to log**: goals, timestamped updates, key decisions, open questions, and explicit next steps. Mention helper scripts or new workflows so future sessions can reuse them.
+- **What to log**: goals, timestamped updates, key decisions, open questions, and explicit next steps. Each update should briefly capture (a) what changed (files/commands), (b) why it mattered (impact/risk), and (c) what remains. Mention helper scripts or new workflows so future sessions can reuse them.
 - **Start / end workflow**: use `/project:session-start` when kicking off substantial work, `/project:session-update` as you make progress, `/project:session-current` to see the active file, and `/project:session-end` when wrapping up.
 - **Closing checklist**: summarize accomplishments, remaining risks, and follow-ups so AGENTS/CLAUDE docs can be updated with the highlights.
 
