@@ -8,7 +8,7 @@
       <div class="block block-three"></div>
       <div class="block block-four"></div>
       <a href="#">
-        <img class="avatar" src="img/max-lord.png" alt="...">
+        <img class="avatar" src="/img/max-lord.png" alt="...">
         <h5 class="title">{{user.fullName}}</h5>
       </a>
       <p class="description">
