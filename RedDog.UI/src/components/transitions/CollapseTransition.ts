@@ -1,34 +1,42 @@
-import { Transition, h } from 'vue';
+import { Transition, defineComponent, h } from 'vue';
+
+const asElement = (el: Element): HTMLElement => el as HTMLElement;
 
 const collapseHandlers = {
-  onBeforeEnter(el: HTMLElement) {
-    el.style.height = '0';
-    el.style.opacity = '0';
+  onBeforeEnter(el: Element) {
+    const element = asElement(el);
+    element.style.height = '0';
+    element.style.opacity = '0';
   },
-  onEnter(el: HTMLElement) {
-    el.style.height = el.scrollHeight + 'px';
-    el.style.opacity = '1';
+  onEnter(el: Element) {
+    const element = asElement(el);
+    element.style.height = element.scrollHeight + 'px';
+    element.style.opacity = '1';
   },
-  onAfterEnter(el: HTMLElement) {
-    el.style.height = '';
-    el.style.opacity = '';
+  onAfterEnter(el: Element) {
+    const element = asElement(el);
+    element.style.height = '';
+    element.style.opacity = '';
   },
-  onBeforeLeave(el: HTMLElement) {
-    el.style.height = el.scrollHeight + 'px';
-    el.style.opacity = '1';
+  onBeforeLeave(el: Element) {
+    const element = asElement(el);
+    element.style.height = element.scrollHeight + 'px';
+    element.style.opacity = '1';
   },
-  onLeave(el: HTMLElement) {
-    void el.offsetHeight;
-    el.style.height = '0';
-    el.style.opacity = '0';
+  onLeave(el: Element) {
+    const element = asElement(el);
+    void element.offsetHeight;
+    element.style.height = '0';
+    element.style.opacity = '0';
   },
-  onAfterLeave(el: HTMLElement) {
-    el.style.height = '';
-    el.style.opacity = '';
+  onAfterLeave(el: Element) {
+    const element = asElement(el);
+    element.style.height = '';
+    element.style.opacity = '';
   }
 };
 
-export default {
+export default defineComponent({
   name: 'CollapseTransition',
   setup(_, { slots }) {
     return () =>
@@ -41,4 +49,4 @@ export default {
         slots
       );
   }
-};
+});

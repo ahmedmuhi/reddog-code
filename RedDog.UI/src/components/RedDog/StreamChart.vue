@@ -1,5 +1,5 @@
 <script lang="ts">
-import { defineComponent, h, PropType } from 'vue';
+import { defineComponent, h, type DefineComponent, PropType } from 'vue';
 import { Line } from 'vue-chartjs';
 import {
   Chart as ChartJS,
@@ -17,6 +17,8 @@ import {
 
 ChartJS.register(Title, Tooltip, Legend, LineElement, LinearScale, CategoryScale, PointElement, Filler);
 
+const LineChartComponent = Line as DefineComponent<Record<string, unknown>, Record<string, unknown>, unknown>;
+
 ChartJS.defaults.color = '#c0c0c0';
 ChartJS.defaults.font = {
   family: "'Exo', sans-serif",
@@ -27,7 +29,7 @@ ChartJS.defaults.font = {
 export default defineComponent({
   name: 'StreamChart',
   components: {
-    LineChart: Line
+    LineChart: LineChartComponent
   },
   props: {
     chartData: {
@@ -41,7 +43,7 @@ export default defineComponent({
   },
   setup(props) {
     return () =>
-      h(Line, {
+      h(LineChartComponent, {
         data: props.chartData,
         options: props.options
       });
