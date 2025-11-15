@@ -568,3 +568,15 @@ Successfully shutdown Dapr sidecar.
 **Next Steps:**
 - Clone the Wave 1 structure into the remaining eight workflows (Accounting → VirtualWorker), then rerun each job manually to confirm artifacts and runtimes.
 - Once several workflows are green, re-enable the stricter build gate by cleaning up the nullable warnings and reintroducing `-warnaserror`.
+
+### Update - 2025-11-15 13:30 NZDT
+
+**Summary:** Wave 1 rollout is complete for all .NET workflows. The UI pipeline wiring is ready but still failing because `node-sass@6.0.1` cannot build on Node 24; we’ll handle that as part of the Vue 3 upgrade or by temporarily pinning Node 16 for the tooling job.
+
+**Actions:**
+1. Applied the reusable tooling audit + build/test structure to Accounting, Bootstrapper, Loyalty, MakeLine, ReceiptGeneration, VirtualCustomers, and VirtualWorker. Each workflow was triggered manually (runs `19379370790`, `19379468993`, `19379565144`, `19379946825`, `19380352324`, `19381373863`, `19381445296`) and produced the expected tooling/coverage artifacts.
+2. Updated `package-ui.yaml` to use the Node reusable audit and added npm lint/test/build steps. Run `19380967969` failed during `npm ci` because `node-sass` requires Node ≤ 16—documented the issue so we can either pin the Node version or accelerate the Vue 3 refactor.
+
+**Next Steps:**
+- Decide whether to pin the UI workflow to Node 16 temporarily or jump directly to the Vue 3 migration (which replaces `node-sass`).
+- Once UI is green, update branch protection to require the three checks and evaluate Wave 2/3 scope (OIDC docker pushes, reusable/composite actions, manifest promotion workflow hardening, CI telemetry).
