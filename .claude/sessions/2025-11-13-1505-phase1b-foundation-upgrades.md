@@ -580,3 +580,7 @@ Successfully shutdown Dapr sidecar.
 **Next Steps:**
 - Decide whether to pin the UI workflow to Node 16 temporarily or jump directly to the Vue 3 migration (which replaces `node-sass`).
 - Once UI is green, update branch protection to require the three checks and evaluate Wave 2/3 scope (OIDC docker pushes, reusable/composite actions, manifest promotion workflow hardening, CI telemetry).
+
+### Update - 2025-11-15 13:45 NZDT
+
+Removed the unused `upstream` git remote (`git remote remove upstream`) so the local repo only points at `origin=git@github.com:ahmedmuhi/reddog-code.git`. All future pushes now go exclusively to our fork.
