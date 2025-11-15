@@ -5,7 +5,7 @@ import router from './router';
 import i18n from './i18n';
 import BlackDashboard from './plugins/blackDashboard';
 
-import './assets/sass/black-dashboard.scss';
+import './assets/css/black-dashboard.css';
 import './assets/css/nucleo-icons.css';
 import './assets/css/transitions.css';
 

@@ -30,6 +30,16 @@ npm install
 npm run dev
 ```
 
+### Rebuilding the dashboard theme
+
+The Creative Tim Black Dashboard styles now ship as a precompiled CSS asset so Vite no longer needs to process the legacy Sass sources (removing the Dart Sass deprecation spam). If you edit anything under `src/assets/sass/black-dashboard/`, regenerate the CSS bundle before committing:
+
+```bash
+npm run build:theme
+```
+
+This command writes `src/assets/css/black-dashboard.css`, which is the file imported from `src/main.ts`.
+
 
 ## Hand crafted by
 - [Lynn Orrell](https://github.com/lynn-orrell)
