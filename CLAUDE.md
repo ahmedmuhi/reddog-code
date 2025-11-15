@@ -221,6 +221,13 @@ To understand past development work:
 - `/project:session-update` - Update session with progress
 - `/project:session-end` - End current session
 
+### Recent Session Highlights
+
+- **Wave 0 + Wave 1 CI/CD complete**: every `.github/workflows/package-*.yaml` now has the reusable tooling audit → build/test → docker sequence with artifacts (`tooling-<service>-<runId>`, coverage bundles). UI workflow uses the same pattern but is temporarily red because `node-sass@6.0.1` can’t compile on Node 24—pin Node 16 or complete the Vue 3 migration with `sass` to unblock.
+- **GHCR-first deployments**: all services push to `ghcr.io/ahmedmuhi/...` using `./scripts/upgrade-build-images.sh`. Helm charts accept `imagePullSecrets` lists, and `scripts/refresh-ghcr-secret.sh` recreates the `ghcr-cred` Kubernetes secret when the GHCR PAT rotates.
+- **Resource tweaks**: UI deployment allows service-specific resource overrides (currently requesting 256 Mi, limiting at 1 Gi) and Helm upgrades confirm the new limits.
+- **Git remotes trimmed**: removed the unused `upstream` remote from local clones so only `origin=ahmedmuhi/reddog-code` remains.
+
 ## Modernization Strategy (Target State)
 
 🚧 **This project is undergoing active modernization** (Started: 2025-11-01)

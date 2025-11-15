@@ -218,6 +218,22 @@ To understand past development work:
 - `/project:session-update` - Update session with progress
 - `/project:session-end` - End current session
 
+## Development Sessions (Quick Reference)
+
+The repository uses the same session-tracking system described in `CLAUDE.md`. Quick reminders for agents:
+
+- **Where sessions live**: `.claude/sessions/` (Markdown files named `YYYY-MM-DD-HHMM.md`). The active session name is stored in `.claude/sessions/.current-session`.
+- **What to log**: goals, timestamped updates, key decisions, open questions, and explicit next steps. Mention helper scripts or new workflows so future sessions can reuse them.
+- **Start / end workflow**: use `/project:session-start` when kicking off substantial work, `/project:session-update` as you make progress, `/project:session-current` to see the active file, and `/project:session-end` when wrapping up.
+- **Closing checklist**: summarize accomplishments, remaining risks, and follow-ups so AGENTS/CLAUDE docs can be updated with the highlights.
+
+## Recent Session Highlights
+
+- **GHCR-first images**: every workload now pushes to `ghcr.io/ahmedmuhi/...` via `./scripts/upgrade-build-images.sh`. `scripts/refresh-ghcr-secret.sh` recreates the `ghcr-cred` pull secret (needs a PAT with `packages:read/write`). Helm values (`services.common.image.pullSecrets`) and templates include optional `imagePullSecrets` blocks so clusters pull directly from GHCR.
+- **Helm deployments**: Wave 0.5 cleanup finished—the kind cluster pulls GHCR images, bootstrapper job issues resolved, and UI resources now accept service-specific overrides (e.g., memory limit 1 Gi).
+- **CI/CD modernization**: Wave 0 (action upgrades/tooling installs) and Wave 1 (tooling audit → build/test → docker) are complete for all .NET services. Each workflow uploads tooling artifacts (`dotnet-format-report.json`, outdated/vulnerable reports) plus coverage bundles. The UI workflow is wired to the reusable Node audit but still fails because Vue 2’s `node-sass@6.0.1` does not support Node 24—plan to pin Node 16 temporarily or upgrade to Vue 3 (`sass`).
+- **Git hygiene**: the obsolete `upstream` remote (Azure/reddog-code) was removed (`git remote remove upstream`), so pushes now go only to `ahmedmuhi/reddog-code`.
+
 ## Modernization Strategy (Target State)
 
 🚧 **This project is undergoing active modernization** (Started: 2025-11-01)
