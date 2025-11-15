@@ -12,7 +12,6 @@
  * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
  */
-/* Generated from src/assets/sass/black-dashboard.scss via `npm run build:theme`. Do not edit manually. */
 /*     brand Colors              */
 /* navbar color */
 :root {
@@ -12834,16 +12833,23 @@ hr {
 }
 
 table.tablesorter thead tr .header {
-  background: url("/img/bg.gif") no-repeat center right;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15)) no-repeat center right;
+  background-size: 100% 100%;
   cursor: pointer;
 }
 
 table.tablesorter thead tr .headerSortUp {
-  background-image: url("/img/asc.gif");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 12 12%22%3E%3Cpolyline points=%222,8 6,4 10,8%22 fill=%22none%22 stroke=%22%23ffffff%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center right;
+  background-size: 12px 12px;
 }
 
 table.tablesorter thead tr .headerSortDown {
-  background-image: url("/img/desc.gif");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 12 12%22%3E%3Cpolyline points=%222,4 6,8 10,4%22 fill=%22none%22 stroke=%22%23ffffff%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center right;
+  background-size: 12px 12px;
 }
 
 .dataTables_wrapper .table-striped tbody tr:nth-of-type(odd) {
