@@ -12,6 +12,31 @@ export default defineConfig(({ mode }) => {
         '@': path.resolve(__dirname, 'src')
       }
     },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (!id.includes('node_modules')) {
+              return;
+            }
+
+            if (id.includes('vue') || id.includes('pinia') || id.includes('vue-router') || id.includes('vue-i18n')) {
+              return 'vendor-vue';
+            }
+
+            if (id.includes('chart.js') || id.includes('vue-chartjs') || id.includes('chartjs-plugin-streaming')) {
+              return 'vendor-charts';
+            }
+
+            if (id.includes('moment') || id.includes('currency.js')) {
+              return 'vendor-utils';
+            }
+
+            return 'vendor';
+          }
+        }
+      }
+    },
     define: {
       __APP_CONFIG__: JSON.stringify({
         IS_CORP: env.VITE_IS_CORP,
