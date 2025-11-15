@@ -16,7 +16,7 @@ type="button"
           </button>
         </div>
         <div class="logo-content">
-          <div class="left-logo"><img src="img/reddog-logo-text.png" width="184px"/></div>
+          <div class="left-logo"><img src="/img/reddog-logo-text.png" width="184px"/></div>
           <div v-if="isCorp === true || isCorp === 'true'" class="right-logo logo-simple-text">CORP<small>headquarters</small></div>
           <div v-else class="right-logo logo-simple-text">{{ storeId }}<small class="branch">branch</small></div>
         </div>
@@ -46,7 +46,7 @@ tag="li"
                 <a href="#" class="dropdown-toggle nav-link" data-toggle="dropdown" aria-expanded="true">
                   <span class="site-name">{{ siteType }}</span>
                   <div class="photo">
-                    <img src="img/max-lord.png">
+                    <img src="/img/max-lord.png">
                   </div>
                   <!-- <b class="caret d-none d-lg-block d-xl-block"></b> -->
                   <p class="d-lg-none">
