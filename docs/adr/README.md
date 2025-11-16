@@ -60,6 +60,7 @@ Foundational technology choices that affect the entire application:
   - **Decision:** Use ubuntu:24.04 as base for all application containers
   - **Status:** Accepted but not implemented (Dockerfiles not created yet)
   - **Why it matters:** Security patches, consistent platform across all services
+  - **Note:** See `plan/upgrade-infrastructure-containers-implementation-1.md` and the latest CI Dockerfiles for current progress.
 
 ### Configuration & Secrets Management
 
@@ -103,8 +104,8 @@ How services are packaged, deployed, and run across environments:
 
 - ⚪ [ADR-0009: Helm Multi-Environment Deployment](adr-0009-helm-multi-environment-deployment.md)
   - **Decision:** Use Helm charts with environment-specific values files
-  - **Status:** Planned but not implemented (charts/ directory doesn't exist)
-  - **Why it matters:** Enables deployment to AKS, EKS, GKE with single chart
+  - **Status:** Planned / Early implementation (a `charts/` hierarchy exists under `charts/`, but ADR-0009 is not yet fully realized)
+  - **Why it matters:** Enables deployment to AKS, EKS, GKE with a consistent chart and environment-specific values
 
 - ⚪ [ADR-0010: Nginx Ingress Controller (Cloud-Agnostic)](adr-0010-nginx-ingress-controller-cloud-agnostic.md)
   - **Decision:** Use Nginx Ingress Controller instead of cloud-specific ingress
@@ -120,11 +121,16 @@ Runtime behavior, monitoring, and service health:
   - **Status:** Accepted but not fully implemented (current services use `/health`)
   - **Why it matters:** Standard Kubernetes health check pattern for liveness/readiness
 
-- ⚪ [ADR-0011: OpenTelemetry Observability Standard](adr-0011-opentelemetry-observability-standard.md)
+-- ⚪ [ADR-0011: OpenTelemetry Observability Standard](adr-0011-opentelemetry-observability-standard.md)
   - **Decision:** Use native OpenTelemetry OTLP exporters for logging, tracing, metrics
-  - **Status:** Planned (services currently use Serilog 4.1.0)
+  - **Status:** Planned / Partially implemented (some services still use Serilog-only logging; others already adopt OpenTelemetry)
   - **Why it matters:** Vendor-neutral observability with cloud-agnostic export targets
-  - **Blocker:** Requires .NET 10 upgrade (ADR-0001) first
+  - **Blocker:** Full rollout is tied to ADR-0001 (.NET 10) and ADR-0009 (observability stack via Helm)
+
+### Supporting / Notes
+
+- 📝 [ADR-0005: Implementation Notes](adr-0005-implementation-notes.md)  
+  Additional context and examples referenced by ADR-0005 (Kubernetes Health Probe Standardization).
 
 ### Multi-Cloud Strategy
 
@@ -426,9 +432,9 @@ This ADR hub connects to other key documentation:
 | Logging | OpenTelemetry OTLP | Console (dev), Cloud (prod) | ⚪ Planned (ADR-0011) |
 | Tracing | OpenTelemetry OTLP | Dapr tracing config | ⚪ Planned (ADR-0011) |
 | Metrics | OpenTelemetry OTLP | Prometheus/Cloud | ⚪ Planned (ADR-0011) |
-| Current | Serilog 4.1.0 | Console only | 🟢 Implemented (Legacy) |
+| Current | Serilog 4.x + partial OTEL | Console / OTLP | 🟡 Mixed state (see ADR-0011) |
 
-**Note:** Current services use Serilog. ADR-0011 prescribes migration to native OpenTelemetry.
+**Note:** Some services still use Serilog-only logging; others (for example, ReceiptGenerationService) already adopt OpenTelemetry. ADR-0011 is the source of truth for the intended end state.
 
 ### Health Check Quick Reference
 
@@ -482,7 +488,7 @@ Proposed → Accepted → Implemented
 
 **Template:** Use `adr-template.md` when creating new ADRs
 
-**Numbering:** Next ADR will be ADR-0013 (zero-padded, 4 digits)
+**Numbering:** Next ADR will be ADR-0014 (zero-padded, 4 digits)
 
 ### Cross-Reference Validation
 
