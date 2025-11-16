@@ -142,12 +142,11 @@ jobs:
           propertyPath: 'spec.template.spec.containers.0.image'
           value: ${{ needs.set-env.outputs.repository }}/${{ needs.set-env.outputs.image }}:${{ needs.set-env.outputs.version }}
           commitChange: 'true'
-          branch: 'master'
+          message: 'Update deployment manifest for ${{ needs.set-env.outputs.version }}'
+          branch: ui-deploy/${{ needs.set-env.outputs.version }}
           targetBranch: 'master'
-          masterBranchName: 'master'
-          message: 'Updated accounting service deployment manifest.'
           token: ${{ secrets.GITHUB_TOKEN }}
-          createPR: 'false'
+          createPR: 'true'
       - name: Echo yaml
         run: |
           cat manifests/branch/base/deployments/accounting-service.yaml
