@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
         - name: ui
-          image: ghcr.io/ahmedmuhi/reddog-retail-demo/reddog-retail-ui:ff68e47
+          image: ghcr.io/ahmedmuhi/reddog-retail-demo/reddog-retail-ui:552ed6d
           ports:
             - containerPort: 8080
           imagePullPolicy: Always
