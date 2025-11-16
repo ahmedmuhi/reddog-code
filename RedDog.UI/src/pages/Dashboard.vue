@@ -125,11 +125,16 @@
   </div>
 </template>
 <script>
-import moment from 'moment'
+import dayjs from 'dayjs'
+import duration from 'dayjs/plugin/duration'
+import customParseFormat from 'dayjs/plugin/customParseFormat'
 import currency from 'currency.js'
 import { appConfig } from '@/config/appConfig';
 
 import StreamChart from '../components/RedDog/StreamChart.vue'
+
+dayjs.extend(duration)
+dayjs.extend(customParseFormat)
 
 export default {
   name: 'DashboardView',
@@ -239,7 +244,7 @@ export default {
       lastArr = data.values.slice(data.values.length-10, data.values.length) 
       
       lastArr.forEach((lt,li) => {
-        minuteLabels.push(moment(lt.pointInTime).add(-4, 'hours').format("h:mmA"))
+        minuteLabels.push(dayjs(lt.pointInTime).add(-4, 'hour').format('h:mmA'))
         dataValues.push(lt.value)
         if (previousArr.length > 0){
           dataValuesPrev.push(previousArr[li].value)
@@ -283,7 +288,8 @@ export default {
                   // this.profitPerOrderFormatted = currency(this.profitPerOrder, {precision:2}).format(); /// PROFIT PER ORDER FORMATTED 
                   
                   // TODO: LYNN ORRELL DEMO 
-                  this.avgFulfillmentSec = moment.duration((this.totalFulfillmentTime / this.fulfilledOrders).toFixed(0), "seconds").seconds();
+                  const avgSeconds = Number((this.totalFulfillmentTime / this.fulfilledOrders).toFixed(0));
+                  this.avgFulfillmentSec = dayjs.duration(avgSeconds, 'second').seconds();
                   if(this.avgFulfillmentSec > 60){
                     this.fulfillmentTimeDesc = ' min'
                     this.avgFulfillmentSec = (this.avgFulfillmentSec / 60).toFixed(0)
@@ -324,7 +330,7 @@ export default {
           data.payload.forEach((ord, index) => {
             this.inflight.push({
               id: ord.orderId,
-              timeIn: moment(ord.orderDate).format('h:mmA'),
+              timeIn: dayjs(ord.orderDate).format('h:mmA'),
               first: ord.firstName,
               last: ord.lastName,
               itemCount: ord.orderItems.length,
@@ -361,7 +367,7 @@ export default {
             
             data.payload.forEach((ord, index) => {
                 if(ord.storeId.toLowerCase() === this.storeId.toLowerCase()){
-                  salesLabels.push(moment(`${ord.orderMonth}-${ord.orderDay}-${ord.orderYear}`, "MM-DD-YYYY").add(ord.orderHour, 'hours').add(-4, 'hours').format('M/D hA'))
+                  salesLabels.push(dayjs(`${ord.orderMonth}-${ord.orderDay}-${ord.orderYear}`, 'MM-DD-YYYY').add(ord.orderHour, 'hour').add(-4, 'hour').format('M/D hA'))
                   salesValues.push(ord.totalSales.toFixed(0))
                   profitValues.push(ord.totalProfit.toFixed(0))
                   this.profitPerOrderFormatted = currency((ord.totalProfit / ord.totalOrders), {precision:2}).format()
@@ -400,12 +406,12 @@ export default {
           if(data.e === 0){
             data.payload.forEach((ord, index) => {
                 
-                salesLabels.push(moment(`${ord.orderMonth}-${ord.orderDay}-${ord.orderYear}`, "MM-DD-YYYY").add(ord.orderHour, 'hours').add(-4, 'hours').format('M/D hA'))
+                salesLabels.push(dayjs(`${ord.orderMonth}-${ord.orderDay}-${ord.orderYear}`, 'MM-DD-YYYY').add(ord.orderHour, 'hour').add(-4, 'hour').format('M/D hA'))
                 
                 salesValues.push(ord.totalSales.toFixed(0))
                 profitValues.push(ord.totalProfit.toFixed(0))
 
-                orderLabels.push(moment(`${ord.orderMonth}-${ord.orderDay}-${ord.orderYear}`, "MM-DD-YYYY").add(ord.orderHour, 'hours').add(-4, 'hours').format('M/D hA'))
+                orderLabels.push(dayjs(`${ord.orderMonth}-${ord.orderDay}-${ord.orderYear}`, 'MM-DD-YYYY').add(ord.orderHour, 'hour').add(-4, 'hour').format('M/D hA'))
                 orderValues.push(ord.totalOrders)
                 itemValues.push(ord.totalOrderItems)
 
@@ -710,7 +716,7 @@ export default {
 
       let labelStrings = []
       labels.forEach((lb, ind) =>{
-        var dtString = moment(`${lb.orderMonth}-${lb.orderDay}-${lb.orderYear}`, "MM-DD-YYYY").add(lb.orderHour, 'hours').add(-4, 'hours').format('M/D hA')
+        var dtString = dayjs(`${lb.orderMonth}-${lb.orderDay}-${lb.orderYear}`, 'MM-DD-YYYY').add(lb.orderHour, 'hour').add(-4, 'hour').format('M/D hA')
         labelStrings.push(dtString)
         if(ind === labels.length -1){
           tmpSalesChartData.labels = labelStrings.slice(labelStrings.length-10, labelStrings.length)

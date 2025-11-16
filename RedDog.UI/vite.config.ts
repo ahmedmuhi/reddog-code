@@ -38,7 +38,7 @@ export default defineConfig(({ mode }) => {
             }
 
             if (
-              id.includes('node_modules/moment/') ||
+              id.includes('node_modules/dayjs/') ||
               id.includes('node_modules/currency.js/')
             ) {
               return 'vendor-utils';
