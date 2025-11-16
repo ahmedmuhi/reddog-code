@@ -31,7 +31,6 @@ jobs:
     env:
       SERVICE_NAME: ${{ inputs.service-name }}
       ARTIFACT_DIR: artifacts/tooling/${{ inputs.service-name }}
-      ARTIFACT_PATH: ${{ format('{0}/artifacts/tooling/{1}', github.workspace, inputs.service-name) }}
       AUDIT_LEVEL: ${{ inputs.audit-level }}
     steps:
       - name: Checkout
@@ -45,7 +44,7 @@ jobs:
           cache-dependency-path: ${{ inputs.cache-dependency-path }}
 
       - name: Prepare artifact directory
-        run: mkdir -p "$ARTIFACT_PATH"
+        run: mkdir -p "$GITHUB_WORKSPACE/$ARTIFACT_DIR"
 
       - name: Install dependencies
         run: npm ci
@@ -54,7 +53,7 @@ jobs:
         id: npm_audit
         run: |
           set +e
-          npm audit --audit-level="$AUDIT_LEVEL" | tee "$ARTIFACT_PATH/npm-audit.txt"
+          npm audit --audit-level="$AUDIT_LEVEL" | tee "$GITHUB_WORKSPACE/$ARTIFACT_DIR/npm-audit.txt"
           status=$?
           echo "status=$status" >> "$GITHUB_OUTPUT"
           exit 0
