@@ -39,6 +39,7 @@ npm run build:theme
 ```
 
 This command writes `src/assets/css/black-dashboard.css`, which is the file imported from `src/main.ts`.
+The script intentionally runs Sass without silencing deprecation warnings, so if Dart Sass reports a warning, treat it as a blocker and fix the offending partial before committing.
 
 
 ## Hand crafted by

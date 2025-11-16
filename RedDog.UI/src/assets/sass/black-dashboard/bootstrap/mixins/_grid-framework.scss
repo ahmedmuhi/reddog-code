@@ -3,6 +3,7 @@
 // Used only by Bootstrap to generate the correct number of grid classes given
 // any value of `$grid-columns`.
 
+@use 'sass:map' as map;
 @use '../variables' as *;
 @use '../functions' as *;
 @use 'breakpoints' as *;
@@ -17,7 +18,7 @@
     padding-left: ($gutter * 0.5);
   }
 
-  @each $breakpoint in map-keys($breakpoints) {
+  @each $breakpoint in map.keys($breakpoints) {
     $infix: breakpoint-infix($breakpoint, $breakpoints);
 
     // Allow columns to stretch full width below their breakpoints
