@@ -1,0 +1,25 @@
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-production
+  namespace: cert-manager
+  labels:
+    app.kubernetes.io/name: cert-manager
+    app.kubernetes.io/component: issuer
+    app.kubernetes.io/environment: production
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: devops+letsencrypt-prod@example.com  # TODO: replace with SOC mailbox
+    privateKeySecretRef:
+      name: letsencrypt-production-account-key
+    solvers:
+      - http01:
+          ingress:
+            ingressClassName: nginx
+        selector:
+          dnsZones:
+            - reddog.example.com
+  retryBackoff:
+    duration: 30s
+    factor: 2

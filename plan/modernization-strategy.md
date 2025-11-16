@@ -194,9 +194,10 @@ The following prerequisites must be completed before starting Phase 1A:
 - ✅ kind cluster created and operational (ADR-0008 implemented)
 - ✅ Helm charts created and deployed (`charts/reddog/`, `charts/infrastructure/`)
 - ✅ All services deployed via Helm and healthy (2/2 Running with Dapr sidecars)
-- ✅ Infrastructure running (Redis 6.2-alpine, SQL Server 2022, Nginx Ingress)
+- ✅ Infrastructure running (Redis 7.2-alpine, SQL Server 2022, Nginx Ingress Controller v1.14.0)
 - ✅ Receipt service Dapr binding working (localstorage with emptyDir + fsGroup per ADR-0012)
 - ✅ End-to-end smoke tests passing (OrderService → all subscribers)
+- ✅ Infrastructure containers upgraded (Nov 16, 2025) per `plan/upgrade-infrastructure-containers-implementation-1.md`
 - ⚠️ KEDA 2.2.0 → 2.18.1 upgrade not performed (optional, deferred)
 
 **Session Documentation:**
@@ -218,11 +219,12 @@ This infrastructure IS operational and Phase 1A (.NET 10 upgrade) will use it fo
 
 ## Future Production Hardening (OPTIONAL)
 
-**Note:** The infrastructure upgrades described below represent **optional future enhancements** for multi-cloud production deployments (Azure/AWS/GCP). The current Phase 0.5 implementation uses:
-- Redis 6.2-alpine (state stores + pub/sub) - acceptable for local/dev
-- SQL Server 2022 (accounting database)
+**Note:** The infrastructure upgrades described below represent **optional future enhancements** for multi-cloud production deployments (Azure/AWS/GCP). The current implementation uses:
+- Redis 7.2-alpine (state stores + pub/sub) - Dapr 1.16.2 compatible
+- SQL Server 2022-latest (accounting database)
+- RabbitMQ 4.2.0-debian-12-r0 (cloud pub/sub)
+- Nginx Ingress Controller v1.14.0
 - Localstorage binding with emptyDir (receipt generation)
-- Nginx Ingress Controller
 
 These components satisfy Phase 1A (.NET 10 upgrade) requirements. The upgrades below can be performed **after Phase 1A completion** if multi-cloud production deployment is desired.
 
@@ -231,32 +233,34 @@ These components satisfy Phase 1A (.NET 10 upgrade) requirements. The upgrades b
 **Platform Infrastructure:**
 - Dapr 1.5.0 → 1.16.2 (runtime platform for all services)
 - KEDA 2.2.0 → 2.18.1 (autoscaling framework)
-- cert-manager 1.3.1 → 1.19 (TLS certificate management)
+- cert-manager 1.3.1 → 1.19 (TLS certificate management; cloud clusters only, local dev remains HTTP)
 
 **Data Infrastructure:**
 - State stores: Migrate from Redis to cloud-native databases
-  - Local dev: Redis 6.2.14 (Dapr 1.16 compatible)
+  - Local dev: Redis 7.2-alpine (Dapr 1.16.2 compatible, currently deployed)
   - Azure: Cosmos DB (NoSQL API) via `state.azure.cosmosdb`
   - AWS: DynamoDB via `state.aws.dynamodb`
   - GCP: Cloud Firestore via `state.gcp.firestore`
 
 **Object Storage:**
 - Migrate from Azure Blob (cloud-specific) to cloud-agnostic strategy
-  - Local dev: MinIO (S3-compatible) via `bindings.aws.s3`
+  - Local dev: Filesystem binding (`bindings.localstorage`) for quick iteration
   - AWS: S3 via `bindings.aws.s3` with IRSA
   - Azure: Blob Storage via `bindings.azure.blobstorage` with Workload Identity
   - GCP: Cloud Storage via `bindings.gcp.bucket` with Workload Identity
+  - Cloud binding templates committed 2025-11-16 (plan/migrate-object-storage-cloud-agnostic-implementation-1.md)
 
-**Supporting Infrastructure:**
-- SQL Server 2019 → 2022 (or PostgreSQL 17 alternative)
-- RabbitMQ Helm 8.20.2 → Docker 4.2.0-management
-- Nginx Helm 3.31.0 → Docker 1.28.0-bookworm
+**Supporting Infrastructure:** ✅ **COMPLETE** (2025-11-16)
+- SQL Server 2019 → 2022-latest ✅ Done
+- RabbitMQ Helm 8.20.2 → Docker 4.2.0-debian-12-r0 ✅ Done (cloud)
+- Redis → 7.2-alpine ✅ Done (local dev)
+- Nginx → Ingress Controller v1.14.0 ✅ Done
 
 ### Success Criteria
 
 - ✅ Dapr 1.16.2 operational on all clusters (AKS, EKS, GKE, Container Apps)
 - ✅ KEDA 2.18.1 installed and healthy
-- ✅ cert-manager 1.19 issuing Let's Encrypt certificates
+- ✅ cert-manager 1.19 issuing Let's Encrypt certificates (plan updated 2025-11-16; scoped to cloud clusters only)
 - ✅ State stores migrated to cloud-native databases (no data loss)
 - ✅ Object storage using cloud-agnostic Dapr bindings
 - ✅ All infrastructure containers upgraded to latest stable versions
@@ -268,9 +272,9 @@ These components satisfy Phase 1A (.NET 10 upgrade) requirements. The upgrades b
 ### Critical Constraints
 
 - **Dapr .NET SDK 1.16.2 does NOT support .NET 10** - Services must use Dapr HTTP/gRPC APIs directly until upstream fix
-- **Dapr 1.16 does NOT support Redis 7/8** - Cloud-native state stores (Cosmos DB, DynamoDB, Firestore) required
+- **Redis 7.2-alpine is working with Dapr 1.16.2** - Earlier concerns about Redis 7/8 compatibility were unfounded
 - **Azure Blob Storage has NO S3 API** - Must use cloud-specific Dapr bindings per environment
-- **Redis 6.2.14 is EOL (July 2024)** - Acceptable for local dev only, NOT production
+- **Redis for local dev only** - Production should use managed state stores (Cosmos DB, DynamoDB, Firestore)
 
 ### Implementation Plans
 
@@ -278,7 +282,7 @@ These components satisfy Phase 1A (.NET 10 upgrade) requirements. The upgrades b
 2. [Dapr 1.5.0 → 1.16.2 Upgrade](./upgrade-dapr-1.16-implementation-1.md)
 3. [KEDA 2.2.0 → 2.18.1 Upgrade](./upgrade-keda-2.18-implementation-1.md)
 4. [cert-manager 1.3.1 → 1.19 Upgrade](./upgrade-certmanager-1.19-implementation-1.md)
-5. [Infrastructure Containers Upgrade](./upgrade-infrastructure-containers-implementation-1.md)
+5. [Infrastructure Containers Upgrade](./done/upgrade-infrastructure-containers-implementation-1.md) ✅ Done
 6. [Cloud-Native State Stores Migration](./migrate-state-stores-cloud-native-implementation-1.md)
 7. [Cloud-Agnostic Object Storage Migration](./migrate-object-storage-cloud-agnostic-implementation-1.md)
 

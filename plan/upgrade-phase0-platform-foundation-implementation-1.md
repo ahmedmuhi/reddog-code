@@ -113,6 +113,8 @@ tags: [infrastructure, upgrade, phase-0, platform, dapr, keda, certmanager, prer
 | TASK-207 | Run smoke tests for Dapr service invocation | | |
 | TASK-208 | Validate Dapr HTTP API endpoints respond correctly | | |
 
+> **Update (2025-11-16):** cert-manager upgrade work now follows the detailed, cloud-only plan in `plan/upgrade-certmanager-1.19-implementation-1.md`; local/kind environments purposely omit cert-manager.
+
 ### Implementation Phase 3: State Store Migration (Week 2, Days 8-12)
 
 - **GOAL-003**: Migrate from Redis to cloud-native state stores
@@ -482,3 +484,4 @@ tags: [infrastructure, upgrade, phase-0, platform, dapr, keda, certmanager, prer
 - [KEDA 2.18 Release Notes](https://github.com/kedacore/keda/releases/tag/v2.18.0)
 - [Cert-Manager Documentation](https://cert-manager.io/docs/)
 - [Kubernetes 1.30 Release Notes](https://kubernetes.io/blog/2024/04/17/kubernetes-v1-30-release/)
+> **Update (2025-11-16):** The cert-manager upgrade plan now details a cloud-only rollout (no local cert-manager) – see `plan/upgrade-certmanager-1.19-implementation-1.md` for phase-by-phase steps before executing TASK-203/TASK-206.

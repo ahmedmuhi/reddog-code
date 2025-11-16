@@ -2,19 +2,32 @@
 goal: "Upgrade Infrastructure Containers (SQL Server, Redis, RabbitMQ, Nginx) to Latest Stable Versions"
 version: 1.0
 date_created: 2025-11-09
-last_updated: 2025-11-09
+last_updated: 2025-11-16
 owner: "Red Dog Modernization Team"
-status: 'Planned'
+status: 'Done'
 tags: [infrastructure, upgrade, phase-0, sql, redis, rabbitmq, nginx, containers]
 ---
 
 # Introduction
 
-![Status: Planned](https://img.shields.io/badge/status-Planned-blue)
+![Status: Done](https://img.shields.io/badge/status-Done-green)
 
-This plan upgrades supporting infrastructure containers to latest stable versions: SQL Server 2019→2022, Redis (Helm 15.0.0 → Docker 6.2.14), RabbitMQ (Helm 8.20.2 → Docker 4.2.0), and Nginx (Helm 3.31.0 → Docker 1.28.0).
+This plan upgrades supporting infrastructure containers to latest stable versions: SQL Server 2019→2022, Redis (Helm 15.0.0 → Docker 7.2-alpine), RabbitMQ (Helm 8.20.2 → Docker 4.2.0), and Nginx (Helm 3.31.0 → Nginx Ingress 1.14.0).
 
 **Duration**: 1 week (within Phase 0)
+
+## Completion Summary (2025-11-16)
+
+**Implemented:**
+- ✅ SQL Server 2022-latest (values-local.yaml)
+- ✅ Redis 7.2-alpine (charts/infrastructure/templates/redis.yaml) - Dapr 1.16.2 compatible
+- ✅ RabbitMQ 4.2.0-debian-12-r0 (charts/external/rabbitmq/values-cloud.yaml)
+- ✅ Nginx Ingress Controller v1.14.0 (scripts/setup-local-dev.sh, charts/external/nginx-ingress/)
+
+**Notes:**
+- Redis version kept at 7.2-alpine (working with Dapr 1.16.2)
+- Original plan specified Redis 6.2.14, but 7.2-alpine is functional and newer
+- Image is hardcoded in Helm template (could be made configurable in future)
 
 ## 1. Requirements & Constraints
 

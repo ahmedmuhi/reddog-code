@@ -1,165 +1,159 @@
 ---
-goal: "Upgrade cert-manager from 1.3.1 to 1.19 for Let's Encrypt ACME v2 and Security Patches"
-version: 1.0
+goal: "Deploy cert-manager v1.19.1 for TLS Certificate Management"
+version: 2.0
 date_created: 2025-11-09
-last_updated: 2025-11-09
+last_updated: 2025-11-16
 owner: "Red Dog Modernization Team"
 status: 'Planned'
-tags: [infrastructure, upgrade, phase-0, certmanager, tls, security]
+tags: [infrastructure, certmanager, tls, phase-3]
 ---
 
-# Introduction
+# cert-manager v1.19.1 Deployment
 
-![Status: Planned](https://img.shields.io/badge/status-Planned-blue)
+![Status: Deferred](https://img.shields.io/badge/status-Deferred-yellow)
 
-This plan upgrades cert-manager from version 1.3.1 (released 2021) to 1.19 (released 2024), ensuring TLS certificate management uses Let's Encrypt ACME v2 protocol and includes 13 minor versions of security patches.
+**Cloud-only scope (Phase 3 deployment)** – Production and staging clusters get cert-manager; **local/kind environments stay without cert-manager** (developers continue using HTTP locally).
 
-**Critical Context:**
-- cert-manager 1.3.1 is 3+ years outdated with known security vulnerabilities
-- Manages TLS certificates for HTTPS access to Red Dog services
-- Automates Let's Encrypt certificate issuance and renewal
-- cert-manager 1.20+ requires Kubernetes 1.31+ (use 1.19 for K8s 1.30)
+## Scope & Assumptions
 
-**Duration**: 2-3 days (within Phase 0)
-**Risk Level**: LOW (TLS infrastructure only, doesn't affect service logic)
+- Target clusters (AKS/EKS/GKE) are running **Kubernetes 1.31+** before rollout.
+- DNS + ingress already route production domains publicly; Let’s Encrypt HTTP-01 challenges will succeed.
+- cert-manager remains **absent from local dev/kind** to keep environments light and avoid HTTPS drift.
+- ACME e-mail contacts + secrets are managed via Kubernetes Secrets per environment.
+- Helm installations use OCI or jetstack repo with GitOps capture of values files in `plan/` + `manifests/`.
 
-## 1. Requirements & Constraints
+## Quick Reference
 
-### Functional Requirements
+### Version
+- **cert-manager**: v1.19.1 (October 2025)
+- **Kubernetes**: 1.31+ required
+- **Challenge Type**: HTTP-01 with Nginx Ingress
 
-- **REQ-001**: cert-manager 1.19 must be installed for Kubernetes 1.30 compatibility
-- **REQ-002**: Let's Encrypt ACME v2 protocol support required
-- **REQ-003**: Automatic certificate renewal before expiration (90-day cycle)
-- **REQ-004**: Existing certificates must continue working during upgrade
+### Install Command
 
-### Technical Requirements
+```bash
+helm repo add jetstack https://charts.jetstack.io --force-update
 
-- **REQ-005**: Kubernetes 1.30+ (K8s 1.31+ required for cert-manager 1.20+)
-- **REQ-006**: Helm 3.x or kubectl for installation
-- **REQ-007**: Nginx Ingress Controller for HTTP-01 challenge solver
+helm install cert-manager jetstack/cert-manager \
+  --namespace cert-manager \
+  --create-namespace \
+  --version v1.19.1 \
+  --set installCRDs=true \
+  --wait
+```
 
-### Security Requirements
+### ClusterIssuer (Staging - Test First)
 
-- **SEC-001**: TLS certificates issued by trusted CA (Let's Encrypt Production)
-- **SEC-002**: Private keys securely stored in Kubernetes Secrets
-- **SEC-003**: Certificate renewal automated (no manual intervention)
+```yaml
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-staging
+spec:
+  acme:
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    email: your-email@example.com  # UPDATE THIS
+    privateKeySecretRef:
+      name: letsencrypt-staging-account-key
+    solvers:
+      - http01:
+          ingress:
+            ingressClassName: nginx
+```
 
-### Constraints
+### ClusterIssuer (Production)
 
-- **CON-001**: cert-manager 1.19 is latest for Kubernetes 1.30 (1.20+ needs K8s 1.31+)
-- **CON-002**: CRD upgrades required (Certificate, Issuer, ClusterIssuer)
-- **CON-003**: cert-manager upgrade may trigger certificate re-issuance
+```yaml
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-production
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: your-email@example.com  # UPDATE THIS
+    privateKeySecretRef:
+      name: letsencrypt-production-account-key
+    solvers:
+      - http01:
+          ingress:
+            ingressClassName: nginx
+```
 
-## 2. Implementation Steps
+### Ingress Annotation
 
-### Implementation Phase 1: Backup and Preparation (Day 1)
+```yaml
+metadata:
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-staging"  # or letsencrypt-production
+```
 
-- **GOAL-001**: Backup current cert-manager configuration
+## Rate Limits
 
-| Task | Description | Completed | Date |
-|------|-------------|-----------|------|
-| TASK-101 | Backup existing Certificates: `kubectl get certificates -A -o yaml > certificates-backup.yaml` | | |
-| TASK-102 | Backup Issuers: `kubectl get issuers,clusterissuers -A -o yaml > issuers-backup.yaml` | | |
-| TASK-103 | Backup cert-manager deployment: `kubectl get deploy -n cert-manager -o yaml > certmanager-backup.yaml` | | |
-| TASK-104 | Document current Let's Encrypt account email | | |
-| TASK-105 | Verify Let's Encrypt rate limits won't be exceeded (50 certs/domain/week) | | |
+- **Staging**: 30,000 certs/3 hours (not browser-trusted)
+- **Production**: 50 certs/domain/week
 
-### Implementation Phase 2: Helm Chart Upgrade (Day 1-2)
+**Always test with staging first.**
 
-- **GOAL-002**: Upgrade cert-manager via Helm chart
+## Cloud-Specific Notes
 
-| Task | Description | Completed | Date |
-|------|-------------|-----------|------|
-| TASK-201 | Add Jetstack Helm repository: `helm repo add jetstack https://charts.jetstack.io && helm repo update` | | |
-| TASK-202 | Review cert-manager 1.19 Helm values for breaking changes | | |
-| TASK-203 | Install CRDs separately: `kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.19.0/cert-manager.crds.yaml` | | |
-| TASK-204 | Execute Helm upgrade: `helm upgrade cert-manager jetstack/cert-manager --namespace cert-manager --version v1.19.0 --set installCRDs=false --wait` | | |
-| TASK-205 | Verify cert-manager pods are running: `kubectl get pods -n cert-manager` | | |
-| TASK-206 | Check cert-manager webhook is healthy: `kubectl get validatingwebhookconfigurations cert-manager-webhook` | | |
+### AWS EKS (Custom CNI)
+If webhook fails, add to Helm install:
+```bash
+--set webhook.hostNetwork=true \
+--set webhook.securePort=10260
+```
 
-### Implementation Phase 3: Validation (Day 2-3)
+### GKE Private Cluster
+May need firewall rule for webhook (port 10250).
 
-- **GOAL-003**: Validate certificate issuance and renewal
+## When to Implement
 
-| Task | Description | Completed | Date |
-|------|-------------|-----------|------|
-| TASK-301 | Verify existing certificates are still valid: `kubectl get certificates -A` | | |
-| TASK-302 | Test certificate issuance (create test Certificate resource) | | |
-| TASK-303 | Verify Let's Encrypt ACME v2 endpoint connectivity | | |
-| TASK-304 | Check cert-manager logs for errors: `kubectl logs -n cert-manager deployment/cert-manager` | | |
-| TASK-305 | Test HTTP-01 challenge solver via Nginx ingress | | |
-| TASK-306 | Monitor certificate renewal (check expiry dates < 30 days) | | |
+Implement when:
+1. Deploying to cloud (AKS, EKS, GKE)
+2. Have a real domain with DNS configured
+3. Need HTTPS for production
 
-## 3. Alternatives
+Not needed for:
+- Local development (kind cluster)
+- localhost testing
 
-- **ALT-001**: **Use cert-manager 1.20**
-  - **Rejected**: Requires Kubernetes 1.31+, Red Dog uses K8s 1.30
+## Implementation Timeline
 
-- **ALT-002**: **Manual Certificate Management**
-  - **Rejected**: Automation reduces operational burden, manual renewal error-prone
+### Phase 1 – Readiness & Backups (Days 0-2)
+- Verify every target cluster is ≥1.31 and record evidence in session logs.
+- Export existing cert-manager resources (CRDs, ClusterIssuers, Certificates, Secrets) from the `cert-manager` namespace.
+- Create per-environment Helm values files (`values/cert-manager/<env>.yaml`) capturing webhook overrides, ACME contacts, and image registries.
+- Reference `values/cert-manager/staging.yaml` and `values/cert-manager/production.yaml` for the canonical overrides.
+- Draft operational note explaining that local/kind continues without cert-manager and HTTPS is only validated in cloud clusters.
 
-## 4. Dependencies
+### Phase 2 – Staging Upgrade (Days 3-4)
+- Install/upgrade cert-manager via Helm with `installCRDs=true` in the staging cluster.
+- Apply updated `ClusterIssuer` manifests (staging + prod templates with staging endpoints) committed under `manifests/branch/dependencies/cert-manager/`.
+- Annotate staging ingress objects with `cert-manager.io/cluster-issuer` and request a test certificate for a non-critical hostname.
+- Validate controller/webhook pod health, confirm Secrets issued, and document results (satisfies TASK-205/206 in the master plan for staging).
 
-### Infrastructure Dependencies
+### Phase 3 – Production Rollout (Days 5-6)
+- Schedule and communicate a 2-hour change window; confirm Let’s Encrypt rate limits for affected domains.
+- Upgrade/install cert-manager in production using the vetted Helm values, ensuring CRDs are already present.
+- Deploy production `ClusterIssuer`, rotate ACME account keys if required, and annotate production ingresses.
+- Issue a pilot certificate, validate TLS on low-traffic endpoints, then enable certificates on primary domains.
 
-- **DEP-001**: Kubernetes 1.30+ clusters
-- **DEP-002**: Nginx Ingress Controller (HTTP-01 challenge solver)
-- **DEP-003**: Let's Encrypt ACME endpoint accessibility
+### Phase 4 – Validation & Monitoring (Day 7+)
+- Configure alerting for certificate expiration, `CertificateRequest` failures, and pod health (`TASK-806`).
+- Run HTTPS smoke tests across services; capture evidence for modernization success criteria.
+- Document rollback steps (Helm uninstall + secret restore) and keep backups for at least one release cycle.
+- Update modernization strategy and session logs with outcomes; promote plan status to **Done** once production is stable for 7 days.
 
-### Research Dependencies
+## Deliverables
 
-- **DEP-004**: `docs/research/infrastructure-versions-verification.md`
+- Updated Helm values + manifests for staging and production committed to the repo.
+- Runbook entry covering cloud-only cert-manager usage vs. HTTP-only local dev.
+- Validation report summarizing issuance tests, pilot certificate, and monitoring hooks.
+- Monitoring/alerting configuration references (Grafana/Prometheus or cloud-native dashboards).
 
-## 5. Files
+## Rollback Strategy
 
-- **FILE-001**: `manifests/branch/dependencies/cert-manager/cert-manager.yaml` (Helm release - update version to 1.19)
-- **FILE-002**: `manifests/branch/base/issuers/letsencrypt-prod.yaml` (ClusterIssuer for Let's Encrypt)
-- **FILE-003**: Ingress resources with `tls` sections (UI, API gateways)
-
-## 6. Testing
-
-- **TEST-001**: Certificate Issuance
-  - **Purpose**: Verify cert-manager can issue new certificates
-  - **Steps**: Create test Certificate resource, verify Secret created with TLS cert
-  - **Success Criteria**: Certificate status shows `Ready: True`
-
-- **TEST-002**: Certificate Renewal
-  - **Purpose**: Test automatic renewal before expiration
-  - **Steps**: Check certificates expiring < 30 days, verify renewal triggered
-  - **Success Criteria**: New certificate issued, Secret updated
-
-- **TEST-003**: HTTPS Access
-  - **Purpose**: Verify TLS termination works
-  - **Steps**: Access Red Dog UI via HTTPS
-  - **Success Criteria**: Valid Let's Encrypt certificate presented, no browser warnings
-
-## 7. Risks & Assumptions
-
-### Risks
-
-- **RISK-001**: **Certificate Re-Issuance Triggers Rate Limit**
-  - **Likelihood**: Low
-  - **Impact**: Medium (temporary certificate issuance blocked)
-  - **Mitigation**: Use Let's Encrypt staging environment for testing, production for final upgrade
-
-### Assumptions
-
-- **ASSUMPTION-001**: cert-manager 1.19 compatible with Kubernetes 1.30 (verified)
-- **ASSUMPTION-002**: Let's Encrypt rate limits sufficient (50 certs/domain/week)
-- **ASSUMPTION-003**: Existing certificates have >7 days before expiration
-
-## 8. Related Specifications / Further Reading
-
-### Research Documents
-
-- [Infrastructure Versions Verification](../docs/research/infrastructure-versions-verification.md)
-
-### External Documentation
-
-- [cert-manager 1.19 Release Notes](https://github.com/cert-manager/cert-manager/releases/tag/v1.19.0)
-- [cert-manager Documentation](https://cert-manager.io/docs/)
-- [Let's Encrypt ACME v2](https://letsencrypt.org/docs/acme-protocol-updates/)
-
-### Related Implementation Plans
-
-- [Phase 0: Platform Foundation](./upgrade-phase0-platform-foundation-implementation-1.md)
+1. Keep previous cert-manager Helm release manifests + CRDs exported before upgrade.
+2. If issues occur, uninstall cert-manager 1.19, reapply saved 1.3.1 manifests, and restore secrets from backup.
+3. Remove TLS annotations to revert services to HTTP temporarily, then reattempt upgrade after remediation.

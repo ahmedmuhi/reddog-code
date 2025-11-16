@@ -1,0 +1,25 @@
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: reddog.binding.receipt
+  namespace: reddog-retail
+  labels:
+    app.kubernetes.io/name: receipt-generation
+    app.kubernetes.io/component: object-storage
+    app.kubernetes.io/environment: gcp
+spec:
+  type: bindings.gcp.bucket
+  version: v1
+  metadata:
+    - name: bucket
+      value: reddog-receipts-<project>
+    - name: decodeBase64
+      value: "true"
+    - name: sendContentType
+      value: "true"
+    - name: compress
+      value: "false"
+scopes:
+  - receipt-generation-service
+auth:
+  secretStore: reddog.secretstore

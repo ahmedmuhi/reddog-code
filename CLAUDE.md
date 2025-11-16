@@ -23,7 +23,55 @@ how to think, where to look, and how to log work. It is **not** a status dashboa
 
 ---
 
-## 2. How to Catch Up on Project State
+## 2. Surgical Edit Principle ("How We Change Things")
+
+### Core Philosophy
+**Make the smallest possible change that achieves the goal.** Think of editing like surgery: precise incisions, minimal disruption, preserve healthy tissue.
+
+### For Code
+- **Never rewrite entire functions** when changing 2-3 lines would suffice
+- **Preserve existing style** - match indentation, naming conventions, comment format
+- **Keep git diffs clean** - changes should be reviewable at a glance
+- When fixing a bug: change only the buggy logic, not the surrounding code
+- When adding features: insert at the narrowest integration point possible
+
+### For Documentation
+- **Update, don't replace** - modify the specific outdated sentences/sections
+- **Maintain document voice** - match the existing tone and style
+- **Preserve structure** - don't reorganize unless explicitly asked
+- Add new sections at logical points, don't restructure the whole doc
+- Keep existing examples; add new ones only when needed
+
+### For Comments
+- **Fix factually wrong comments** but keep accurate ones untouched
+- **Match comment style** - if they use `//`, don't switch to `/* */`
+- Don't add comments to "improve" already clear code
+- When adding comments for new code, follow the file's existing density
+  (sparse comments = stay sparse, verbose = match that level)
+
+### Decision Framework
+Before any edit, ask:
+1. What's the **minimum change** needed?
+2. Can I achieve this by modifying **existing lines** rather than adding new ones?
+3. Will my change **surprise** someone familiar with this codebase?
+4. Is my diff **reviewable in under 30 seconds**?
+
+If any answer is problematic, reconsider the approach.
+
+### Examples
+
+❌ **BAD:** Rewriting a 50-line function to fix one off-by-one error  
+✅ **GOOD:** Changing `i <= length` to `i < length` on line 23
+
+❌ **BAD:** Reformatting an entire JSON config to add one key  
+✅ **GOOD:** Adding the single key-value pair where it belongs
+
+❌ **BAD:** Converting all README headers from `##` to `===` style while fixing a typo  
+✅ **GOOD:** Fixing just the typo, leaving formatting alone
+
+---
+
+## 3. How to Catch Up on Project State
 
 Always start by understanding **what is currently being worked on**.
 
@@ -56,7 +104,7 @@ Always start by understanding **what is currently being worked on**.
 
 ---
 
-## 3. Documentation Map (Navigation Only)
+## 4. Documentation Map (Navigation Only)
 
 Use this section to find the right **entry point**. Do not duplicate content from these docs here.
 
@@ -79,7 +127,7 @@ Use this section to find the right **entry point**. Do not duplicate content fro
 
 ---
 
-## 4. Development Sessions
+## 5. Development Sessions
 
 This repo uses **session logs** to document development work. Agents are expected to work *inside* this system.
 
@@ -129,7 +177,7 @@ Typical commands (names may vary slightly):
 
 ---
 
-## 5. Minimal Dev Quickstart for Agents
+## 6. Minimal Dev Quickstart for Agents
 
 These are **starting points**, not exhaustive recipes.  
 For anything more complex, inspect the relevant scripts and workflows.
@@ -172,7 +220,7 @@ npm run dev     # Start Vite dev server
 
 ---
 
-## 6. Repo-Specific Conventions
+## 7. Repo-Specific Conventions
 
 A few rules that matter a lot for correctness and security.
 
