@@ -178,9 +178,9 @@ The following prerequisites must be completed before starting Phase 1A:
    - k6 load testing framework operational (v0.54.0)
    - Results documented in `tests/k6/BASELINE-RESULTS.md`
    - **Status:** Phase 1A can now proceed with .NET 10 upgrade
-3. **CI/CD Modernization** ⚠️ **PENDING**
-   - Execute `plan/cicd-modernization-strategy.md` together with `plan/upgrade-github-workflows-implementation-1.md` so every `.github/workflows/*.yaml` file runs the tooling-audit, build/test, and publish jobs with .NET 10 SDKs/Node 24.
-   - **Optional:** Can be performed in parallel with Phase 1A or deferred.
+3. **CI/CD Modernization** ✅ **COMPLETE (2025-11-16)**
+   - All GitHub Actions workflows now run the tooling-audit, build/test, coverage, and publish jobs with .NET 10 SDKs/Node 24 (see `.github/workflows/*.yaml` plus the reusable audit templates).
+   - Reference docs (`plan/cicd-modernization-strategy.md`, `plan/upgrade-github-workflows-implementation-1.md`) have been archived to `plan/done/` because their tasks are finished.
 
 ---
 
@@ -587,6 +587,8 @@ Created automation and documentation to prevent these issues for remaining 4 ser
 
 **Implementation Guides:** `plan/cicd-modernization-strategy.md`, `plan/upgrade-github-workflows-implementation-1.md`
 
+**Status:** ✅ Complete (2025-11-16) — workflows now include the tooling-audit, build/test/coverage, and GHCR publish stages, and both implementation guides live under `plan/done/` for historical reference.
+
 **Reference:** `plan/cicd-modernization-strategy.md` contains the full pipeline assessment and modernization steps.
 
 **Key Changes:**
@@ -695,7 +697,7 @@ Created automation and documentation to prevent these issues for remaining 4 ser
 5. **Phase 2** - Vue 3 UI modernization
 
 ### Medium Priority (Nice to Have):
-6. **Phase 4** - CI/CD with GHCR (automated builds)
+6. **Phase 4** - CI/CD with GHCR (automated builds) ✅ COMPLETE (2025-11-16)
 7. **Phase 5** - Infrastructure modernization (Dapr 1.16, KEDA 2.17, Workload Identity)
 
 ### Enhanced Features (Recommended):
