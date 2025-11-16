@@ -148,7 +148,6 @@ jobs:
           message: 'Updated loyalty service deployment manifest.'
           token: ${{ secrets.GITHUB_TOKEN }}
           createPR: 'false'
-          updateFile: 'true'
       - name: Echo yaml
         run: |
           cat manifests/branch/base/deployments/loyalty-service.yaml

@@ -103,7 +103,6 @@ jobs:
           message: 'Updated ui deployment manifest.'
           token: ${{ secrets.GITHUB_TOKEN }}
           createPR: 'false'
-          updateFile: 'true'
       - name: Echo yaml
         run: |
           cat manifests/branch/base/deployments/ui.yaml
