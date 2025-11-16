@@ -23,7 +23,8 @@ export default defineConfig(({ mode }) => {
             if (
               id.includes('node_modules/chart.js/') ||
               id.includes('node_modules/vue-chartjs/') ||
-              id.includes('node_modules/chartjs-plugin-streaming/')
+              id.includes('node_modules/@nckrtl/chartjs-plugin-streaming/') ||
+              id.includes('node_modules/chartjs-adapter-dayjs-4/')
             ) {
               return 'vendor-charts';
             }

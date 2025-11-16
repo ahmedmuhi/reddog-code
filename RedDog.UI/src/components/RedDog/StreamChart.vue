@@ -14,8 +14,20 @@ import {
   type ChartData,
   type ChartOptions
 } from 'chart.js';
+import streamingPlugin from '@nckrtl/chartjs-plugin-streaming';
+import 'chartjs-adapter-dayjs-4';
 
-ChartJS.register(Title, Tooltip, Legend, LineElement, LinearScale, CategoryScale, PointElement, Filler);
+ChartJS.register(
+  Title,
+  Tooltip,
+  Legend,
+  LineElement,
+  LinearScale,
+  CategoryScale,
+  PointElement,
+  Filler,
+  streamingPlugin
+);
 
 const LineChartComponent = Line as DefineComponent<Record<string, unknown>, Record<string, unknown>, unknown>;
 
@@ -32,7 +44,7 @@ export default defineComponent({
     LineChart: LineChartComponent
   },
   props: {
-    chartData: {
+    data: {
       type: Object as PropType<ChartData<'line'>>,
       required: true
     },
@@ -44,7 +56,7 @@ export default defineComponent({
   setup(props) {
     return () =>
       h(LineChartComponent, {
-        data: props.chartData,
+        data: props.data,
         options: props.options
       });
   }

@@ -9,7 +9,7 @@
                 ORDERS / ITEMS OVER TIME <small>ALL LOCATIONS</small>
               </div>
               <div class="card-body chart-body">
-                <StreamChart v-if="corpLoaded" :chart-data="corpChartData" :options="corpChartOptions"/>
+                <StreamChart v-if="corpLoaded" :data="corpChartData" :options="corpChartOptions"/>
               </div>
             </div>
           </div>
@@ -19,7 +19,7 @@
                 ORDERS OVER TIME <small>VERSUS 10 MINUTES AGO</small>
               </div>
               <div class="card-body chart-body">
-                <StreamChart v-if="loaded" :chart-data="chartData" :options="chartOptions"/>
+                <StreamChart v-if="loaded" :data="chartData" :options="chartOptions"/>
               </div>
             </div>
           </div>
@@ -38,7 +38,7 @@
                 SALES AND PROFIT <small>FOR {{storeId.toUpperCase()}} LOCATION</small>
               </div>
               <div class="card-body chart-body">
-                <StreamChart v-if="salesChartLoaded" :chart-data="salesChartData" :options="salesChartOptions"/>
+                <StreamChart v-if="salesChartLoaded" :data="salesChartData" :options="salesChartOptions"/>
               </div>
               </div>
             </div>
@@ -54,7 +54,7 @@
                 TOP STORE SALES <small>OVER TIME</small>
               </div>
               <div class="card-body chart-body">
-                <StreamChart v-if="topStoreSalesLoaded" :chart-data="topSalesChartData" :options="topSalesChartOptions"/>
+                <StreamChart v-if="topStoreSalesLoaded" :data="topSalesChartData" :options="topSalesChartOptions"/>
               </div>
             </div>
           </div>
@@ -518,40 +518,38 @@ export default {
       };
 
       this.chartOptions = {
-        legend: {
+        responsive: true,
+        plugins: {
+          legend: {
             display: true,
             position: 'bottom'
-         },
-         scales: {
-          yAxes: {
+          }
+        },
+        scales: {
+          y: {
             ticks: {
-              // stepSize: 2,
-              // min:0,
               autoSkip: true,
-              //reverse: false,
               beginAtZero: false,
               padding: 14
             },
-            gridLines: {
+            grid: {
               display: true,
-              color: "rgba(150,150,150, .05)"
-            },
+              color: 'rgba(150,150,150, .05)'
+            }
           },
-          xAxes: {
+          x: {
             ticks: {
               autoSkip: true,
               maxRotation: 90,
               minRotation: 90,
               padding: 14
             },
-            gridLines: {
-              display: true ,
-              color: "rgba(150,150,150, .05)"
-            },
+            grid: {
+              display: true,
+              color: 'rgba(150,150,150, .05)'
+            }
           }
-        },
-        responsive: true,
-        // maintainAspectRatio: false
+        }
       };
       this.loaded = true;
     },
@@ -576,40 +574,38 @@ export default {
       };
 
       this.corpChartOptions = {
-        legend: {
+        responsive: true,
+        plugins: {
+          legend: {
             display: true,
             position: 'bottom'
-         },
-         scales: {
-          yAxes: {
+          }
+        },
+        scales: {
+          y: {
             ticks: {
-              // stepSize: 2,
-              // min:0,
               autoSkip: true,
-              //reverse: false,
               beginAtZero: false,
               padding: 14
             },
-            gridLines: {
+            grid: {
               display: true,
-              color: "rgba(150,150,150, .05)"
-            },
+              color: 'rgba(150,150,150, .05)'
+            }
           },
-          xAxes: {
+          x: {
             ticks: {
               autoSkip: true,
               maxRotation: 90,
               minRotation: 90,
               padding: 14
             },
-            gridLines: {
-              display: true ,
-              color: "rgba(150,150,150, .05)"
-            },
+            grid: {
+              display: true,
+              color: 'rgba(150,150,150, .05)'
+            }
           }
-        },
-        responsive: true,
-        // maintainAspectRatio: false
+        }
       };
       this.corpLoaded = true;
 
@@ -634,40 +630,37 @@ export default {
       };
 
       this.salesChartOptions = {
-        legend: {
+        responsive: true,
+        plugins: {
+          legend: {
             display: true,
             position: 'bottom'
-         },
-         scales: {
-          yAxes: {
+          }
+        },
+        scales: {
+          y: {
             ticks: {
-              // stepSize: 2,
-              // min:0,
               autoSkip: true,
-              //reverse: false,
-              //beginAtZero: true,
               padding: 14
             },
-            gridLines: {
+            grid: {
               display: true,
-              color: "rgba(150,150,150, .05)"
-            },
+              color: 'rgba(150,150,150, .05)'
+            }
           },
-          xAxes: {
+          x: {
             ticks: {
               autoSkip: true,
               maxRotation: 90,
               minRotation: 90,
               padding: 14
             },
-            gridLines: {
-              display: true ,
-              color: "rgba(150,150,150, .05)"
-            },
+            grid: {
+              display: true,
+              color: 'rgba(150,150,150, .05)'
+            }
           }
-        },
-        responsive: true,
-        // maintainAspectRatio: false
+        }
       };
       this.salesChartLoaded = true;
 
@@ -676,37 +669,37 @@ export default {
 
 
       var tmpSalesOptions = {
-        legend: {
+        responsive: true,
+        plugins: {
+          legend: {
             display: true,
             position: 'bottom',
             labels: {
-                fontColor: 'rgb(220, 220, 220)'
+              color: 'rgb(220, 220, 220)'
             }
-         },
-         scales: {
-          yAxes: {
+          }
+        },
+        scales: {
+          y: {
             ticks: {
               autoSkip: true,
-              beginAtZero: false,
+              beginAtZero: false
             },
-            gridLines: {
+            grid: {
               display: false
-            },
+            }
           },
-          xAxes: {
+          x: {
             ticks: {
               autoSkip: false,
               maxRotation: 90,
-              minRotation: 90,
-
+              minRotation: 90
             },
-            gridLines: {
+            grid: {
               display: false
-            },
+            }
           }
-        },
-        responsive: true,
-        // maintainAspectRatio: false
+        }
       }
 
       var tmpSalesChartData = {
