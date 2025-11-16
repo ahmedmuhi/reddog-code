@@ -2,29 +2,28 @@
 
 ## Introduction
 
-This document serves as the **central navigation hub** for all architectural decisions in the Red Dog microservices application. It provides:
+This file is the **navigation hub** for all Architectural Decision Records (ADRs) in the Red Dog application. Use it to:
 
-- **Implementation status tracking** for each decision
-- **Configuration decision tree** to guide where settings should be placed
-- **Category-based index** to find decisions by topic
-- **Role-based reading guides** tailored to developers, operators, and decision makers
-- **Cross-references** to related documentation
+- See **which decisions exist** and their **implementation status**
+- Find the **right ADR by topic** (config, infra, observability, UI, etc.)
+- Follow **role-based reading guides** for developers, operators, and decision makers
+- Use the **configuration decision tree** when introducing new settings or secrets
 
 ### About ADRs
 
-We use [Architectural Decision Records (ADRs)](https://adr.github.io/) to document significant architectural choices. Each ADR follows the template defined in `adr-template.md` and captures:
+We use [Architectural Decision Records](https://adr.github.io/) to capture any change that has a lasting architectural impact. Each ADR (see `adr-template.md`) records:
 
-- **Context:** What forces are at play?
-- **Decision:** What did we decide?
-- **Consequences:** What are the trade-offs?
-- **Status:** Proposed → Accepted → Implemented (or Superseded/Deprecated)
+- **Context** – What forces are at play?
+- **Decision** – What we chose
+- **Consequences** – Trade-offs and impacts
+- **Status** – Planned → Accepted → In Progress → Implemented (or Superseded/Deprecated)
 
-### How to Read This Document
+### How to Use This Document
 
-1. **New to the project?** Start with [Role-Based Reading Guides](#role-based-reading-guides) below
-2. **Looking for specific decision?** Use [ADR Index by Category](#adr-index-by-category)
-3. **Need to configure something?** See [Configuration Decision Tree](#configuration-decision-tree)
-4. **Want to know what's implemented?** Check the status icons (🟢🟡🔵⚪) in the index
+- **New to the project?** Start with [Role-Based Reading Guides](#role-based-reading-guides).
+- **Looking for a decision?** Use [ADR Index by Category](#adr-index-by-category).
+- **Adding configuration/secrets?** Use the [Configuration Decision Tree](#configuration-decision-tree).
+- **Checking implementation status?** Use the status icons (🟢🟡🔵⚪) next to each ADR.
 
 ---
 
@@ -32,12 +31,12 @@ We use [Architectural Decision Records (ADRs)](https://adr.github.io/) to docume
 
 Each ADR is marked with a status icon showing its implementation state:
 
-| Icon | Status | Meaning |
-|------|--------|---------|
-| 🟢 | **Implemented** | Fully working in current codebase with evidence in code |
-| 🟡 | **In Progress** | Partially implemented, active work ongoing |
-| 🔵 | **Accepted** | Decision made and documented, implementation planned |
-| ⚪ | **Planned** | Under consideration, not yet implemented |
+| Icon | Status        | Meaning                                   |
+|------|---------------|-------------------------------------------|
+| 🟢   | Implemented   | In code, working                          |
+| 🟡   | In Progress   | Being implemented                         |
+| 🔵   | Accepted      | Decision made, not yet implemented        |
+| ⚪   | Planned       | Under consideration / future work         |
 
 ---
 
@@ -310,11 +309,11 @@ START: I need to configure...
 
 Choose your role to get a curated reading path:
 
-### 👨‍💻 For Developers (Writing Service Code)
+### 👨‍💻 For Developers (Service Code)
 
-**Start here if you're:** Building or modifying microservices
+**Use this if you're** building or modifying microservices.
 
-**Essential ADRs (read first):**
+**Read these first:**
 1. [ADR-0002: Cloud-Agnostic Configuration via Dapr](adr-0002-cloud-agnostic-configuration-via-dapr.md) 🟢
    - How to access secrets using DaprClient
 2. [ADR-0006: Infrastructure Configuration via Environment Variables](adr-0006-infrastructure-configuration-via-environment-variables.md) 🔵
@@ -328,15 +327,15 @@ Choose your role to get a curated reading path:
 - [Web API Standards](../standards/web-api-standards.md) - HTTP API conventions (CORS, error handling, versioning)
 - [CLAUDE.md](../../CLAUDE.md) - Common development commands (`dapr run` examples)
 
-**Quick reference:** Use the [Configuration Decision Tree](#configuration-decision-tree) when adding new settings
+**Quick reference:** Use the [Configuration Decision Tree](#configuration-decision-tree) when adding new settings.
 
 ---
 
-### 🔧 For Platform Operators (Deploying Services)
+### 🔧 For Platform Operators (Infra/Deploy)
 
-**Start here if you're:** Deploying to Kubernetes, managing infrastructure, setting up environments
+**Use this if you're** deploying to Kubernetes, managing infrastructure, or setting up environments.
 
-**Essential ADRs (read first):**
+**Read these first:**
 1. [ADR-0009: Helm Multi-Environment Deployment](adr-0009-helm-multi-environment-deployment.md) ⚪
    - How to deploy to AKS, EKS, GKE using Helm charts (planned)
 2. [ADR-0008: kind Local Development Environment](adr-0008-kind-local-development-environment.md) ⚪
@@ -346,21 +345,20 @@ Choose your role to get a curated reading path:
 4. [ADR-0010: Nginx Ingress Controller](adr-0010-nginx-ingress-controller-cloud-agnostic.md) ⚪
    - How HTTP routing works across clouds (planned)
 
-**Current state (as of 2025-11-09):**
-- ⚠️ Helm charts not created yet (ADR-0009 planned)
-- ⚠️ kind setup not implemented (ADR-0008 planned)
-- ✅ Current deployment: Use `dapr run` locally per [CLAUDE.md](../../CLAUDE.md)
+**Current state (last reviewed 2025-11-16):**
+- ⚪ Helm charts and kind setup are still tracked as planned work (ADR-0008, ADR-0009).
+- ✅ Local development uses `dapr run` and the Docker/Vite workflows described in `CLAUDE.md` and the modernization plans.
 
 **Also useful:**
 - [Modernization Strategy](../../plan/modernization-strategy.md) - 8-phase roadmap showing when deployment infrastructure will be built
 
 ---
 
-### 🎯 For Decision Makers (Understanding Architecture)
+### 🎯 For Decision Makers (Architecture Overview)
 
-**Start here if you're:** Making technology choices, evaluating architecture, understanding strategic direction
+**Use this if you're** making technology choices, evaluating architecture, or reviewing strategic direction.
 
-**Essential ADRs (read first):**
+**Read these first:**
 1. [ADR-0001: .NET 10 LTS Adoption](adr-0001-dotnet10-lts-adoption.md) 🔵
    - Why upgrading from .NET 6.0 to 10.0
 2. [ADR-0007: Cloud-Agnostic Deployment Strategy](adr-0007-cloud-agnostic-deployment-strategy.md) 🔵
@@ -376,9 +374,7 @@ Choose your role to get a curated reading path:
   - Phases 2-8: Infrastructure modernization
 
 **Current status:**
-- See [CLAUDE.md: Current Development Status](../../CLAUDE.md#current-development-status)
-- **Actual state:** All services .NET 6.0 with Dapr 1.5.0
-- **Target state:** Polyglot architecture (.NET/Go/Python/Node.js) with Dapr 1.16
+- See [CLAUDE.md: Current Development Status](../../CLAUDE.md#current-development-status) for the latest implementation snapshot.
 
 ---
 
@@ -511,6 +507,6 @@ done
 
 ---
 
-**Last Updated:** 2025-11-11
+**Last Updated:** 2025-11-16
 **Document Owner:** Architecture Team
 **Questions?** See [CLAUDE.md](../../CLAUDE.md) for development guidance or ask in team channel
