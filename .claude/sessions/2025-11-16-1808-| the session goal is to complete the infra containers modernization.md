@@ -110,3 +110,25 @@
 **Todo Progress:** Object storage planning deliverables now drafted; execution (bucket creation, identity wiring, migrations) still pending under GOAL-002..005.
 
 **Details:** Plan now states local dev stays on filesystem storage, cloud clusters use native services via overlays, and deliverables/rollback sections mirror the cert-manager approach for Phase 0.
+
+### 2025-11-18 08:34 - Removed Claude Code Local CLI
+
+**Summary:** Cleaned up Anthropic Claude Code tooling from host shell profile per user request.
+
+**Actions:**
+- Removed `claude` alias from `~/.zshrc` so future shells no longer expose the command.
+- Deleted `~/.claude/local/` (Node-based CLI wrapper plus npm dependencies) to reclaim space and prevent accidental use.
+- Verified via `zsh -lc 'which claude'` that the executable is no longer available.
+
+**Next Steps:** None; uninstall complete.
+
+### 2025-11-18 08:38 - Removed Residual Claude CLI Data
+
+**Summary:** With the Claude Code CLI uninstalled, purged leftover application data from the home directory.
+
+**Actions:**
+- Deleted `~/.claude/` to remove cached logs, history, stats, and project metadata.
+- Removed `~/.claude.json` and `.claude.json.backup` so no user-level config remains.
+- Confirmed `ls ~ | grep .claude` returns no entries.
+
+**Next Steps:** None; local Claude footprint fully removed.
