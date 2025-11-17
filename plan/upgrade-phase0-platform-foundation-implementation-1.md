@@ -21,11 +21,22 @@ tags: [infrastructure, upgrade, phase-0, platform, dapr, keda, certmanager, prer
 - State stores must migrate from Redis (Dapr 1.16 incompatibility with Redis 7/8)
 - Object storage must adopt cloud-agnostic strategy (ADR-0007)
 
-**Duration**: 3-4 weeks
+**Duration**: 3–4 weeks
 **Dependencies**: None (Phase 0 is the foundation)
-**Enables**: Phase 1 (.NET 6→10), Phase 2-7 (Polyglot migrations)
+**Enables**: Phase 1 (.NET 6→10), Phase 2–7 (Polyglot migrations)
 
-## 1. Requirements & Constraints
+## Table of contents
+
+- [Requirements & Constraints](#requirements--constraints)
+- [Implementation Phases](#implementation-phases)
+- [Alternatives](#alternatives)
+- [Dependencies](#dependencies)
+- [Files](#files)
+- [Testing](#testing)
+- [Risks & Assumptions](#risks--assumptions)
+- [Related Specifications / Further Reading](#related-specifications--further-reading)
+
+## Requirements & Constraints
 
 ### Platform Requirements
 
@@ -81,136 +92,144 @@ tags: [infrastructure, upgrade, phase-0, platform, dapr, keda, certmanager, prer
 - **GUD-004**: Minimize code changes (leverage Dapr abstraction for multi-cloud portability)
 - **GUD-005**: Test in staging environment before production deployment
 
-## 2. Implementation Steps
+## Implementation Phases
 
-### Implementation Phase 1: Pre-Upgrade Validation (Week 1, Days 1-2)
 
-- **GOAL-001**: Verify infrastructure readiness and backup current state
+### Implementation Phase 1: Pre-Upgrade Validation (Week 1, Days 1–2)
 
-| Task | Description | Completed | Date |
-|------|-------------|-----------|------|
-| TASK-101 | Verify Kubernetes version is 1.30+ on all target clusters (AKS, EKS, GKE) | | |
-| TASK-102 | Audit current Dapr usage (components, sidecars, service invocations) | | |
-| TASK-103 | Audit current KEDA usage (ScaledObjects, TriggerAuthentication) - already completed: NONE FOUND | ✅ | 2025-11-09 |
-| TASK-104 | Backup all Dapr component YAML files (`manifests/branch/base/components/`) | | |
-| TASK-105 | Backup all service deployment YAML files (`manifests/branch/base/deployments/`) | | |
-| TASK-106 | Export current Redis state data (MakeLineService, LoyaltyService) for migration | | |
-| TASK-107 | Document current service endpoints and health check URLs | | |
-| TASK-108 | Create staging environment clone for testing | | |
+**GOAL-001:** Verify infrastructure readiness and backup current state
 
-### Implementation Phase 2: Platform Infrastructure Upgrade (Week 1-2, Days 3-10)
+Tasks (Phase 1):
 
-- **GOAL-002**: Upgrade Dapr, KEDA, and cert-manager to modern versions
+- [ ] TASK-101 — Verify Kubernetes version is 1.30+ on all target clusters (AKS, EKS, GKE).
+- [ ] TASK-102 — Audit current Dapr usage (components, sidecars, service invocations).
+- [x] TASK-103 — Audit current KEDA usage (ScaledObjects, TriggerAuthentication) — already completed: NONE FOUND (2025-11-09).
+- [ ] TASK-104 — Backup all Dapr component YAML files (`manifests/branch/base/components/`).
+- [ ] TASK-105 — Backup all service deployment YAML files (`manifests/branch/base/deployments/`).
+- [ ] TASK-106 — Export current Redis state data (MakeLineService, LoyaltyService) for migration.
+- [ ] TASK-107 — Document current service endpoints and health check URLs.
+- [ ] TASK-108 — Create staging environment clone for testing.
 
-| Task | Description | Completed | Date |
-|------|-------------|-----------|------|
-| TASK-201 | Execute Dapr 1.3.0 → 1.16.2 upgrade (see `upgrade-dapr-1.16-implementation-1.md`) | | |
-| TASK-202 | Execute KEDA 2.2.0 → 2.18.1 upgrade (see `upgrade-keda-2.18-implementation-1.md`) | | |
-| TASK-203 | Execute cert-manager 1.3.1 → 1.19 upgrade (see `upgrade-certmanager-1.19-implementation-1.md`) | | |
-| TASK-204 | Verify Dapr sidecars running in all service pods | | |
-| TASK-205 | Verify KEDA operator pod is healthy | | |
-| TASK-206 | Verify cert-manager pods are healthy and issuing certificates | | |
-| TASK-207 | Run smoke tests for Dapr service invocation | | |
-| TASK-208 | Validate Dapr HTTP API endpoints respond correctly | | |
+
+### Implementation Phase 2: Platform Infrastructure Upgrade (Week 1–2, Days 3–10)
+
+**GOAL-002:** Upgrade Dapr, KEDA, and cert-manager to modern versions
+
+Tasks (Phase 2):
+
+- [ ] TASK-201 — Execute Dapr 1.3.0 → 1.16.2 upgrade (see `upgrade-dapr-1.16-implementation-1.md`).
+- [ ] TASK-202 — Execute KEDA 2.2.0 → 2.18.1 upgrade (see `upgrade-keda-2.18-implementation-1.md`).
+- [ ] TASK-203 — Execute cert-manager 1.3.1 → 1.19 upgrade (see `upgrade-certmanager-1.19-implementation-1.md`).
+- [ ] TASK-204 — Verify Dapr sidecars running in all service pods.
+- [ ] TASK-205 — Verify KEDA operator pod is healthy.
+- [ ] TASK-206 — Verify cert-manager pods are healthy and issuing certificates.
+- [ ] TASK-207 — Run smoke tests for Dapr service invocation.
+- [ ] TASK-208 — Validate Dapr HTTP API endpoints respond correctly.
 
 > **Update (2025-11-16):** cert-manager upgrade work now follows the detailed, cloud-only plan in `plan/upgrade-certmanager-1.19-implementation-1.md`; local/kind environments purposely omit cert-manager.
 
-### Implementation Phase 3: State Store Migration (Week 2, Days 8-12)
 
-- **GOAL-003**: Migrate from Redis to cloud-native state stores
+### Implementation Phase 3: State Store Migration (Week 2, Days 8–12)
 
-| Task | Description | Completed | Date |
-|------|-------------|-----------|------|
-| TASK-301 | Execute state store migration (see `migrate-state-stores-cloud-native-implementation-1.md`) | | |
-| TASK-302 | Create Cosmos DB component for Azure (`state.azure.cosmosdb`) | | |
-| TASK-303 | Create DynamoDB component for AWS (`state.aws.dynamodb`) | | |
-| TASK-304 | Create Cloud Firestore component for GCP (`state.gcp.firestore`) | | |
-| TASK-305 | Create Redis 6.2.14 component for local dev (`state.redis`) | | |
-| TASK-306 | Import existing state data to new state stores | | |
-| TASK-307 | Test MakeLineService state operations (order queue) | | |
-| TASK-308 | Test LoyaltyService state operations (customer points) | | |
-| TASK-309 | Validate state store failover and retry behavior | | |
+**GOAL-003:** Migrate from Redis to cloud-native state stores
 
-### Implementation Phase 4: Object Storage Migration (Week 2-3, Days 10-15)
+Tasks (Phase 3):
 
-- **GOAL-004**: Migrate from Azure Blob to cloud-agnostic object storage
+- [ ] TASK-301 — Execute state store migration (see `migrate-state-stores-cloud-native-implementation-1.md`).
+- [ ] TASK-302 — Create Cosmos DB component for Azure (`state.azure.cosmosdb`).
+- [ ] TASK-303 — Create DynamoDB component for AWS (`state.aws.dynamodb`).
+- [ ] TASK-304 — Create Cloud Firestore component for GCP (`state.gcp.firestore`).
+- [ ] TASK-305 — Create Redis 6.2.14 component for local dev (`state.redis`).
+- [ ] TASK-306 — Import existing state data to new state stores.
+- [ ] TASK-307 — Test MakeLineService state operations (order queue).
+- [ ] TASK-308 — Test LoyaltyService state operations (customer points).
+- [ ] TASK-309 — Validate state store failover and retry behavior.
 
-| Task | Description | Completed | Date |
-|------|-------------|-----------|------|
-| TASK-401 | Execute object storage migration (see `migrate-object-storage-cloud-agnostic-implementation-1.md`) | | |
-| TASK-402 | Deploy MinIO in Docker Compose for local dev | | |
-| TASK-403 | Create S3 binding for AWS (`bindings.aws.s3` with IRSA) | | |
-| TASK-404 | Create Azure Blob binding for Azure (`bindings.azure.blobstorage` with Workload Identity) | | |
-| TASK-405 | Create GCS binding for GCP (`bindings.gcp.bucket` with Workload Identity) | | |
-| TASK-406 | Test ReceiptGenerationService receipt creation | | |
-| TASK-407 | Test receipt retrieval and deletion | | |
-| TASK-408 | Migrate existing receipts to new storage | | |
 
-### Implementation Phase 5: Supporting Infrastructure Upgrade (Week 3, Days 15-18)
+### Implementation Phase 4: Object Storage Migration (Week 2–3, Days 10–15)
 
-- **GOAL-005**: Upgrade SQL Server, RabbitMQ, and Nginx
+**GOAL-004:** Migrate from Azure Blob to cloud-agnostic object storage
 
-| Task | Description | Completed | Date |
-|------|-------------|-----------|------|
-| TASK-501 | Execute infrastructure container upgrades (see `upgrade-infrastructure-containers-implementation-1.md`) | | |
-| TASK-502 | Upgrade SQL Server 2019 → 2022 (or deploy PostgreSQL 17) | | |
-| TASK-503 | Upgrade RabbitMQ to 4.2.0-management | | |
-| TASK-504 | Upgrade Nginx to 1.28.0-bookworm | | |
-| TASK-505 | Test AccountingService database connectivity | | |
-| TASK-506 | Test pub/sub messaging through RabbitMQ | | |
-| TASK-507 | Test UI static hosting via Nginx | | |
-| TASK-508 | Test ingress routing via Nginx | | |
+Tasks (Phase 4):
 
-### Implementation Phase 6: Integration Testing (Week 3-4, Days 18-23)
+- [ ] TASK-401 — Execute object storage migration (see `migrate-object-storage-cloud-agnostic-implementation-1.md`).
+- [ ] TASK-402 — Deploy MinIO in Docker Compose for local dev.
+- [ ] TASK-403 — Create S3 binding for AWS (`bindings.aws.s3` with IRSA).
+- [ ] TASK-404 — Create Azure Blob binding for Azure (`bindings.azure.blobstorage` with Workload Identity).
+- [ ] TASK-405 — Create GCS binding for GCP (`bindings.gcp.bucket` with Workload Identity).
+- [ ] TASK-406 — Test ReceiptGenerationService receipt creation.
+- [ ] TASK-407 — Test receipt retrieval and deletion.
+- [ ] TASK-408 — Migrate existing receipts to new storage.
 
-- **GOAL-006**: Validate end-to-end system functionality
 
-| Task | Description | Completed | Date |
-|------|-------------|-----------|------|
-| TASK-601 | Run full integration test suite | | |
-| TASK-602 | Test order placement flow (VirtualCustomers → OrderService) | | |
-| TASK-603 | Test order processing flow (OrderService → MakeLineService → VirtualWorker) | | |
-| TASK-604 | Test loyalty points accrual (LoyaltyService) | | |
-| TASK-605 | Test receipt generation (ReceiptGenerationService) | | |
-| TASK-606 | Test accounting aggregation (AccountingService) | | |
-| TASK-607 | Test UI dashboard data display | | |
-| TASK-608 | Load test with 100 concurrent orders | | |
-| TASK-609 | Validate Dapr telemetry (OpenTelemetry metrics, traces) | | |
-| TASK-610 | Validate KEDA autoscaling (if ScaledObjects configured) | | |
+### Implementation Phase 5: Supporting Infrastructure Upgrade (Week 3, Days 15–18)
 
-### Implementation Phase 7: Production Deployment (Week 4, Days 24-25)
+**GOAL-005:** Upgrade SQL Server, RabbitMQ, and Nginx
 
-- **GOAL-007**: Deploy Phase 0 upgrades to production
+Tasks (Phase 5):
 
-| Task | Description | Completed | Date |
-|------|-------------|-----------|------|
-| TASK-701 | Schedule production maintenance window (2-hour window) | | |
-| TASK-702 | Communicate upgrade plan to stakeholders | | |
-| TASK-703 | Execute production Dapr upgrade | | |
-| TASK-704 | Execute production KEDA upgrade | | |
-| TASK-705 | Execute production cert-manager upgrade | | |
-| TASK-706 | Deploy cloud-native state store components | | |
-| TASK-707 | Deploy cloud-agnostic object storage bindings | | |
-| TASK-708 | Upgrade SQL Server, RabbitMQ, Nginx | | |
-| TASK-709 | Run production smoke tests | | |
-| TASK-710 | Monitor for 24 hours (metrics, logs, errors) | | |
+- [ ] TASK-501 — Execute infrastructure container upgrades (see `upgrade-infrastructure-containers-implementation-1.md`).
+- [ ] TASK-502 — Upgrade SQL Server 2019 → 2022 (or deploy PostgreSQL 17).
+- [ ] TASK-503 — Upgrade RabbitMQ to 4.2.0-management.
+- [ ] TASK-504 — Upgrade Nginx to 1.28.0-bookworm.
+- [ ] TASK-505 — Test AccountingService database connectivity.
+- [ ] TASK-506 — Test pub/sub messaging through RabbitMQ.
+- [ ] TASK-507 — Test UI static hosting via Nginx.
+- [ ] TASK-508 — Test ingress routing via Nginx.
 
-### Implementation Phase 8: Post-Upgrade Monitoring (Week 4, Days 26-28)
 
-- **GOAL-008**: Ensure stability and performance
+### Implementation Phase 6: Integration Testing (Week 3–4, Days 18–23)
 
-| Task | Description | Completed | Date |
-|------|-------------|-----------|------|
-| TASK-801 | Monitor Dapr sidecar resource usage (CPU, memory) | | |
-| TASK-802 | Monitor state store latency and error rates | | |
-| TASK-803 | Monitor object storage operation success rates | | |
-| TASK-804 | Monitor RabbitMQ queue depth and throughput | | |
-| TASK-805 | Monitor SQL Server query performance | | |
-| TASK-806 | Monitor cert-manager certificate renewals | | |
-| TASK-807 | Review Dapr distributed tracing for latency issues | | |
-| TASK-808 | Document lessons learned and update runbooks | | |
+**GOAL-006:** Validate end-to-end system functionality
 
-## 3. Alternatives
+Tasks (Phase 6):
+
+- [ ] TASK-601 — Run full integration test suite.
+- [ ] TASK-602 — Test order placement flow (VirtualCustomers → OrderService).
+- [ ] TASK-603 — Test order processing flow (OrderService → MakeLineService → VirtualWorker).
+- [ ] TASK-604 — Test loyalty points accrual (LoyaltyService).
+- [ ] TASK-605 — Test receipt generation (ReceiptGenerationService).
+- [ ] TASK-606 — Test accounting aggregation (AccountingService).
+- [ ] TASK-607 — Test UI dashboard data display.
+- [ ] TASK-608 — Load test with 100 concurrent orders.
+- [ ] TASK-609 — Validate Dapr telemetry (OpenTelemetry metrics, traces).
+- [ ] TASK-610 — Validate KEDA autoscaling (if ScaledObjects configured).
+
+
+### Implementation Phase 7: Production Deployment (Week 4, Days 24–25)
+
+**GOAL-007:** Deploy Phase 0 upgrades to production
+
+Tasks (Phase 7):
+
+- [ ] TASK-701 — Schedule production maintenance window (2-hour window).
+- [ ] TASK-702 — Communicate upgrade plan to stakeholders.
+- [ ] TASK-703 — Execute production Dapr upgrade.
+- [ ] TASK-704 — Execute production KEDA upgrade.
+- [ ] TASK-705 — Execute production cert-manager upgrade.
+- [ ] TASK-706 — Deploy cloud-native state store components.
+- [ ] TASK-707 — Deploy cloud-agnostic object storage bindings.
+- [ ] TASK-708 — Upgrade SQL Server, RabbitMQ, Nginx.
+- [ ] TASK-709 — Run production smoke tests.
+- [ ] TASK-710 — Monitor for 24 hours (metrics, logs, errors).
+
+
+### Implementation Phase 8: Post-Upgrade Monitoring (Week 4, Days 26–28)
+
+**GOAL-008:** Ensure stability and performance
+
+Tasks (Phase 8):
+
+- [ ] TASK-801 — Monitor Dapr sidecar resource usage (CPU, memory).
+- [ ] TASK-802 — Monitor state store latency and error rates.
+- [ ] TASK-803 — Monitor object storage operation success rates.
+- [ ] TASK-804 — Monitor RabbitMQ queue depth and throughput.
+- [ ] TASK-805 — Monitor SQL Server query performance.
+- [ ] TASK-806 — Monitor cert-manager certificate renewals.
+- [ ] TASK-807 — Review Dapr distributed tracing for latency issues.
+- [ ] TASK-808 — Document lessons learned and update runbooks.
+
+## Alternatives
 
 - **ALT-001**: **Incremental Dapr Upgrade** (1.3 → 1.6 → 1.10 → 1.16)
   - **Rejected**: Research confirms direct upgrade is supported, incremental adds unnecessary complexity
@@ -230,7 +249,7 @@ tags: [infrastructure, upgrade, phase-0, platform, dapr, keda, certmanager, prer
 - **ALT-006**: **Deploy MinIO in Production**
   - **Rejected**: Cloud-native object storage (S3, Blob, GCS) reduces operational complexity, better for teaching demos.
 
-## 4. Dependencies
+## Dependencies
 
 ### Infrastructure Dependencies
 
@@ -267,7 +286,7 @@ tags: [infrastructure, upgrade, phase-0, platform, dapr, keda, certmanager, prer
 - **DEP-019**: `plan/migrate-state-stores-cloud-native-implementation-1.md` (state store migration)
 - **DEP-020**: `plan/migrate-object-storage-cloud-agnostic-implementation-1.md` (object storage migration)
 
-## 5. Files
+## Files
 
 ### Dapr Component Files
 
@@ -301,7 +320,7 @@ tags: [infrastructure, upgrade, phase-0, platform, dapr, keda, certmanager, prer
 
 - **FILE-021**: `docker-compose.yml` (to be created) - Local dev infrastructure (MinIO, Redis 6.2.14, RabbitMQ 4.2, SQL Server 2022)
 
-## 6. Testing
+## Testing
 
 ### Pre-Upgrade Testing
 
@@ -374,10 +393,24 @@ tags: [infrastructure, upgrade, phase-0, platform, dapr, keda, certmanager, prer
   - **Success Criteria**: P95 latency < 5ms for service invocation
 
 - **TEST-015**: State Store Latency
+
+## Deliverables
+
+- **Source**: Updated Helm charts, Dapr component manifests, and local Docker / Helm scripts.
+- **Documentation**: Updated runbooks, local dev README, upgrade instructions, and migration checklists.
+- **Manifests**: Cloud-specific Helm `values` files, new Dapr components for state and bindings using Workload Identity.
+- **Evidence**: Smoke test logs, integration test artifacts, and monitoring dashboards for the new versions.
+
+## Acceptance Criteria
+
+- All TASK-##### items are marked complete with reviewing PR links and verification evidence.
+- All tests (TEST-001 → TEST-015) pass in staging before production rollout.
+- No data loss during state migration; backups and rehydration tested successfully.
+- CI/CD pipelines validate Dapr invocation header compliance and Workload Identity integration.
   - **Purpose**: Measure cloud-native state store performance
   - **Success Criteria**: P95 latency < 50ms for state read/write
 
-## 7. Risks & Assumptions
+## Risks & Assumptions
 
 ### Critical Risks
 
@@ -448,7 +481,7 @@ tags: [infrastructure, upgrade, phase-0, platform, dapr, keda, certmanager, prer
 - **ASSUMPTION-009**: No breaking changes in RabbitMQ 4.2 AMQP 0.9.1 protocol (verified in research)
 - **ASSUMPTION-010**: KEDA is not actively used (verified via audit: zero ScaledObjects found)
 
-## 8. Related Specifications / Further Reading
+## Related Specifications / Further Reading
 
 ### Architectural Decision Records
 
