@@ -1,0 +1,21 @@
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: reddog.state.makeline
+  namespace: reddog-retail
+  annotations:
+    # Annotation for EKS IAM Roles for Service Accounts (IRSA)
+    # The ServiceAccount should have eks.amazonaws.com/role-arn annotation
+spec:
+  type: state.aws.dynamodb
+  version: v1
+  metadata:
+    - name: table
+      value: "reddog-makeline"
+    - name: region
+      value: "us-east-1"  # Update with your AWS region
+    # No accessKey or secretKey - uses IRSA (IAM Roles for Service Accounts)
+    # The pod's ServiceAccount must be annotated with:
+    # eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT_ID:role/reddog-makeline-role
+  scopes:
+    - make-line-service

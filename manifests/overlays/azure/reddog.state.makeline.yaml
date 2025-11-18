@@ -1,0 +1,23 @@
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: reddog.state.makeline
+  namespace: reddog-retail
+spec:
+  type: state.azure.cosmosdb
+  version: v1
+  metadata:
+    - name: url
+      value: "https://COSMOSDB_ACCOUNT.documents.azure.com:443/"
+    - name: database
+      value: "reddog"
+    - name: collection
+      value: "makeline"
+    # Azure AD authentication - no masterKey needed
+    - name: azureAD
+      value: "true"
+    # Managed Identity Client ID (set via annotation on ServiceAccount)
+    # - name: azureClientId
+    #   value: "" # Optional: Can be set if not using workload identity annotation
+  scopes:
+    - make-line-service

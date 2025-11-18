@@ -1,0 +1,24 @@
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: reddog.state.loyalty
+  namespace: reddog-retail
+  annotations:
+    # Annotation for GKE Workload Identity
+    # The ServiceAccount should have iam.gke.io/gcp-service-account annotation
+spec:
+  type: state.gcp.firestore
+  version: v1
+  metadata:
+    - name: type
+      value: "Native"
+    - name: project_id
+      value: "PROJECT_ID"  # Update with your GCP project ID
+    - name: entity_kind
+      value: "loyalty"
+    # No private_key_id or private_key - uses Workload Identity
+    # The Kubernetes ServiceAccount must be annotated with:
+    # iam.gke.io/gcp-service-account: reddog-loyalty@PROJECT_ID.iam.gserviceaccount.com
+    # The GCP Service Account must have roles/iam.workloadIdentityUser binding
+  scopes:
+    - loyalty-service
