@@ -19,7 +19,7 @@ internal sealed class Program : IDesignTimeDbContextFactory<AccountingContext>
             .ConfigureServices((context, services) =>
             {
                 // Register DaprClient for client-only apps (no incoming HTTP listeners needed)
-                services.AddSingleton<DaprClient>(_ => new DaprClientBuilder().Build());
+                services.AddDaprClient();
 
                 // Register HttpClient for direct sidecar health/shutdown calls
                 services.AddHttpClient();

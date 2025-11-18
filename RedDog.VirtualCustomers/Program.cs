@@ -46,7 +46,7 @@ if (builder.Environment.IsDevelopment())
 }
 
 builder.Services.AddHttpClient();
-builder.Services.AddSingleton<DaprClient>(_ => new DaprClientBuilder().Build());
+builder.Services.AddDaprClient();
 builder.Services.AddHostedService<VirtualCustomersWorker>();
 
 await builder.Build().RunAsync();
