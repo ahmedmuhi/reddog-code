@@ -1,6 +1,7 @@
 using System.Net.Http;
 using Dapr.Client;
 using Microsoft.Extensions.Options;
+using RedDog.Shared;
 using RedDog.VirtualWorker.Configuration;
 using RedDog.VirtualWorker.Models;
 
@@ -13,7 +14,7 @@ public interface IVirtualWorkerService
 
 internal sealed class VirtualWorkerService : IVirtualWorkerService
 {
-    private readonly DaprClient _daprClient;
+    private readonly DaprInvocationHelper _invocationHelper;
     private readonly DaprOptions _options;
     private readonly ILogger<VirtualWorkerService> _logger;
     private readonly Random _random = Random.Shared;
@@ -22,10 +23,13 @@ internal sealed class VirtualWorkerService : IVirtualWorkerService
 
     public VirtualWorkerService(DaprClient daprClient, IOptions<DaprOptions> options, ILogger<VirtualWorkerService> logger)
     {
-        _daprClient = daprClient ?? throw new ArgumentNullException(nameof(daprClient));
+        ArgumentNullException.ThrowIfNull(daprClient);
         ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(logger);
+        
+        _invocationHelper = new DaprInvocationHelper(daprClient);
         _options = options.Value;
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _logger = logger;
     }
 
     public async Task RunOnceAsync(CancellationToken cancellationToken = default)
@@ -79,8 +83,7 @@ internal sealed class VirtualWorkerService : IVirtualWorkerService
     {
         try
         {
-            return await _daprClient.InvokeMethodAsync<List<OrderSummary>>(
-                HttpMethod.Get,
+            return await _invocationHelper.InvokeMethodAsync<List<OrderSummary>>(
                 _options.MakeLineServiceAppId,
                 $"orders/{_options.StoreId}",
                 cancellationToken);
@@ -110,11 +113,9 @@ internal sealed class VirtualWorkerService : IVirtualWorkerService
     {
         try
         {
-            await _daprClient.InvokeMethodAsync(
-                HttpMethod.Delete,
+            await _invocationHelper.InvokeMethodDeleteAsync(
                 _options.MakeLineServiceAppId,
                 $"orders/{order.StoreId}/{order.OrderId}",
-                order,
                 cancellationToken);
         }
         catch (Exception ex)
