@@ -1,10 +1,10 @@
 ---
 goal: Dapr Cloud Hardening & Identity Federation
-version: 1.4
+version: 1.5
 date_created: 2025-11-13
 last_updated: 2025-11-19
 owner: Red Dog Modernization Team
-status: Planned
+status: Done
 tags:
   - dapr
   - security
@@ -15,7 +15,7 @@ tags:
 
 # Introduction
 
-![Status: Planned](https://img.shields.io/badge/status-Planned-blue)
+![Status: Done](https://img.shields.io/badge/status-Done-brightgreen)
 
 This plan addresses two critical areas of the Red Dog application:
 1.  **Code Modernization:** Auditing existing services to ensure consistent usage of `DaprClient` Dependency Injection and upgrading the `RedDog.Bootstrapper` to use the standard .NET Generic Host pattern.
@@ -121,3 +121,20 @@ await host.Services.GetRequiredService<SeedDataService>().RunAsync();
 
 - [Azure Workload Identity Overview](https://learn.microsoft.com/en-us/azure/aks/workload-identity-overview)
 - [Dapr Component Reference](https://docs.dapr.io/reference/components-reference/)
+
+## 9. Implementation Summary
+
+- **Completed Date:** 2025-11-19
+- **Completed Version:** 1.5
+- **PR:** Implement Dapr Cloud Hardening & Identity Federation (#7) — Merged into `master` (branch: `copilot/implement-dapr-cloud-hardening`).
+- **Issue:** Implementation tracked in issue #6
+- **Summary:**
+  - Phase 1 (Audit & Verification): Completed. `VirtualWorker` and `VirtualCustomers` enforce DI. `RedDog.Bootstrapper` refactored to `Host.CreateDefaultBuilder` and `SeedDataService` implemented.
+  - Phase 2 (Identity Federation): Manifests and service-account overlays added for Azure, AWS, and GCP (Workload Identity annotations). Cloud infra changes are still required to complete; manifests demonstrate identity usage.
+  - Phase 3 (Component Creation & Hardening): Cloud-specific overlays created for loyalty/makeline state stores using Azure AD / IRSA / Workload Identity.
+
+**Notes:** Ensure cloud infra (AKS/EKS/GKE) has OIDC Issuers enabled and that Managed Identity/IRSA/workload identity bindings are created before deploying overlays.
+
+---
+
+_This plan has been implemented and archived. For follow-ups and new work, open an issue or PR referencing this plan._
