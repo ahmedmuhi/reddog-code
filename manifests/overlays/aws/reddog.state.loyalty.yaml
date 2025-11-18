@@ -1,0 +1,28 @@
+# AWS DynamoDB State Store for Loyalty Service with IRSA
+# Uses passwordless authentication via IAM Roles for Service Accounts
+# Prerequisites:
+# 1. DynamoDB table must exist (e.g., reddog-loyalty)
+# 2. loyalty-service IAM Role must have DynamoDB read/write permissions
+# 3. Update <aws-region> and table name as needed
+
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: reddog.state.loyalty
+  namespace: reddog-retail
+  labels:
+    app.kubernetes.io/name: loyalty-service
+    app.kubernetes.io/component: state-store
+    app.kubernetes.io/environment: aws
+spec:
+  type: state.aws.dynamodb
+  version: v1
+  metadata:
+    - name: table
+      value: "reddog-loyalty"
+    - name: region
+      value: "<aws-region>"
+    - name: ttlAttributeName
+      value: "ttl"
+scopes:
+  - loyalty-service

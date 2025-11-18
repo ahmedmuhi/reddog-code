@@ -1,0 +1,32 @@
+# Azure CosmosDB State Store for Make Line Service with Workload Identity
+# Uses passwordless authentication via Azure Workload Identity
+# Prerequisites:
+# 1. CosmosDB account must exist
+# 2. make-line-service Managed Identity must have "Cosmos DB Built-in Data Contributor" role
+# 3. Update <cosmosdb-account> and <azure-region> placeholders
+
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: reddog.state.makeline
+  namespace: reddog-retail
+  labels:
+    app.kubernetes.io/name: make-line-service
+    app.kubernetes.io/component: state-store
+    app.kubernetes.io/environment: azure
+spec:
+  type: state.azure.cosmosdb
+  version: v1
+  metadata:
+    - name: url
+      value: "https://<cosmosdb-account>.documents.azure.com:443/"
+    - name: database
+      value: "reddog"
+    - name: collection
+      value: "makeline"
+    - name: masterKey
+      value: ""  # Empty for Workload Identity
+    - name: actorStateStore
+      value: "false"
+scopes:
+  - make-line-service

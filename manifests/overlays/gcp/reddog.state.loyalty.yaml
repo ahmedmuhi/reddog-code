@@ -1,0 +1,26 @@
+# GCP Firestore State Store for Loyalty Service with Workload Identity
+# Uses passwordless authentication via GCP Workload Identity
+# Prerequisites:
+# 1. Firestore database must exist
+# 2. loyalty-service GCP ServiceAccount must have Firestore User role
+# 3. Update <project-id> placeholder
+
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: reddog.state.loyalty
+  namespace: reddog-retail
+  labels:
+    app.kubernetes.io/name: loyalty-service
+    app.kubernetes.io/component: state-store
+    app.kubernetes.io/environment: gcp
+spec:
+  type: state.gcp.firestore
+  version: v1
+  metadata:
+    - name: project_id
+      value: "<project-id>"
+    - name: entity_kind
+      value: "loyalty"
+scopes:
+  - loyalty-service
