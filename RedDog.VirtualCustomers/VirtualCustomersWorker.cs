@@ -3,6 +3,7 @@ using Dapr.Client;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using RedDog.Shared;
 using RedDog.VirtualCustomers.Configuration;
 using RedDog.VirtualCustomers.Models;
 
@@ -13,7 +14,7 @@ public sealed class VirtualCustomersWorker : BackgroundService
     private const string OrderServiceDaprId = "order-service";
 
     private readonly IHostApplicationLifetime _lifetime;
-    private readonly DaprClient _daprClient;
+    private readonly DaprInvocationHelper _invocationHelper;
     private readonly ILogger<VirtualCustomersWorker> _logger;
     private readonly VirtualCustomerOptions _options;
     private readonly Random _random = Random.Shared;
@@ -26,10 +27,14 @@ public sealed class VirtualCustomersWorker : BackgroundService
         IOptions<VirtualCustomerOptions> options,
         ILogger<VirtualCustomersWorker> logger)
     {
-        _lifetime = lifetime ?? throw new ArgumentNullException(nameof(lifetime));
-        _daprClient = daprClient ?? throw new ArgumentNullException(nameof(daprClient));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        ArgumentNullException.ThrowIfNull(lifetime);
+        ArgumentNullException.ThrowIfNull(daprClient);
         ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(logger);
+        
+        _lifetime = lifetime;
+        _invocationHelper = new DaprInvocationHelper(daprClient);
+        _logger = logger;
         _options = options.Value;
     }
 
@@ -93,8 +98,7 @@ public sealed class VirtualCustomersWorker : BackgroundService
         {
             try
             {
-                _products = await _daprClient.InvokeMethodAsync<List<Product>>(
-                    HttpMethod.Get,
+                _products = await _invocationHelper.InvokeMethodAsync<List<Product>>(
                     OrderServiceDaprId,
                     "product",
                     stoppingToken);
@@ -120,7 +124,7 @@ public sealed class VirtualCustomersWorker : BackgroundService
 
         try
         {
-            await _daprClient.InvokeMethodAsync(OrderServiceDaprId, "order", order, stoppingToken);
+            await _invocationHelper.InvokeMethodAsync(OrderServiceDaprId, "order", order, stoppingToken);
             await Task.Delay(RandomDelay(_options.MinSecondsToPlaceOrder, _options.MaxSecondsToPlaceOrder), stoppingToken);
             _logger.LogInformation("Customer {First} {Last} order submitted", order.FirstName, order.LastName);
         }
