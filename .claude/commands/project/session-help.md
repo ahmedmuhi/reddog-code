@@ -2,30 +2,41 @@ Show help for the session management system:
 
 ## Session Management Commands
 
-The session system helps document development work for future reference.
+The session system helps you document development work so future you (and other agents) can understand what happened, why, and how to continue.
 
 ### Available Commands:
 
-- `/project:session-start [name]` - Start a new session with optional name
-- `/project:session-update [notes]` - Add notes to current session  
-- `/project:session-end` - End session with comprehensive summary
-- `/project:session-list` - List all session files
-- `/project:session-current` - Show current session status
-- `/project:session-help` - Show this help
+- `/project:session-start [name]`  
+  Start a new session with an optional name.
+
+- `/project:session-update [notes]`  
+  Append notes to the current session (progress, issues, decisions).
+
+- `/project:session-end`  
+  End the active session and write a comprehensive summary.
+
+- `/project:session-list`  
+  List all session files in `.claude/sessions/`.
+
+- `/project:session-current`  
+  Show the current session and its status.
+
+- `/project:session-help`  
+  Show this help.
 
 ### How It Works:
 
-1. Sessions are markdown files in `.claude/sessions/`
-2. Files use `YYYY-MM-DD-HHMM-name.md` format
-3. Only one session can be active at a time
-4. Sessions track progress, issues, solutions, and learnings
+1. Sessions are markdown files stored in `.claude/sessions/`.
+2. Filenames use the format `YYYY-MM-DD-HHMM-name.md` (or `YYYY-MM-DD-HHMM.md` if no name is provided).
+3. Only one session can be active at a time; the active filename is tracked in `.claude/sessions/.current-session`.
+4. Each session tracks progress, issues, decisions, solutions, and learnings.
 
 ### Best Practices:
 
-- Start a session when beginning significant work
-- Update regularly with important changes or findings
-- End with thorough summary for future reference
-- Review past sessions before starting similar work
+- Start a session when you begin any significant piece of work.
+- Use `/project:session-update` regularly to capture important changes, problems, and insights.
+- End sessions with a thorough summary that future work can build on.
+- Review relevant past sessions before starting similar or related work.
 
 ### Example Workflow:
 
