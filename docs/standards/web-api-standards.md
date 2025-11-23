@@ -1,338 +1,120 @@
-# Web API Standards
+# HTTP Web API Standard
 
-Standards for building HTTP APIs across all Red Dog microservices.
+Normative standard for building HTTP APIs across all Red Dog microservices.
 
-**Applies to:** All services exposing HTTP APIs (OrderService, MakeLineService, AccountingService, LoyaltyService)
+**Applies to:** All services exposing HTTP APIs  
+(OrderService, MakeLineService, AccountingService, LoyaltyService, ReceiptGenerationService, UI backends)
+
 **Languages:** .NET, Go, Python, Node.js
-**Last Updated:** 2025-11-09
 
-⚠️ **Implementation Status:** These standards describe the **TARGET state** for modernized services. Current .NET 6.0 services do not yet comply. See `CLAUDE.md` → "Current Development Status" for implementation timeline (Phase 1A: .NET 10 upgrade required before adopting these standards).
+This document defines the required behaviour and contracts for HTTP APIs in Red Dog.  
+It is intentionally independent of current implementation status or migration phase.  
+Implementation progress and modernization timelines are tracked in sessions and implementation
+plans, not in this standard.
 
----
+For related architectural knowledge and deeper rationale, see:
 
-## Red Dog Architecture Overview
-
-⚠️ **Note:** The architecture diagram below shows the **TARGET state** after Phase 1B language migrations (planned). Currently, all services are .NET 6.0. See `CLAUDE.md` → "Current Development Status" for actual implementation state.
-
-Red Dog Coffee demonstrates a polyglot microservices architecture using Dapr for service communication. Each service owns its data store (Database per Service pattern) and communicates via Dapr primitives.
-
-### Data Flow Architecture (Target State)
-
-```
-┌─────────────────┐
-│ OrderService    │
-│ (Python/.NET)   │────┐
-└─────────────────┘    │
-                       │ Dapr Pub/Sub
-┌─────────────────┐    │ "orders" topic
-│ MakeLineService │────┤
-│ (Go)            │    │
-└─────────────────┘    │
-                       │
-┌─────────────────┐    │
-│ LoyaltyService  │────┤
-│ (Node.js)       │    │
-└─────────────────┘    │
-                       │
-┌─────────────────┐    │
-│ ReceiptService  │────┤
-│ (Python)        │    │
-└─────────────────┘    │
-                       │
-                       ▼
-              ┌─────────────────────┐
-              │ AccountingService   │◄────── REST API calls
-              │ (.NET + EF Core)    │         from UI/Dashboard
-              └──────────┬──────────┘
-                         │
-                         │ EF Core (private)
-                         ▼
-                  ┌──────────────┐
-                  │  SQL Server  │
-                  │  (Private DB)│
-                  └──────────────┘
-```
-
-### Key Architectural Principles
-
-1. **Database per Service**: Each service owns its data store
-   - AccountingService: SQL Server (via Entity Framework Core)
-   - MakeLineService: Redis state store (via Dapr State API)
-   - LoyaltyService: Redis state store (via Dapr State API)
-   - Other services: Stateless or use Dapr state stores
-
-2. **Dapr-Based Communication**: Services never call databases directly across boundaries
-   - Pub/Sub: Event-driven async communication
-   - Service Invocation: Synchronous HTTP/gRPC calls
-   - State Management: Key-value storage abstraction
-
-3. **Polyglot Architecture**: Choose the right language for each service
-   - .NET: SQL Server integration, complex business logic
-   - Go: High-performance, concurrent workloads
-   - Python: Data processing, scripting
-   - Node.js: Event-driven, I/O-heavy operations
-
-4. **No Cross-Service Database Access**: This is critical!
-   - ❌ OrderService NEVER queries AccountingService's SQL database
-   - ✅ OrderService publishes events → AccountingService subscribes
-   - ✅ UI queries AccountingService's REST API for data
-
-This polyglot approach is enabled by Dapr's language-agnostic APIs, allowing each service to use the best tool for its specific requirements.
+- `knowledge/ki-red-dog-architecture-001.md` – service boundaries and data ownership  
+- `knowledge/ki-http-api-standard-core-001.md` – core HTTP API contract (JSON, errors, health, versioning)  
+- `knowledge/ki-http-api-platform-integration-001.md` – CORS, Dapr integration, API keys, rate limiting  
+- `knowledge/ki-observability-opentelemetry-001.md` – logging, tracing, metrics with OpenTelemetry  
 
 ---
 
-## 1. OpenAPI / Scalar Documentation
+## 0. Architectural Context (Informative)
 
-All HTTP APIs **must** expose OpenAPI documentation with **Scalar UI** at `/scalar` endpoint.
+Red Dog is a polyglot microservices system where each service owns its data (Database-per-Service)
+and communicates across boundaries via Dapr primitives (pub/sub, service invocation, state, bindings).
+The UI talks to backends via HTTP APIs only; no component is allowed to access another service’s
+database directly.
 
-**Why this is #1:** API specification is the foundation - it defines your API contract before implementing other concerns.
+This standard describes how those HTTP APIs must behave at the edge of each service.  
+For architectural boundaries and data ownership, see `knowledge/ki-red-dog-architecture-001.md`.
 
-**Why Scalar:** Modern UI with code examples in 6 languages (C#, Go, Python, JavaScript, curl, etc.), dark mode, better search, and Microsoft-recommended for .NET 9+.
+---
 
-### Standard by Language
+## 1. OpenAPI & Scalar Documentation
 
-**.NET (Use Microsoft.AspNetCore.OpenApi + Scalar.AspNetCore per ADR-0001):**
+All HTTP APIs **MUST** expose an OpenAPI specification and a Scalar UI at the `/scalar` endpoint.
+
+### 1.1 Requirements
+
+1. An OpenAPI document **MUST** describe all public HTTP endpoints of the service.
+2. A Scalar API reference UI **MUST** be available at `/scalar` and **MUST** render the OpenAPI document.
+3. The OpenAPI document **MUST** use OpenAPI 3.x.
+4. The `/scalar` endpoint:
+   - **MUST** be enabled in at least one environment used for development and testing.
+   - **MAY** be disabled or access-controlled in production if required by security policy.
+5. The OpenAPI document **SHOULD** include:
+   - Operation summaries and descriptions.
+   - Request/response schemas and examples.
+   - Standardised error responses using RFC 7807 (see Section 3).
+
+### 1.2 Examples (Non-Normative)
+
+#### Example (.NET, non-normative)
+
 ```csharp
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-    app.MapScalarApiReference();
-}
-```
+app.MapOpenApi();
+app.MapScalarApiReference(); // exposes /scalar
+````
 
-**Installation:** `dotnet add package Scalar.AspNetCore`
-**Access:** `http://localhost:5100/scalar`
+#### Example (FastAPI, non-normative)
 
----
-
-**Go (scalar-go):**
-```go
-package main
-
-import (
-    "fmt"
-    "net/http"
-    scalargo "github.com/bdpiprava/scalar-go"
-)
-
-func main() {
-    http.HandleFunc("/scalar", func(w http.ResponseWriter, r *http.Request) {
-        html, err := scalargo.NewV2(
-            scalargo.WithSpecURL("/openapi.json"),
-            scalargo.WithDarkMode(),
-        )
-        if err != nil {
-            http.Error(w, err.Error(), 500)
-            return
-        }
-        w.Header().Set("Content-Type", "text/html; charset=utf-8")
-        fmt.Fprint(w, html)
-    })
-
-    http.ListenAndServe(":8080", nil)
-}
-```
-
-**Installation:** `go get github.com/bdpiprava/scalar-go`
-**Access:** `http://localhost:8080/scalar`
-
----
-
-**Python (FastAPI with scalar-fastapi):**
 ```python
 from fastapi import FastAPI
 from scalar_fastapi import get_scalar_api_reference
 
-app = FastAPI(
-    title="Red Dog OrderService API",
-    version="1.0.0",
-    description="Order management API"
-)
+app = FastAPI()
 
 @app.get("/scalar", include_in_schema=False)
 async def scalar_html():
     return get_scalar_api_reference(
         openapi_url=app.openapi_url,
-        title=app.title
+        title=app.title,
     )
 ```
 
-**Installation:** `pip install scalar-fastapi`
-**Access:** `http://localhost:5100/scalar`
+Other languages (Go, Node.js) may follow their respective Scalar integrations as long as the
+behaviour above is respected.
 
 ---
 
-**Node.js (Fastify with @scalar/fastify-api-reference):**
-```javascript
-import Fastify from 'fastify'
-import scalarApiReference from '@scalar/fastify-api-reference'
+## 2. CORS (Cross-Origin Resource Sharing)
 
-const fastify = Fastify()
+This section applies to HTTP APIs invoked from the browser (e.g. Vue.js UI).
 
-await fastify.register(scalarApiReference, {
-  routePrefix: '/scalar',
-})
+### 2.1 Requirements
 
-await fastify.listen({ port: 3000 })
-```
+1. CORS **MUST** be implemented using application-level middleware in each service:
 
-**Installation:** `npm install @scalar/fastify-api-reference`
-**Access:** `http://localhost:3000/scalar`
+   * e.g. ASP.NET Core CORS middleware, FastAPI CORSMiddleware, Express `cors`, etc.
+2. CORS configuration **MUST NOT** rely solely on cloud ingress/load balancer CORS features.
+   Platform-level CORS **MAY** be used as an additional defence, but not as the primary mechanism.
+3. Allowed origins **MUST** be provided via configuration, not hard-coded in source:
 
----
+   * preferred: Dapr Configuration API (e.g. store `reddog.config`, key `allowedOrigins`),
+   * acceptable fallback: environment variables or equivalent config system.
+4. All environments (local, test, staging, production) **MUST** use the same mechanism for
+   specifying allowed origins (even if the values differ).
+5. The configured origins **SHOULD** be as narrow as practical (exact UI origins, not `*`).
 
-### Why Scalar?
-
-- **Industry Standard:** OpenAPI 3.2 remains the dominant standard for REST APIs in 2025
-- **Microsoft Endorsed:** Recommended for .NET 9+ (Swashbuckle removed from defaults)
-- **Teaching Value:** Code examples in 6 languages align with Red Dog's polyglot architecture
-- **Modern UX:** Dark mode, advanced search, better developer experience
-- **Cross-Language:** Official packages for .NET, Go, Python, Node.js
-- **Zero Lock-In:** Open-source (MIT), reads standard OpenAPI JSON
-- **Contract-First Development:** Define API contract before implementation
-
-**Research:** See `docs/research/scalar-api-research.md` for detailed integration guides and package information.
+For more detail and patterns, see `knowledge/ki-http-api-platform-integration-001.md`
+and ADR-0002 / ADR-0004.
 
 ---
 
-## 2. CORS Configuration
+## 3. Error Response Format (RFC 7807 Problem Details)
 
-All HTTP APIs that are called from the Vue.js UI **must** configure CORS (Cross-Origin Resource Sharing) to allow browser requests.
+All HTTP APIs **MUST** return errors using RFC 7807 *Problem Details for HTTP APIs*.
 
-### Standard
+### 3.1 Standard Error Schema
 
-- **Use application-level CORS middleware** (not cloud provider CORS features)
-- **Allowed origins** configured via **Dapr Configuration API** (see [ADR-0004](../adr/adr-0004-dapr-configuration-api-standardization.md))
-  - ⚠️ **Note:** ADR-0004 is NOT implemented yet. Use environment variables as temporary workaround.
-  - See [Configuration Decision Tree](../adr/README.md#configuration-decision-tree) for configuration strategy
-- **Configuration key:** `allowedOrigins` (comma-separated list)
-
-### Implementation by Language
-
-**.NET (ASP.NET Core):**
-```csharp
-// Program.cs
-var builder = WebApplication.CreateBuilder(args);
-var daprClient = new DaprClientBuilder().Build();
-
-// Read allowed origins from Dapr Configuration API
-var config = await daprClient.GetConfiguration("reddog.config", new[] { "allowedOrigins" });
-var allowedOrigins = config["allowedOrigins"].Value.Split(',');
-
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowUI", policy =>
-    {
-        policy.WithOrigins(allowedOrigins)
-              .AllowAnyMethod()
-              .AllowAnyHeader()
-              .AllowCredentials();  // If using cookies/auth
-    });
-});
-
-var app = builder.Build();
-
-// IMPORTANT: UseCors MUST come before UseRouting
-app.UseCors("AllowUI");
-app.UseRouting();
-app.MapControllers();
-
-app.Run();
-```
-
-**Go (net/http with rs/cors):**
-```go
-package main
-
-import (
-    "context"
-    "net/http"
-    "strings"
-    dapr "github.com/dapr/go-sdk/client"
-    "github.com/rs/cors"
-)
-
-func main() {
-    // Read allowed origins from Dapr Configuration API
-    daprClient, _ := dapr.NewClient()
-    config, _ := daprClient.GetConfigurationItem(context.Background(),
-        "reddog.config", "allowedOrigins")
-    allowedOrigins := strings.Split(config.Value, ",")
-
-    // Configure CORS
-    c := cors.New(cors.Options{
-        AllowedOrigins:   allowedOrigins,
-        AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-        AllowedHeaders:   []string{"*"},
-        AllowCredentials: true,
-    })
-
-    mux := http.NewServeMux()
-    mux.HandleFunc("/order", orderHandler)
-
-    handler := c.Handler(mux)
-    http.ListenAndServe(":8080", handler)
-}
-```
-
-**Python (FastAPI):**
-```python
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from dapr.clients import DaprClient
-
-app = FastAPI()
-dapr_client = DaprClient()
-
-# Read allowed origins from Dapr Configuration API
-config = dapr_client.get_configuration(store_name="reddog.config", keys=["allowedOrigins"])
-allowed_origins = config.items["allowedOrigins"].value.split(",")
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=allowed_origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-```
-
-**Node.js (Express):**
-```javascript
-const express = require('express');
-const cors = require('cors');
-const { DaprClient } = require('@dapr/dapr');
-
-const app = express();
-const daprClient = new DaprClient();
-
-// Read allowed origins from Dapr Configuration API
-const config = await daprClient.configuration.get('reddog.config', ['allowedOrigins']);
-const allowedOrigins = config.items.allowedOrigins.value.split(',');
-
-app.use(cors({
-    origin: allowedOrigins,
-    credentials: true
-}));
-```
-
-### Dapr Configuration Store (Example)
-
-**Key:** `allowedOrigins`
-**Value (Local):** `http://localhost:8080`
-**Value (Production):** `https://reddog-ui-aks.eastus.cloudapp.azure.com,https://reddog-ui.azurecontainerapps.io`
-
----
-
-## 3. Error Response Format
-
-All APIs **must** return errors using **RFC 7807 Problem Details** format.
-
-### Standard Error Schema
+Error responses **MUST** conform to the following structure:
 
 ```json
 {
@@ -340,218 +122,144 @@ All APIs **must** return errors using **RFC 7807 Problem Details** format.
   "title": "Validation Error",
   "status": 400,
   "detail": "The 'quantity' field must be greater than 0",
-  "instance": "/order/12345",
+  "instance": "/v1/order/12345",
   "traceId": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
 }
 ```
 
-### Field Descriptions
+### 3.2 Required Fields
 
-| Field | Required | Description |
-|-------|----------|-------------|
-| `type` | Yes | URI identifying the error type (use docs URL) |
-| `title` | Yes | Short, human-readable summary |
-| `status` | Yes | HTTP status code (400, 404, 500, etc.) |
-| `detail` | No | Detailed explanation specific to this occurrence |
-| `instance` | No | URI reference to the specific resource |
-| `traceId` | No | Distributed tracing ID (for debugging) |
+| Field      | Required | Description                                                          |
+| ---------- | -------- | -------------------------------------------------------------------- |
+| `type`     | Yes      | Stable URI identifying the error type (Red Dog error catalogue URL). |
+| `title`    | Yes      | Short, human-readable summary of the error type.                     |
+| `status`   | Yes      | HTTP status code of the response (e.g. 400, 404, 500).               |
+| `detail`   | No       | Human-readable explanation specific to this occurrence.              |
+| `instance` | No       | URI reference to the specific resource or request path.              |
+| `traceId`  | No       | Distributed trace identifier (if available) for correlation.         |
 
-### Implementation by Language
+### 3.3 Behaviour
 
-**.NET (ASP.NET Core):**
-```csharp
-// Use built-in ProblemDetails support
-app.MapPost("/order", (Order order) =>
-{
-    if (order.Quantity <= 0)
-    {
-        return Results.Problem(
-            type: "https://reddog.example.com/errors/validation-error",
-            title: "Validation Error",
-            statusCode: 400,
-            detail: "The 'quantity' field must be greater than 0",
-            instance: $"/order/{order.OrderId}"
-        );
-    }
-    // Process order...
-});
-```
+1. Error responses **MUST** use the `application/problem+json` content type.
+2. The `status` field **MUST** match the actual HTTP response status code.
+3. The `type` URI **SHOULD** be stable and documented (not a per-request URL).
+4. Services **MUST NOT** return ad-hoc JSON error shapes to UI or external clients;
+   Problem Details is the canonical error format.
 
-**Go:**
-```go
-type ProblemDetails struct {
-    Type     string `json:"type"`
-    Title    string `json:"title"`
-    Status   int    `json:"status"`
-    Detail   string `json:"detail,omitempty"`
-    Instance string `json:"instance,omitempty"`
-    TraceID  string `json:"traceId,omitempty"`
-}
+### 3.4 HTTP Status Code Usage
 
-func returnError(w http.ResponseWriter, problem ProblemDetails) {
-    w.Header().Set("Content-Type", "application/problem+json")
-    w.WriteHeader(problem.Status)
-    json.NewEncoder(w).Encode(problem)
-}
-```
+The following table standardises semantics. Examples below are illustrative; the actual payloads
+**MUST** follow Problem Details format.
 
-**Python (FastAPI):**
-```python
-from fastapi import HTTPException
-from pydantic import BaseModel
-
-class ProblemDetails(BaseModel):
-    type: str
-    title: str
-    status: int
-    detail: str = None
-    instance: str = None
-    traceId: str = None
-
-@app.post("/order")
-async def create_order(order: Order):
-    if order.quantity <= 0:
-        raise HTTPException(
-            status_code=400,
-            detail=ProblemDetails(
-                type="https://reddog.example.com/errors/validation-error",
-                title="Validation Error",
-                status=400,
-                detail="The 'quantity' field must be greater than 0"
-            ).dict()
-        )
-```
-
-### HTTP Status Code Usage
-
-| Status | Usage | Example |
-|--------|-------|---------|
-| **400 Bad Request** | Malformed request, invalid JSON | `{"error": "Invalid JSON syntax"}` |
-| **401 Unauthorized** | Missing or invalid authentication | `{"error": "API key required"}` |
-| **403 Forbidden** | Valid auth, but insufficient permissions | `{"error": "Admin access required"}` |
-| **404 Not Found** | Resource does not exist | `{"error": "Order 12345 not found"}` |
-| **422 Unprocessable Entity** | Valid request, but business logic violation | `{"error": "Quantity must be > 0"}` |
-| **429 Too Many Requests** | Rate limit exceeded | `{"error": "Rate limit: 100 req/min"}` |
-| **500 Internal Server Error** | Unexpected server error | `{"error": "Database connection failed"}` |
-| **503 Service Unavailable** | Service temporarily unavailable | `{"error": "Maintenance mode"}` |
+| Status | Usage                                                     |
+| ------ | --------------------------------------------------------- |
+| 400    | Malformed request, validation failures.                   |
+| 401    | Missing or invalid authentication.                        |
+| 403    | Authenticated but insufficient permissions.               |
+| 404    | Resource not found.                                       |
+| 422    | Business rule violation (semantic error).                 |
+| 429    | Rate limit exceeded.                                      |
+| 500    | Unexpected server error.                                  |
+| 503    | Temporarily unavailable (maintenance, dependencies down). |
 
 ---
 
 ## 4. API Versioning
 
-APIs **should** support versioning to allow backward-compatible changes.
+### 4.1 Requirements
 
-### Standard: URL Path Versioning
+1. Public HTTP APIs **SHOULD** include an explicit version prefix in the URL path:
 
-**Preferred Method:** Include version in URL path (`/v1/order`, `/v2/order`)
+   * e.g. `/v1/order`, `/v2/order`.
+2. A new major version (e.g. `v2`) **MUST** be introduced for breaking changes to contracts.
+3. Old versions **MAY** be maintained for a deprecation window as defined by product/ops policies.
+4. Internal / infrastructure endpoints (e.g. `/scalar`, `/healthz`, `/livez`, `/readyz`)
+   **MAY** be unversioned.
 
-**Why:** Simple, explicit, works with all HTTP clients (including browsers, curl, Postman)
+### 4.2 Examples (Informative)
 
-### Examples
-
-```
-GET /v1/product           # Version 1
-GET /v2/product           # Version 2 (breaking changes)
-POST /v1/order            # Version 1
-POST /v2/order            # Version 2
-```
-
-### Implementation Pattern
-
-**.NET:**
-```csharp
-app.MapGet("/v1/product", () => { /* V1 logic */ });
-app.MapGet("/v2/product", () => { /* V2 logic */ });
-```
-
-**Go:**
-```go
-mux.HandleFunc("/v1/product", v1ProductHandler)
-mux.HandleFunc("/v2/product", v2ProductHandler)
-```
-
-### Deprecation Strategy
-
-1. **Announce deprecation** (6 months notice): Update API docs, add `Deprecation` header
-2. **Sunset period** (3 months): Return `410 Gone` with migration guide link
-3. **Remove endpoint**: After sunset period, remove v1 entirely
-
-**Deprecation Header Example:**
 ```http
-HTTP/1.1 200 OK
+GET /v1/product         # Version 1
+GET /v2/product         # Version 2 (breaking changes)
+POST /v1/order          # Create order (v1 contract)
+POST /v2/order          # Create order (v2 contract)
+```
+
+### 4.3 Deprecation Headers (Recommended)
+
+APIs that are being deprecated **SHOULD** advertise their status via HTTP headers:
+
+```http
 Deprecation: Sun, 01 Jun 2025 00:00:00 GMT
 Sunset: Sun, 01 Sep 2025 00:00:00 GMT
 Link: </v2/product>; rel="successor-version"
 ```
 
+The exact deprecation window is an operational decision and **MUST** be documented per API.
+
 ---
 
 ## 5. Health Endpoints
 
-All HTTP APIs **must** implement health check endpoints for Kubernetes probes.
+All HTTP services **MUST** expose Kubernetes-friendly health endpoints.
 
-### Standard: Kubernetes Health Probes
+### 5.1 Required Endpoints
 
-**See [ADR-0005: Kubernetes Health Probe Standardization](../adr/adr-0005-kubernetes-health-probe-standardization.md) for comprehensive guidance.**
+1. `GET /healthz` – startup / basic process health.
+2. `GET /livez` – liveness probe (process not deadlocked or crashed).
+3. `GET /readyz` – readiness probe (service and critical dependencies ready).
 
-**Implementation Status:** 🔵 Accepted (Not Fully Implemented) - Current services use `/health`, migration to `/healthz`, `/livez`, `/readyz` in progress.
+### 5.2 Behaviour
 
-**Required Endpoints:**
-- `GET /healthz` - Startup probe (basic process health)
-- `GET /livez` - Liveness probe (deadlock detection)
-- `GET /readyz` - Readiness probe (dependency health)
+1. Healthy responses **MUST** return `200 OK`.
+2. Unhealthy / not ready responses **MUST** return `503 Service Unavailable`.
+3. Bodies **MAY** be simple (`"OK"`, `"Healthy"`, `{}`), but:
 
-**Success Response:** `200 OK` with any body (`"Healthy"`, `"OK"`, `{}`)
-**Failure Response:** `503 Service Unavailable`
+   * **MUST NOT** expose sensitive details or stack traces.
+4. `/readyz` **SHOULD** check critical dependencies:
 
-### Quick Reference
+   * database connectivity where applicable,
+   * essential Dapr components for this service (e.g. state store, pub/sub, bindings).
 
-```csharp
-// .NET
-app.MapGet("/healthz", () => Results.Ok("Healthy"));
-app.MapGet("/livez", () => Results.Ok("Alive"));
-app.MapGet("/readyz", async (DaprClient dapr, DbContext db) =>
-{
-    try
-    {
-        await dapr.CheckHealthAsync();
-        await db.Database.CanConnectAsync();
-        return Results.Ok("Ready");
-    }
-    catch { return Results.StatusCode(503); }
-});
-```
+Detailed probe configuration is defined in ADR-0005.
 
 ---
 
-## 6. Request/Response Patterns
+## 6. Request / Response Patterns
 
-### JSON Naming Convention
+### 6.1 JSON Naming
 
-**Standard:** Use **camelCase** for all JSON fields (not snake_case, PascalCase, or kebab-case).
+1. All JSON request and response bodies **MUST** use `camelCase` for field names.
+2. `snake_case`, `PascalCase`, and `kebab-case` **MUST NOT** be introduced in public JSON contracts.
+3. If underlying models use different naming, mapping **MUST** be applied at the HTTP boundary.
 
 **Example:**
+
 ```json
 {
   "orderId": 12345,
   "productName": "Americano",
-  "unitPrice": 3.50,
+  "unitPrice": 3.5,
   "quantity": 2,
-  "totalPrice": 7.00,
+  "totalPrice": 7.0,
   "customerId": "abc-123"
 }
 ```
 
-### Pagination
+### 6.2 Pagination
 
-**Standard:** Use **limit/offset** pagination for simple use cases, **cursor-based** for large datasets.
+#### 6.2.1 Limit/Offset (Simple Lists)
 
-**Limit/Offset Example:**
+1. Simple list endpoints **SHOULD** support `limit` and `offset` query parameters.
+
+**Request:**
+
 ```http
 GET /v1/product?limit=20&offset=40
 ```
 
-**Response:**
+**Response shape (informative):**
+
 ```json
 {
   "data": [...],
@@ -564,12 +272,18 @@ GET /v1/product?limit=20&offset=40
 }
 ```
 
-**Cursor-Based Example (for large datasets):**
+#### 6.2.2 Cursor-Based (Large or Unbounded Lists)
+
+1. Endpoints returning large or unbounded result sets **SHOULD** use cursor-based pagination.
+
+**Request:**
+
 ```http
 GET /v1/order?limit=20&cursor=eyJpZCI6MTIzNDV9
 ```
 
-**Response:**
+**Response shape (informative):**
+
 ```json
 {
   "data": [...],
@@ -581,209 +295,180 @@ GET /v1/order?limit=20&cursor=eyJpZCI6MTIzNDV9
 }
 ```
 
-### Filtering and Sorting
+### 6.3 Filtering and Sorting
 
-**Filtering:** Use query parameters matching field names
-```http
-GET /v1/product?category=coffee&priceMin=3.00&priceMax=5.00
-```
+1. Filtering **SHOULD** use query parameters that match field names or well-documented filters:
 
-**Sorting:** Use `sort` parameter with field name and direction
-```http
-GET /v1/product?sort=price:asc
-GET /v1/product?sort=name:desc,price:asc  # Multiple fields
-```
+   ```http
+   GET /v1/product?category=coffee&priceMin=3.00&priceMax=5.00
+   ```
+
+2. Sorting **SHOULD** use a `sort` parameter with `field:direction` pairs:
+
+   ```http
+   GET /v1/product?sort=price:asc
+   GET /v1/product?sort=name:desc,price:asc
+   ```
+
+3. The set of supported filters and sort fields **MUST** be documented in OpenAPI.
 
 ---
 
 ## 7. HTTP Method Usage
 
-| Method | Usage | Idempotent | Safe |
-|--------|-------|------------|------|
-| **GET** | Retrieve resource(s) | ✅ Yes | ✅ Yes |
-| **POST** | Create new resource | ❌ No | ❌ No |
-| **PUT** | Replace entire resource | ✅ Yes | ❌ No |
-| **PATCH** | Update part of resource | ❌ No | ❌ No |
-| **DELETE** | Remove resource | ✅ Yes | ❌ No |
+### 7.1 Semantics
 
-**Idempotent:** Multiple identical requests have the same effect as a single request
-**Safe:** Does not modify server state (read-only)
+| Method | Usage                        | Idempotent |  Safe |
+| ------ | ---------------------------- | ---------: | ----: |
+| GET    | Retrieve resource(s)         |      ✅ Yes | ✅ Yes |
+| POST   | Create new resource / action |       ❌ No |  ❌ No |
+| PUT    | Replace entire resource      |      ✅ Yes |  ❌ No |
+| PATCH  | Partially update a resource  |       ❌ No |  ❌ No |
+| DELETE | Remove resource              |      ✅ Yes |  ❌ No |
 
-### Examples
+* **Idempotent:** Multiple identical requests have the same effect as one.
+* **Safe:** Does not modify server state.
+
+### 7.2 Examples (Informative)
 
 ```http
-GET    /v1/product          # List all products
-GET    /v1/product/123      # Get product 123
-POST   /v1/order            # Create new order
-PUT    /v1/product/123      # Replace product 123
-PATCH  /v1/product/123      # Update product 123 fields
-DELETE /v1/order/456        # Delete order 456
+GET    /v1/product           # List all products
+GET    /v1/product/123       # Get product 123
+POST   /v1/order             # Create new order
+PUT    /v1/product/123       # Replace product 123
+PATCH  /v1/product/123       # Partially update product 123
+DELETE /v1/order/456         # Delete order 456
 ```
 
 ---
 
 ## 8. Authentication & Authorization
 
-### Standard: Dapr Service Invocation (mTLS)
+### 8.1 Internal Service-to-Service Calls
 
-For **service-to-service** communication, use **Dapr service invocation** with built-in mTLS.
+1. Internal service-to-service HTTP calls **MUST** use Dapr Service Invocation.
+2. Internal calls **MUST** rely on Dapr’s mutual TLS (mTLS) for transport security.
+3. Services **MUST NOT** call each other directly via:
 
-**Example (.NET):**
+   * pod IPs, node ports, cluster-internal load balancers,
+   * or other ad-hoc HTTP mechanisms for normal internal use.
+
+**Informative example (.NET):**
+
 ```csharp
-// Call MakeLineService from OrderService
 var httpClient = DaprClient.CreateInvokeHttpClient("makeline-service");
-var response = await httpClient.GetAsync("/order/status/123");
+var response = await httpClient.GetAsync("/v1/order/status/123");
 ```
 
-**Security:** Dapr handles mTLS automatically (no manual certificate management).
+### 8.2 External Clients (API Keys)
 
-### API Keys (External Clients)
+1. External access to HTTP APIs **MUST** be authenticated.
+2. API keys for external clients **MUST** be stored in a Dapr secret store (e.g. `reddog.secretstore`)
+   or equivalent secret management mechanism defined by ADR-0002.
+3. API keys **MUST NOT** be:
 
-For **external API access**, use API keys stored in **Dapr secret store** (see [ADR-0002: Cloud-Agnostic Configuration via Dapr](../adr/adr-0002-cloud-agnostic-configuration-via-dapr.md)).
+   * hard-coded in source,
+   * stored in public configuration,
+   * logged in plaintext.
+4. Requests from external clients **MUST** be validated using a documented mechanism
+   (e.g. `X-API-Key` header).
+5. Invalid or missing credentials **MUST** result in appropriate Problem Details errors:
 
-**.NET Example:**
-```csharp
-// Retrieve API key from Dapr secret store
-var secrets = await daprClient.GetSecretAsync("reddog.secretstore", "api-key");
-var apiKey = secrets["api-key"];
+   * `401 Unauthorized` for missing/invalid credentials,
+   * `403 Forbidden` for insufficient permissions.
 
-// Validate incoming request
-app.Use(async (context, next) =>
-{
-    var requestKey = context.Request.Headers["X-API-Key"];
-    if (requestKey != apiKey)
-    {
-        context.Response.StatusCode = 401;
-        await context.Response.WriteAsync("Invalid API key");
-        return;
-    }
-    await next();
-});
-```
+### 8.3 Rate Limiting
 
-### Rate Limiting
+1. Internet-exposed HTTP APIs **SHOULD** implement rate limiting.
+2. Rate limiting **MAY** be implemented via:
 
-**Standard:** Use **KEDA** for autoscaling based on request rate, or implement application-level rate limiting.
+   * platform mechanisms (e.g. KEDA, API gateways, ingress),
+   * application-level middleware.
+3. Policies **MUST** be documented (limits, windows, retry guidance).
+4. Exceeded limits **SHOULD** return `429 Too Many Requests` with a Problem Details body and
+   optional `Retry-After` header.
 
-**Simple Rate Limiting (.NET with AspNetCoreRateLimit):**
-```csharp
-builder.Services.AddMemoryCache();
-builder.Services.Configure<IpRateLimitOptions>(options =>
-{
-    options.GeneralRules = new List<RateLimitRule>
-    {
-        new RateLimitRule { Endpoint = "*", Limit = 100, Period = "1m" }
-    };
-});
-```
+Further patterns are described in `knowledge/ki-http-api-platform-integration-001.md`.
 
 ---
 
 ## 9. Observability (Logging, Tracing, Metrics)
 
-All HTTP APIs **must** implement structured logging, distributed tracing, and metrics using OpenTelemetry.
+This section defines the target observability behaviour for Red Dog HTTP APIs.
+Detailed implementation guidance is in ADR-0011 and `knowledge/ki-observability-opentelemetry-001.md`.
 
-**See [ADR-0011: OpenTelemetry Observability Standard](../adr/adr-0011-opentelemetry-observability-standard.md) for complete implementation guidance.**
+### 9.1 Requirements
 
-**Implementation Status:** ⚪ Planned (Not Implemented) - Services currently use Serilog 4.1.0. Migration to OpenTelemetry blocked by .NET 10 upgrade (ADR-0001).
+1. All services **MUST** use OpenTelemetry as the primary mechanism for:
 
-### Quick Reference
+   * logs,
+   * traces,
+   * metrics.
+2. Telemetry **MUST** be exported via OTLP (OpenTelemetry Protocol) to an OpenTelemetry Collector,
+   not directly to vendor-specific endpoints.
+3. Application logs **MUST** be structured (machine-parseable) and **SHOULD** use JSON.
+4. Logs related to traced requests **MUST** include:
 
-**Standard:** Native OpenTelemetry OTLP exporters for logs, traces, and metrics
+   * `traceId` (if part of an active trace),
+   * `serviceName`,
+   * log level,
+   * relevant domain identifiers (e.g. `orderId`) where applicable.
+5. Dapr’s W3C Trace Context propagation **MUST** be honoured; services **MUST NOT**
+   invent incompatible trace mechanisms.
+6. Observability configuration (endpoints, sampling, log level) **MUST** be driven by configuration
+   (environment, Helm values, Dapr config) and **MUST NOT** be hard-coded.
 
-**Key Principles:**
-- Native OTLP exporters (NOT Serilog, winston, logrus, or third-party sinks)
-- JSON format with automatic trace correlation (TraceId, SpanId)
-- Export to OpenTelemetry Collector → Loki/Prometheus/Jaeger
-- Structured logging with contextual properties (OrderId, CustomerId, ServiceName)
-- **Dapr 1.16+ provides automatic trace propagation** (W3C Trace Context headers) across service-to-service calls
+### 9.2 Data Flow (Informative)
 
-**Implementations:**
-- **.NET**: `Microsoft.Extensions.Logging` + `OpenTelemetry.Exporter.OpenTelemetryProtocol`
-- **Go**: `log/slog` + `go.opentelemetry.io/contrib/bridges/otelslog`
-- **Python**: `structlog` + `opentelemetry-exporter-otlp-proto-grpc`
-- **Node.js**: `pino` + `@opentelemetry/instrumentation-pino`
+* Services emit OTLP telemetry → OpenTelemetry Collector → downstream systems (e.g. Loki, Prometheus, Jaeger, Tempo, or vendor-specific backends).
+* The choice of downstream stack may change without modifying application code.
 
-**Required Log Properties:**
-| Property | Description | Example |
-|----------|-------------|---------|
-| `traceId` | Distributed trace ID | `00-4bf92f3577...` |
-| `serviceName` | Service identifier | `OrderService` |
-| `orderId` | Order ID (if applicable) | `12345` |
-| `level` | Log level | `Information`, `Error` |
+### 9.3 Safety
 
-**Collector Endpoints:**
-- OTLP gRPC: `otel-collector:4317`
-- OTLP HTTP: `otel-collector:4318`
+1. Telemetry **MUST NOT** include:
 
-**Full implementation details, code examples, and collector configuration:** See ADR-0011
-
----
-
-## Related Architectural Decisions
-
-This standard is supported by the following ADRs. For complete architectural context, see [ADR Overview](../adr/README.md).
-
-### Configuration Management
-
-- **[ADR-0002: Cloud-Agnostic Configuration via Dapr](../adr/adr-0002-cloud-agnostic-configuration-via-dapr.md)** 🟢 Implemented
-  - Secret management via Dapr Secret Store (API keys, connection strings)
-  - Enables deployment to AKS, EKS, GKE without code changes
-
-- **[ADR-0004: Dapr Configuration API Standardization](../adr/adr-0004-dapr-configuration-api-standardization.md)** ⚪ NOT IMPLEMENTED
-  - Application settings (CORS origins, feature flags, business rules)
-  - **Current workaround:** Use environment variables until ADR-0004 is implemented
-  - See [Configuration Decision Tree](../adr/README.md#configuration-decision-tree)
-
-- **[ADR-0006: Infrastructure Configuration via Environment Variables](../adr/adr-0006-infrastructure-configuration-via-environment-variables.md)** 🔵 Accepted
-  - Service ports, Dapr endpoints, runtime modes
-  - Set via Helm chart values files (ADR-0009)
-
-### Operational Standards
-
-- **[ADR-0005: Kubernetes Health Probe Standardization](../adr/adr-0005-kubernetes-health-probe-standardization.md)** 🔵 Accepted
-  - Required endpoints: `/healthz`, `/livez`, `/readyz`
-  - Kubernetes probe configurations (startupProbe, livenessProbe, readinessProbe)
-  - **Current state:** Services implement `/health` (legacy pattern needs migration)
-
-- **[ADR-0011: OpenTelemetry Observability Standard](../adr/adr-0011-opentelemetry-observability-standard.md)** ⚪ Planned
-  - Logging, distributed tracing, metrics implementation
-  - Native OTLP exporters for .NET, Go, Python, Node.js
-  - **Current state:** Services use Serilog 4.1.0 (migration blocked by ADR-0001)
-
-### Platform & Deployment
-
-- **[ADR-0001: .NET 10 LTS Adoption](../adr/adr-0001-dotnet10-lts-adoption.md)** 🔵 Accepted
-  - **Prerequisite for:** ADR-0011 (OpenTelemetry requires .NET 10 APIs)
-  - **Current blocker:** Testing strategy implementation required
-
-- **[ADR-0009: Helm Multi-Environment Deployment](../adr/adr-0009-helm-multi-environment-deployment.md)** ⚪ Planned
-  - Environment-specific configuration (values-local.yaml, values-azure.yaml, etc.)
-  - Helm templates for service deployments, Ingress resources, Dapr components
-  - **Current state:** charts/ directory doesn't exist yet
-
-### Multi-Cloud Strategy
-
-- **[ADR-0007: Cloud-Agnostic Deployment Strategy](../adr/adr-0007-cloud-agnostic-deployment-strategy.md)** 🔵 Accepted
-  - Architectural principle enabling deployment to AKS, EKS, GKE
-  - Containerized infrastructure (RabbitMQ, Redis) for portability
+   * secrets (API keys, passwords, tokens),
+   * unnecessary PII.
+2. Verbose logging and high-cardinality metrics **SHOULD** be controlled via sampling and configuration
+   to avoid cost and performance issues.
 
 ---
 
-## Additional Resources
+## Related Architectural Decisions (Informative)
 
-- [ADR Overview & Navigation Hub](../adr/README.md) - Complete ADR index with implementation status
-- [Configuration Decision Tree](../adr/README.md#configuration-decision-tree) - "Where should I put this setting?"
-- [CLAUDE.md: Current Development Status](../../CLAUDE.md#current-development-status) - Actual vs target state
-- [Modernization Strategy](../../plan/modernization-strategy.md) - 8-phase roadmap
+The following ADRs provide deeper context for this standard:
+
+* **ADR-0001: .NET 10 LTS Adoption**
+  – Modern .NET baseline for services and tooling.
+
+* **ADR-0002: Cloud-Agnostic Configuration via Dapr**
+  – Secret and configuration management via Dapr stores.
+
+* **ADR-0004: Dapr Configuration API Standardization**
+  – Standard mechanism for application configuration (CORS, feature flags, etc.).
+
+* **ADR-0005: Kubernetes Health Probe Standardization**
+  – Detailed health endpoint and probe configuration.
+
+* **ADR-0006: Infrastructure Configuration via Environment Variables**
+  – Infrastructure settings (ports, endpoints) as env vars.
+
+* **ADR-0007: Cloud-Agnostic Deployment Strategy**
+  – Deployment to AKS, EKS, GKE with a consistent architecture.
+
+* **ADR-0009: Helm Multi-Environment Deployment**
+  – Multi-environment Helm configuration (values files, templates).
+
+* **ADR-0011: OpenTelemetry Observability Standard**
+  – Logging, tracing, metrics via OpenTelemetry and OTLP.
 
 ---
 
-## References
+## External References (Informative)
 
-- [RFC 7807: Problem Details for HTTP APIs](https://www.rfc-editor.org/rfc/rfc7807)
-- [Microsoft REST API Guidelines](https://github.com/microsoft/api-guidelines)
-- [Google API Design Guide](https://cloud.google.com/apis/design)
-- [Zalando RESTful API Guidelines](https://opensource.zalando.com/restful-api-guidelines/)
-- [OpenAPI Specification](https://spec.openapis.org/oas/latest.html)
-- [W3C Trace Context](https://www.w3.org/TR/trace-context/)
+* RFC 7807: Problem Details for HTTP APIs
+* Microsoft REST API Guidelines
+* Google API Design Guide
+* Zalando RESTful API Guidelines
+* OpenAPI Specification
+* W3C Trace Context

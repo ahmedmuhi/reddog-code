@@ -14,439 +14,248 @@ superseded_by: ""
 
 **Accepted**
 
-## Implementation Status
+### Implementation Note
 
-**Current State:** 🔵 Accepted (Architectural Principle Established)
+As of 2025-11-23:
 
-**What's Working:**
-- Historical evidence: Project migrated from Azure Service Bus to RabbitMQ (May 2021, commit 3d91853) for cloud-agnostic architecture
-- Dapr abstraction layer operational (ADR-0002 implemented)
-- RabbitMQ and Redis containerized infrastructure deployed via Bitnami Helm charts (manifests/branch/dependencies/)
-- Same application code runs across development and production without platform-specific changes
+- RabbitMQ and Redis are deployed as containerized services in Kubernetes using Helm charts under `manifests/branch/dependencies/`.
+- Application services talk to infrastructure only via Dapr components and standard protocols (AMQP, Redis, SQL) per **ADR-0002**.
+- Local development is converging on a `kind`-based Kubernetes cluster per **ADR-0008**; Docker Compose has been removed from the repo.
+- The relational database for Red Dog examples is currently provided by a containerized SQL Server instance for demo purposes; production-grade choices and migrations (e.g. PostgreSQL or managed databases) are handled in plans, not in this ADR.
 
-**What's Not Working:**
-- Docker Compose local development removed (November 2, 2025), kind replacement not yet implemented (see ADR-0008)
-- Infrastructure Helm charts outdated: RabbitMQ chart 8.20.2 (2021), should upgrade to 16.0.14
-- SQL Server containerized but uses Developer Edition (licensing limitation for production)
-- No multi-cloud validation (AKS works, EKS/GKE deployment not tested)
+This ADR does not attempt to track day-to-day implementation status beyond this note. Concrete chart versions, image tags, and rollout steps live in the modernization plan and environment-specific deployment docs.
 
-**Evidence:**
-- manifests/branch/dependencies/rabbitmq/rabbitmq.yaml:1 - RabbitMQ Helm chart deployment
-- manifests/branch/dependencies/redis/redis.yaml:1 - Redis Helm chart deployment
-- Git commit 3d91853 (May 2021): Azure Service Bus → RabbitMQ migration for portability
-
-**Dependencies:**
-- **Implements:** ADR-0002 (Dapr provides runtime abstraction, this ADR provides deployment abstraction)
-- **Blocks:** ADR-0008 (kind local dev needs containerized infrastructure)
-- **Blocks:** ADR-0009 (Helm multi-environment deployment builds on this principle)
-
-**Next Steps:**
-1. Upgrade RabbitMQ Helm chart from 8.20.2 to 16.0.14 (RabbitMQ 3.x → 4.1)
-2. Upgrade Redis Helm chart to 20.5.0 with redis:7-bookworm image
-3. Implement kind local development per ADR-0008 (validates containerized infrastructure locally)
-4. Test deployment to EKS and GKE (validate multi-cloud claim)
-5. Consider PostgreSQL migration to eliminate SQL Server licensing concerns
+---
 
 ## Context
 
-Red Dog's modernization strategy targets deployment across multiple cloud platforms (AKS, Container Apps, EKS, GKE) and teaching scenarios where students should learn portable, infrastructure-agnostic patterns.
+Red Dog’s modernization strategy targets:
 
-**Key Constraints:**
-- Multi-cloud deployment targets require identical application architecture across all platforms
-- Teaching/demo focus requires clear narrative: "This app deploys anywhere without code changes"
-- REQ-001 (from ADR-0002): Dapr provides cloud-agnostic service abstraction
-- Students need local development environment that mirrors production behavior
+- **Multiple platforms:** Azure Kubernetes Service (AKS), Azure Container Apps, AWS Elastic Kubernetes Service (EKS), and Google Kubernetes Engine (GKE).
+- **Teaching/demo scenarios:** students and engineers should learn portable, cloud-agnostic patterns rather than cloud-specific services.
 
-**Current State:**
-- Application uses Dapr pub/sub and state store components
-- Historical migration (May 2021): Azure Service Bus → RabbitMQ for cloud-agnostic messaging
-- Infrastructure dependencies: Message broker, state store, database
+Key constraints:
 
-**Infrastructure Options:**
+- The **same application code** should run on all target platforms without code changes.
+- Infrastructure dependencies must be consumable through **stable protocols and abstractions** (e.g., AMQP, Redis protocol, SQL, Dapr components), not through cloud-specific SDKs.
+- Local development must be possible **without any cloud account** and should mirror production behavior as closely as practical.
 
-| Component | Cloud-Specific PaaS | Containerized Self-Hosted |
-|-----------|-------------------|---------------------------|
-| **Message Broker** | Azure Service Bus, AWS SQS, GCP Pub/Sub | RabbitMQ container |
-| **State/Cache** | Azure Cache for Redis, AWS ElastiCache, GCP Memorystore | Redis container |
-| **Database** | Azure SQL Database, AWS RDS, GCP Cloud SQL | SQL Server/PostgreSQL container |
+Typical infrastructure dependencies:
 
-**Problem:**
-Using cloud-specific PaaS services creates vendor lock-in:
-- Different APIs, connection patterns, and pricing models per cloud
-- Application must be reconfigured for each cloud provider
-- Local development requires cloud connectivity or emulators
-- Teaching complexity: "On Azure use X, on AWS use Y, on GCP use Z"
-- Violates cloud-agnostic architecture principle
+- **Message broker (pub/sub)**
+  - Cloud PaaS examples: Azure Service Bus, AWS SQS/SNS, GCP Pub/Sub.
+  - Containerized example: RabbitMQ in Kubernetes.
+- **State/cache**
+  - Cloud PaaS examples: Azure Cache for Redis, AWS ElastiCache, GCP Memorystore.
+  - Containerized example: Redis in Kubernetes.
+- **Relational database**
+  - Cloud PaaS examples: Azure SQL, AWS RDS, GCP Cloud SQL.
+  - Containerized examples: SQL Server, PostgreSQL in Kubernetes.
 
-**Historical Context:**
-In May 2021 (commit `3d91853`), Red Dog migrated from Azure Service Bus (`pubsub.azure.servicebus`) to containerized RabbitMQ (`pubsub.rabbitmq`) specifically to achieve cloud-agnostic deployment. This decision proved the viability of containerized infrastructure for multi-cloud portability.
+Problem:
+
+- Relying directly on PaaS services for these dependencies creates:
+  - **Vendor lock-in** (different APIs, auth models, and semantics per cloud).
+  - **Local development friction** (emulators or cloud connectivity are required).
+  - **Teaching complexity** (“on Azure do X, on AWS do Y, on GCP do Z”).
+- Red Dog needs a **single architectural story**: the app runs on “any Kubernetes” with the same code and the same Dapr abstraction layer.
+
+Historical context:
+
+- In May 2021 (`3d91853`), Red Dog migrated from `pubsub.azure.servicebus` to `pubsub.rabbitmq` specifically to validate a cloud-agnostic deployment based on containerized infrastructure.
+- ADR-0002 later standardized on Dapr as the abstraction layer for secrets, state, pub/sub, and bindings. This ADR defines **where** those backing services run in each environment.
+
+---
 
 ## Decision
 
-**Adopt containerized infrastructure (self-hosted in Kubernetes) instead of cloud-specific PaaS services for all infrastructure dependencies.**
+Adopt a **container-first infrastructure model for local, dev, and test** environments, while allowing **pluggable PaaS or containerized infrastructure in production** behind the same Dapr and protocol abstractions.
 
-**Implementation:**
-- **Message Broker (Pub/Sub)**: RabbitMQ container (`rabbitmq:4.1-management`)
-- **State Store (Cache)**: Redis container (`redis:7-bookworm`)
-- **Database**: SQL Server container (`mcr.microsoft.com/mssql/server:2022-latest` with Developer Edition)
+### Environment Strategy
 
-**Local Development:**
-- Docker Compose with same container images as production
-- Dapr components configured for localhost infrastructure
-- Zero cloud connectivity required for development/testing
+1. **Local / Dev / Test (non-production)**
 
-**Production Deployment:**
-- Kubernetes StatefulSets for RabbitMQ, Redis, and SQL Server (or PostgreSQL)
-- Dapr components configured for Kubernetes service DNS
-- Application code identical across local and production environments
+   - Run infrastructure dependencies **inside the Kubernetes cluster** as containers:
+     - Message broker (e.g., RabbitMQ).
+     - State/cache (e.g., Redis).
+     - Relational database (e.g., SQL Server or PostgreSQL) for demo data.
+   - Use **Dapr components** pointing at in-cluster services (e.g., `rabbitmq.<ns>.svc.cluster.local`, `redis.<ns>.svc.cluster.local`).
+   - Local development uses a **kind** cluster (see ADR-0008) with the same manifests/Helm charts as shared non-prod clusters where possible.
 
-**Rationale:**
-- **PORT-001**: **Multi-Cloud Portability**: Same containers deploy to AKS, EKS, GKE, Container Apps, or on-premises Kubernetes without modification
-- **PORT-002**: **Protocol-Based Abstraction**: Infrastructure uses standard protocols (AMQP for RabbitMQ, Redis protocol, SQL protocol) that work identically regardless of deployment location
-- **PORT-003**: **Dapr Component Swapping**: Application uses Dapr APIs (`DaprClient`); only Dapr component YAML changes between environments (localhost vs K8s service DNS)
-- **PORT-004**: **Production Parity**: Docker Compose local development uses identical containers as production StatefulSets, eliminating "works on my machine" issues
-- **PORT-005**: **Teaching Clarity**: "This application runs on any Kubernetes cluster" - single, clear message. No cloud-specific service explanations.
-- **PORT-006**: **Cost Efficiency**: Students run entire stack locally without cloud costs. Instructors demo on any cloud without vendor-specific accounts.
+2. **Production / Higher Environments**
+
+   - Red Dog examples and teaching material must support **both**:
+     - Containerized infrastructure (RabbitMQ, Redis, database in Kubernetes), and
+     - Cloud PaaS equivalents (e.g., Service Bus, managed Redis, managed databases),
+   - **Application code remains unchanged**; only:
+     - Dapr components, connection strings, or Helm values change, and
+     - Infrastructure endpoints switch between in-cluster services and managed PaaS endpoints.
+
+3. **Abstraction boundary**
+
+   - Application services **never bind directly** to PaaS SDKs for infrastructure concerns.
+   - All infrastructure access goes through:
+     - **Dapr components** (pub/sub, state, bindings, secret stores) per ADR-0002, or
+     - **Standard protocols** (SQL, AMQP, Redis) via connection strings managed as configuration.
+   - This ADR governs *where* those endpoints live (containers vs managed PaaS), not the higher-level HTTP or domain contracts (covered elsewhere).
+
+---
 
 ## Scope
 
-This ADR applies to **infrastructure containers** (third-party dependencies we consume):
-- RabbitMQ, Redis, SQL Server, PostgreSQL, Nginx (UI runtime), message brokers, databases
+In scope for this ADR:
 
-This ADR does **NOT** apply to:
-- **Application containers** (services we build): OrderService, AccountingService, MakeLineService, etc.
-  - See ADR-0003 for application container base image standardization (Ubuntu 24.04)
-- **Object storage / blob storage**: Receipts, documents, media files
-  - See ADR-0012 for Dapr bindings strategy (uses cloud-native blob storage instead of containerized MinIO)
+- Containerized **infrastructure dependencies**:
+  - Message brokers (e.g., RabbitMQ).
+  - State/cache engines (e.g., Redis).
+  - Relational databases used by Red Dog samples (SQL Server, PostgreSQL).
+- Their deployment model across **local/dev/test** vs **production/higher** environments.
+
+Out of scope (covered by other ADRs):
+
+- **Application containers** and base OS images (see ADR-0003).
+- **Object/blob storage** (see ADR-0012 for Dapr bindings strategy).
+- **Secret sourcing and consumption** (see ADR-0013 for secret management strategy).
+- **Observability stack** (see ADR-0011 for OpenTelemetry).
+
+---
+
+## Rationale
+
+1. **PORT-001 – Multi-cloud portability**
+
+   - The same infrastructure containers (RabbitMQ, Redis, DB) and Kubernetes manifests can be deployed to AKS, EKS, GKE, and on-prem clusters.
+   - PaaS adoption becomes an **environment choice**, not an application code fork.
+
+2. **PORT-002 – Protocol-centric design**
+
+   - Dependencies expose **standard, cloud-neutral protocols** (AMQP, Redis protocol, SQL).
+   - Dapr components and connection strings re-point those protocols to infrastructure that may be self-hosted or managed, without changing business logic.
+
+3. **PORT-003 – Single local story**
+
+   - Developers use the same “everything in Kubernetes” mental model locally.
+   - No need for cloud accounts, emulators, or special-case local code paths.
+
+4. **PORT-004 – Alignment with Dapr abstraction (ADR-0002)**
+
+   - Container-first infrastructure and PaaS alternatives are both hidden behind Dapr components.
+   - Only component YAML and Helm values change between environments.
+
+5. **PORT-005 – Teaching clarity**
+
+   - Simple message for workshops and courses:
+     - “Red Dog runs as-is on any conforming Kubernetes cluster.”
+     - “PaaS is an optional optimization, not an architectural dependency.”
+
+---
 
 ## Consequences
 
 ### Positive
 
-- **POS-001**: **Zero Cloud Lock-In**: No dependency on Azure Service Bus, AWS SQS, Azure SQL Database, or cloud-specific services. Application architecture portable across all platforms.
-- **POS-002**: **Kubernetes-Native Deployment**: All infrastructure runs in StatefulSets with persistent volumes. Standard K8s patterns apply to AKS, EKS, GKE identically.
-- **POS-003**: **Local Development Without Cloud**: Students run complete microservices stack locally via Docker Compose. No Azure/AWS/GCP accounts required for development.
-- **POS-004**: **Configuration Portability**: Dapr component YAML is only difference between environments. Application code (C#, Go, Python, Node.js) unchanged.
-- **POS-005**: **Teaching Multi-Cloud Patterns**: Instructors demonstrate deployment to AKS, then EKS, then GKE without application changes. Proves cloud-agnostic architecture value.
-- **POS-006**: **Official Image Performance**: Using official upstream images (RabbitMQ, Redis) provides glibc-optimized performance (2x faster than Alpine for Redis), vendor security patches, and production validation.
-- **POS-007**: **Cost Predictability**: Infrastructure costs are compute/storage only (no PaaS service fees). Same pricing model across all clouds (K8s node hours + disk).
-- **POS-008**: **Consistent Monitoring**: Prometheus metrics from RabbitMQ, Redis, and application containers in all environments. Single observability stack (Grafana) for local dev and production.
+- **POS-001 – Zero code changes across environments**
+
+  - Local/dev/test use containerized infra; production can use containers or PaaS.
+  - Application services and Dapr client usage stay identical.
+
+- **POS-002 – Kubernetes-native architecture**
+
+  - All non-prod environments share the same core stack: services + infra as pods/StatefulSets.
+  - This encourages learning standard Kubernetes primitives instead of cloud-specific services.
+
+- **POS-003 – Strong local development story**
+
+  - Developers can run the full stack on a laptop (kind + infra containers).
+  - “Works on my machine” issues are reduced because local matches non-prod.
+
+- **POS-004 – Demonstrable multi-cloud pattern**
+
+  - The same manifests and images can be pointed at AKS, EKS, or GKE to demonstrate portability.
+  - PaaS services can be introduced later without rewriting the app.
+
+- **POS-005 – Clear separation of concerns**
+
+  - This ADR owns *where infra runs*.
+  - ADR-0002 owns *how app talks to infra*.
+  - ADR-0003/0008/0009 own *how things are built and deployed*.
 
 ### Negative
 
-- **NEG-001**: **Operational Overhead**: Self-hosted infrastructure requires managing StatefulSets, persistent volumes, backups, and upgrades. PaaS services offload this to cloud providers.
-- **NEG-002**: **No Managed Service SLAs**: Unlike Azure Cache for Redis (99.9% SLA), self-hosted Redis SLA depends on Kubernetes cluster availability and backup strategy.
-- **NEG-003**: **StatefulSet Complexity**: Requires understanding persistent volume claims, headless services, and stateful pod management. More complex than PaaS connection strings.
-- **NEG-004**: **Database Licensing**: SQL Server Developer Edition free for dev/test but cannot be used in production. Must switch to Express (10GB limit) or paid licenses for production. PostgreSQL migration eliminates this concern.
-- **NEG-005**: **Scaling Limitations**: Cloud PaaS services offer automatic scaling (e.g., Azure Cache for Redis scales to 1.2TB). Self-hosted Redis limited by Kubernetes node resources and manual scaling.
-- **NEG-006**: **Security Hardening Required**: Self-hosted infrastructure requires manual TLS configuration, network policies, and secret management. PaaS services provide this by default.
-- **NEG-007**: **Backup Strategy Complexity**: Must implement backup strategies for RabbitMQ (queue persistence), Redis (RDB/AOF snapshots), and SQL Server (automated backups). PaaS services provide point-in-time restore.
+- **NEG-001 – Operational overhead for containers**
 
-### Mitigations
+  - Self-hosted RabbitMQ/Redis/DB in Kubernetes require:
+    - Backups, upgrades, capacity planning, and security hardening.
+  - For real production systems, teams may prefer PaaS despite the portability cost.
 
-- **MIT-001**: For production deployments requiring SLAs, consider managed Kubernetes add-ons (e.g., AKS Azure Cache for Redis integration) while keeping containerized option for other clouds.
-- **MIT-002**: Use Bitnami Helm charts for RabbitMQ and Redis, which include production-ready configurations (TLS, persistence, backups, monitoring).
-- **MIT-003**: Migrate from SQL Server to PostgreSQL to eliminate licensing concerns (fully open-source, no production restrictions).
-- **MIT-004**: Teaching scenarios prioritize portability over operational simplicity. For production systems, re-evaluate PaaS vs self-hosted based on team expertise.
+- **NEG-002 – StatefulSet complexity**
+
+  - Stateful workloads need persistent volumes, headless services, and careful restart/upgrade policies.
+  - This adds cognitive and operational load compared to “use managed Redis/SQL.”
+
+- **NEG-003 – Licensing considerations**
+
+  - SQL Server Developer Edition is fine for dev/test but not for production.
+  - Real production deployments must either:
+    - Pay for SQL Server licensing, or
+    - Prefer open-source alternatives (e.g., PostgreSQL) when appropriate.
+
+- **NEG-004 – Scaling and reliability trade-offs**
+
+  - PaaS offerings often provide autoscaling, multi-AZ, and SLAs out of the box.
+  - Containerized infra matches features only with additional engineering effort.
+
+---
 
 ## Alternatives Considered
 
-### Cloud-Specific PaaS Services
+### ALT-001 – Cloud-specific PaaS everywhere
 
-- **ALT-001**: **Description**: Use Azure Service Bus + Azure Cache for Redis + Azure SQL Database on Azure; AWS SQS + ElastiCache + RDS on AWS; GCP Pub/Sub + Memorystore + Cloud SQL on GCP.
-- **ALT-002**: **Rejection Reason**: Violates cloud-agnostic architecture principle. Application must be reconfigured for each cloud (different connection strings, APIs, auth patterns). Teaching complexity: students learn cloud-specific services, not portable patterns. Historical evidence: Project migrated from Azure Service Bus to RabbitMQ in May 2021 for this exact reason.
+- **Description:** Use Service Bus, managed Redis, managed SQL on Azure; SQS/ElastiCache/RDS on AWS; Pub/Sub/Memorystore/Cloud SQL on GCP.
+- **Rejected because:**
+  - Violates the core teaching and architecture goal of **cloud-agnostic deployment**.
+  - Complicates local development and multi-cloud demos.
+  - Forces cloud-specific concepts into the application architecture.
 
-### Hybrid Approach (PaaS for Managed Services, Containers for Apps)
+### ALT-002 – Hybrid “PaaS in prod, containers only for local”
 
-- **ALT-003**: **Description**: Use cloud PaaS for infrastructure (Azure Service Bus, Azure Cache) but containerize application services. Leverage Dapr to abstract PaaS differences.
-- **ALT-004**: **Rejection Reason**: Dapr can abstract some differences, but configuration still varies by cloud (e.g., Azure Service Bus topics vs AWS SQS queues have different semantics). Requires cloud accounts for local development (or emulators with feature gaps). Partially defeats portability goal.
+- **Description:** Containers only for local, but all “real” environments use PaaS.
+- **Rejected because:**
+  - Creates a persistent gap between local and non-prod/prod behavior.
+  - Increases the risk of differences emerging between emulator/containers and real PaaS services.
+  - Weakens the “any Kubernetes cluster” narrative for students.
 
-### Emulators for Local Development, PaaS for Production
+### ALT-003 – Emulators for local, PaaS in all clusters
 
-- **ALT-005**: **Description**: Use Azurite (Azure Storage emulator), LocalStack (AWS emulator) for local dev; PaaS services in production.
-- **ALT-006**: **Rejection Reason**: Emulators have feature gaps and behavioral differences vs real services (Azure Cosmos DB emulator missing features, LocalStack free tier limited). "Works in dev, breaks in production" risk. Does not solve multi-cloud deployment problem (still locked to single cloud for production).
+- **Description:** Use Azurite, LocalStack, or other emulators locally; always use PaaS in cloud environments.
+- **Rejected because:**
+  - Emulators often lag or differ from real services (feature gaps, behavior differences).
+  - Still locks the architecture to a single cloud’s mental model and APIs.
 
-### Serverless Infrastructure (Managed Kubernetes Services)
+---
 
-- **ALT-007**: **Description**: Use managed Kubernetes services (AKS, EKS, GKE) with cluster autoscaling for infrastructure workloads.
-- **ALT-008**: **Acceptance Reason**: This is the chosen approach. Managed Kubernetes provides infrastructure portability (same StatefulSets work everywhere) while offloading cluster management (node upgrades, control plane availability) to cloud providers. Best of both worlds.
+## Implementation Notes (High-Level)
 
-## Implementation Notes
+- Infrastructure Helm charts and manifests live under `manifests/branch/dependencies/` (and any future Helm chart directories) and are treated as **infra code**, not app code.
+- Image and OS choices for infrastructure containers should:
+  - Prefer **official vendor images** (RabbitMQ, Redis, database vendors).
+  - Prefer Debian/Ubuntu-based images where practical, to align with ADR-0003.
+- Concrete:
+  - Chart versions, image tags, resource requests/limits,
+  - Backup and scaling configurations,
+  - Production vs demo database choices
+  are defined in:
+  - `plan/modernization-strategy.md`,
+  - environment-specific deployment docs (e.g., `docs/deploy-aks.md`, `docs/deploy-eks.md`).
 
-### Infrastructure Container Images
-
-| Component | Official Image | Base OS | Size (Compressed) | Notes |
-|-----------|---------------|---------|-------------------|-------|
-| **RabbitMQ** | `rabbitmq:4.1-management` | Ubuntu 24.04 | 125 MB | Management plugin enables Prometheus metrics (port 15692) and web UI (port 15672) |
-| **Redis** | `redis:7-bookworm` | Debian 12 Bookworm | 45 MB | glibc provides 2x performance vs Alpine (musl libc). Bitnami default. |
-| **SQL Server** | `mcr.microsoft.com/mssql/server:2022-latest` | Ubuntu 22.04 | 1.5 GB | Use `MSSQL_PID=Developer` for free dev/test license |
-| **PostgreSQL** | `postgres:17-bookworm` | Debian 12 Bookworm | 131 MB | Alternative to SQL Server with no licensing restrictions |
-| **Nginx (UI)** | `nginx:1.27-bookworm` | Debian 12 Bookworm | 67 MB | Static site hosting for Vue.js UI |
-
-**Image Selection Rationale:**
-- **Official Upstream Images**: Use Docker Hub official images or Microsoft Container Registry (MCR) for vendor support and security patches
-- **Debian/Ubuntu Preference**: glibc performance optimization (2x faster for Redis vs Alpine musl), official RabbitMQ support (Alpine not supported), alignment with ADR-0003 for .NET services
-- **Management/Monitoring Variants**: RabbitMQ management plugin required for Prometheus metrics in Kubernetes production environments
-
-### Docker Compose Configuration (Local Development)
-
-**File**: `docker-compose.yml` (to be created)
-
-```yaml
-services:
-  redis:
-    image: redis:7-bookworm
-    container_name: reddog-redis
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis-data:/data
-    command: redis-server --appendonly yes
-
-  rabbitmq:
-    image: rabbitmq:4.1-management
-    container_name: reddog-rabbitmq
-    hostname: reddog-rabbitmq  # RabbitMQ requires stable hostname
-    ports:
-      - "5672:5672"   # AMQP
-      - "15672:15672" # Management UI
-      - "15692:15692" # Prometheus metrics
-    environment:
-      - RABBITMQ_DEFAULT_USER=contosoadmin
-      - RABBITMQ_DEFAULT_PASS=MyPassword123
-    volumes:
-      - rabbitmq-data:/var/lib/rabbitmq
-
-  sqlserver:
-    image: mcr.microsoft.com/mssql/server:2022-latest
-    container_name: reddog-sqlserver
-    ports:
-      - "1433:1433"
-    environment:
-      - ACCEPT_EULA=Y
-      - MSSQL_SA_PASSWORD=YourStrong!Passw0rd
-      - MSSQL_PID=Developer  # Free for dev/test
-    volumes:
-      - sqlserver-data:/var/opt/mssql
-
-volumes:
-  redis-data:
-  rabbitmq-data:
-  sqlserver-data:
-```
-
-**Usage:**
-```bash
-# Start all infrastructure
-docker compose up -d
-
-# View logs
-docker compose logs -f rabbitmq
-
-# Access RabbitMQ Management UI
-open http://localhost:15672  # user: contosoadmin, pass: MyPassword123
-
-# Stop and clean up
-docker compose down -v
-```
-
-### Kubernetes Production Deployment
-
-**Deployment Strategy**: Use Helm charts for production-ready configurations (persistence, monitoring, backups).
-
-**RabbitMQ (Bitnami Helm Chart)**:
-```yaml
-# manifests/branch/dependencies/rabbitmq/rabbitmq.yaml
-apiVersion: helm.fluxcd.io/v1
-kind: HelmRelease
-metadata:
-  name: rabbitmq
-  namespace: rabbitmq
-spec:
-  releaseName: rabbitmq
-  chart:
-    repository: https://charts.bitnami.com/bitnami
-    name: rabbitmq
-    version: 16.0.14
-  values:
-    image:
-      registry: docker.io
-      repository: rabbitmq
-      tag: 4.1-management  # Official image
-    replicaCount: 3
-    auth:
-      username: contosoadmin
-      existingPasswordSecret: rabbitmq-credentials
-    persistence:
-      enabled: true
-      size: 8Gi
-    metrics:
-      enabled: true
-      serviceMonitor:
-        enabled: true
-```
-
-**Redis (Bitnami Helm Chart)**:
-```yaml
-# manifests/branch/dependencies/redis/redis.yaml
-apiVersion: helm.fluxcd.io/v1
-kind: HelmRelease
-metadata:
-  name: redis
-  namespace: redis
-spec:
-  releaseName: redis
-  chart:
-    repository: https://charts.bitnami.com/bitnami
-    name: redis
-    version: 20.5.0
-  values:
-    image:
-      registry: docker.io
-      repository: redis
-      tag: 7-bookworm  # Official image
-    master:
-      persistence:
-        enabled: true
-        size: 8Gi
-    metrics:
-      enabled: true
-      serviceMonitor:
-        enabled: true
-```
-
-**SQL Server (Manual StatefulSet)**:
-```yaml
-# manifests/branch/dependencies/sqlserver/statefulset.yaml
-apiVersion: apps/v1
-kind: StatefulSet
-metadata:
-  name: sqlserver
-  namespace: database
-spec:
-  serviceName: sqlserver
-  replicas: 1
-  selector:
-    matchLabels:
-      app: sqlserver
-  template:
-    metadata:
-      labels:
-        app: sqlserver
-    spec:
-      containers:
-      - name: sqlserver
-        image: mcr.microsoft.com/mssql/server:2022-latest
-        env:
-        - name: ACCEPT_EULA
-          value: "Y"
-        - name: MSSQL_SA_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: sqlserver-credentials
-              key: password
-        - name: MSSQL_PID
-          value: "Developer"  # Change to Express or Standard for production
-        ports:
-        - containerPort: 1433
-        volumeMounts:
-        - name: data
-          mountPath: /var/opt/mssql
-  volumeClaimTemplates:
-  - metadata:
-      name: data
-    spec:
-      accessModes: ["ReadWriteOnce"]
-      resources:
-        requests:
-          storage: 20Gi
-```
-
-### Dapr Component Configuration
-
-**Local Development** (`components/reddog.pubsub.yaml`):
-```yaml
-apiVersion: dapr.io/v1alpha1
-kind: Component
-metadata:
-  name: reddog.pubsub
-spec:
-  type: pubsub.rabbitmq
-  version: v1
-  metadata:
-  - name: host
-    value: "amqp://contosoadmin:MyPassword123@localhost:5672"
-  - name: durable
-    value: "true"
-  - name: deletedWhenUnused
-    value: "false"
-```
-
-**Kubernetes Production** (`manifests/branch/base/components/reddog.pubsub.yaml`):
-```yaml
-apiVersion: dapr.io/v1alpha1
-kind: Component
-metadata:
-  name: reddog.pubsub
-spec:
-  type: pubsub.rabbitmq
-  version: v1
-  metadata:
-  - name: host
-    value: "amqp://contosoadmin:MyPassword123@rabbitmq.rabbitmq.svc.cluster.local:5672"
-  - name: durable
-    value: "true"
-  - name: deletedWhenUnused
-    value: "false"
-```
-
-**Application Code (Unchanged)**:
-```csharp
-// OrderService - publishes order events
-await daprClient.PublishEventAsync("reddog.pubsub", "orders", orderSummary);
-
-// MakeLineService - subscribes to order events
-[Topic("reddog.pubsub", "orders")]
-public async Task<ActionResult> ProcessOrder(OrderSummary order) { ... }
-```
-
-**Key Insight**: Only Dapr component YAML changes (`localhost:5672` vs `rabbitmq.rabbitmq.svc.cluster.local:5672`). Application code identical.
-
-### Success Criteria
-
-- **IMP-001**: All infrastructure services (RabbitMQ, Redis, SQL Server) start successfully in Docker Compose locally
-- **IMP-002**: Dapr pub/sub flows work locally (OrderService → RabbitMQ → MakeLineService/LoyaltyService/ReceiptGenerationService/AccountingService)
-- **IMP-003**: Dapr state operations work locally (MakeLineService ETag concurrency, LoyaltyService loyalty points)
-- **IMP-004**: All services deploy to AKS using StatefulSets without application code changes
-- **IMP-005**: Same Kubernetes manifests deploy to EKS and GKE without modification (prove portability)
-- **IMP-006**: Performance tests show < 10% latency difference between containerized infrastructure and PaaS equivalents
-- **IMP-007**: Prometheus metrics available from RabbitMQ (port 15692) and Redis in all environments
-
-### Upgrade Path (Current Red Dog Infrastructure)
-
-**Current State** (from git history):
-- RabbitMQ: Bitnami Helm chart 8.20.2 from 2021 (likely RabbitMQ 3.8 or 3.9, EOL)
-- Redis: Bitnami Helm chart (version TBD)
-
-**Recommended Upgrades**:
-1. **Dapr 1.3.0 → 1.16.0** (per modernization plan) - test AMQP compatibility first
-2. **RabbitMQ 3.x → 4.1**: Upgrade Bitnami chart 8.20.2 → 16.0.14, test Dapr pubsub component
-3. **Redis**: Upgrade to chart 20.5.0 with `redis:7-bookworm` image
-
-**Migration Testing**:
-- Test Dapr `pubsub.rabbitmq` component with RabbitMQ 4.1 (frame_max >= 8192 compatibility)
-- Test Dapr `state.redis` component with Redis 7 (backward compatible)
-- Verify ETag optimistic concurrency patterns still work (MakeLineService, LoyaltyService)
+---
 
 ## References
 
-- **REF-001**: Related ADR: `docs/adr/adr-0002-cloud-agnostic-configuration-via-dapr.md` (Dapr abstraction for multi-cloud portability)
-- **REF-002**: Related ADR: `docs/adr/adr-0003-ubuntu-2404-base-image-standardization.md` (application container base images - does NOT apply to infrastructure)
-- **REF-003**: Research Document: `docs/research/local-development-gap.md` (identified need for local dev environment)
-- **REF-004**: Research Document: `docs/research/alpine-vs-ubuntu-redis-containers.md` (Redis image selection, Alpine 2x slower than Debian)
-- **REF-005**: Research Document: `docs/research/docker-compose-vs-aspire-comparison.md` (local development tooling comparison)
-- **REF-006**: Git Commit: `3d91853` (May 18, 2021) - Migration from Azure Service Bus to RabbitMQ for cloud-agnostic architecture
-- **REF-007**: RabbitMQ Official Image: https://hub.docker.com/_/rabbitmq (management variant includes Prometheus metrics)
-- **REF-008**: Redis Official Image: https://hub.docker.com/_/redis (7-bookworm recommended for glibc performance)
-- **REF-009**: SQL Server Container: https://hub.docker.com/_/microsoft-mssql-server (Developer Edition free for dev/test)
-- **REF-010**: Bitnami Helm Charts: https://github.com/bitnami/charts (production-ready RabbitMQ and Redis configurations)
+- **REF-001:** ADR-0001 – .NET 10 LTS Adoption  
+- **REF-002:** ADR-0002 – Cloud-Agnostic Configuration via Dapr  
+- **REF-003:** ADR-0003 – Ubuntu 24.04 Noble Numbat Base Images  
+- **REF-004:** ADR-0008 – kind Local Development Environment  
+- **REF-005:** ADR-0009 – Helm-Based Multi-Environment Deployment Strategy  
+- **REF-006:** Git commit `3d91853` – Migration from Azure Service Bus to RabbitMQ for portability  
+- **REF-007:** `plan/modernization-strategy.md` – runtime and infra upgrade sequencing  
