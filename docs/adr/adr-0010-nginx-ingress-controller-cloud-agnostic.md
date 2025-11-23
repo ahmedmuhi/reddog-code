@@ -62,7 +62,7 @@ User → Cloud Load Balancer → Nginx Controller Pod → Backend Services
 **Use Nginx Ingress Controller as the standard ingress implementation across all Red Dog environments.**
 
 **Core Implementation:**
-- Deploy via Helm wrapper chart: `charts/external/nginx-ingress/` (depends on `ingress-nginx` 4.14.0)
+- Deploy via Helm wrapper chart: `charts/external/nginx-ingress/` (wraps upstream `ingress-nginx` 4.14.0 with Red Dog defaults)
 - Environment-specific configuration via values files (ADR-0009 pattern)
 - Identical Ingress resources across environments (defined in `charts/reddog/templates/ingress.yaml`)
 - Cloud load balancers auto-provisioned via `type: LoadBalancer` Service
