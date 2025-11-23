@@ -3,7 +3,7 @@ title: "ADR-0013: Secret Management Strategy"
 status: "Accepted"
 date: "2025-11-14"
 authors: "Red Dog Modernization Team"
-tags: ["security", "configuration", "secrets", "kubernetes", "helm", "keda", "dapr"]
+tags: ["security", "configuration", "secrets", "kubernetes", "helm", "keda", "dapr", "cloud-agnostic"]
 supersedes: ""
 superseded_by: ""
 ---
@@ -18,96 +18,271 @@ superseded_by: ""
 
 **Current State:** 🟡 In Progress
 
-**What's Working Today:**
-- Helm infrastructure chart creates `sqlserver-secret` and other opaque secrets from gitignored `values/values-<env>.yaml` inputs (e.g., SQL SA password). `charts/infrastructure/templates/sqlserver-secret.yaml`
-- Application workloads already consume credentials through Kubernetes Secrets (env vars or mounted files).
+**Already in place:**
 
-**Gaps / Not Yet Implemented:**
-- No standardized guidance for KEDA TriggerAuthentication secrets or non-SQL infrastructure components (RabbitMQ, Redis with auth enabled, SMTP, etc.).
-- No documented separation of responsibilities between Kubernetes Secrets (transport) and Dapr secret store components (application access).
-- No policy for integrating cloud secret managers (Azure Key Vault, AWS Secrets Manager, GCP Secret Manager) with Kubernetes.
+- Helm _infrastructure_ chart creates `sqlserver-secret` and other `Opaque` secrets from gitignored `values/values-<env>.yaml`.  
+- Application workloads consume credentials via Kubernetes Secrets (environment variables or mounted files).  
 
-**Next Steps:**
-1. Update `CLAUDE.md` / `AGENTS.md` quick-start sections to reference this ADR and describe local secret creation workflow.
-2. Add Helm templates (or External Secrets Operator manifests) for RabbitMQ/KEDA credentials in `charts/infrastructure/`.
-3. Implement environment-specific secret sourcing (local: Helm stringData; cloud: CSI driver/ESO referencing managed secret stores).
-4. Add validation checklist to Phase 1B foundation plans ensuring no plain-text secrets ship in charts or repos.
+**Not yet standardized:**
+
+- KEDA `TriggerAuthentication` secret handling (RabbitMQ, SQL, etc.).  
+- Non-SQL infra components (Redis with auth, SMTP, external APIs).  
+- Cloud secret manager integration (Key Vault / Secrets Manager / Secret Manager) and Workload Identity patterns.  
+- Clear rules for application code: _how_ secrets are accessed (Dapr vs env vars) and _what_ counts as “secret” vs “config”.
+
+---
 
 ## Context
 
-The Red Dog modernization effort already relies on:
+Red Dog’s modernization relies on:
 
-- **Dapr Secret Store** for application code (ADR-0002).
-- **Helm charts + Kubernetes Secrets** for infrastructure components (SQL Server, Redis, RabbitMQ, cert-manager, etc.).
+- **Dapr** as the abstraction layer for app-facing configuration and secrets (ADR-0002, ADR-0004).  
+- **Helm + Kubernetes** for infrastructure components (SQL Server, Redis, RabbitMQ, KEDA, cert-manager, ingress).  
 
-However, several problems surfaced during Phase 1B planning:
+Without a shared strategy, teams have started using a mix of approaches:
 
-1. **Inconsistent Practices:** Some services expect secrets via Dapr, others via env vars, and KEDA scalers have no documented approach.
-2. **Environment Drift:** Developers often copy `.env/local` values into Helm charts or forget to rotate them between dev/stage/prod.
-3. **Missing Cloud Guidance:** There is no documentation on how AKS/EKS/GKE clusters should source secrets from managed services while keeping the Deployment manifests identical.
-4. **Security Debt:** Without a central policy, teams risk committing secrets, reusing prod credentials locally, or skipping rotation entirely.
+- Application services reading secrets from `Environment.GetEnvironmentVariable`, bypassing Dapr.  
+- Infrastructure charts embedding sensitive values in Helm values or inline YAML.  
+- No standard for how AKS/EKS/GKE/Container Apps clusters should pull secrets from cloud secret managers while keeping manifests cloud-agnostic.
+
+This ADR defines a consistent, cloud-agnostic secret management strategy across:
+
+- **Environments:** local/kind, AKS, EKS, GKE, Azure Container Apps.  
+- **Workloads:** application services, data plane components, KEDA, controllers, and Dapr components.
+
+---
+
+## Scope
+
+### In Scope
+
+- All workloads in the Red Dog platform that need credentials:
+  - Application services (.NET, Go, Python, Node) running under Dapr.
+  - Datastores (SQL Server, Redis), RabbitMQ, SMTP, etc.
+  - Platform components that require credentials (KEDA, cert-manager issuers, external scalers).
+  - Dapr components that access secret backends.
+- All target environments:
+  - Local clusters (kind / dev AKS).
+  - AKS, EKS, and GKE.
+  - Azure Container Apps (where applicable).
+
+### Out of Scope
+
+- Human identity and access management (SSH keys, developer GitHub tokens, etc.).  
+- Secret generation policy (who creates passwords, strength rules) beyond basic recommendations.  
+- Organization-wide security tooling (SIEM/SOC, DLP, etc.).
+
+---
+
+## Problem
+
+The current ad-hoc approaches create several risks:
+
+- **Inconsistent access patterns:** some services use Dapr, others read env vars directly; infra components embed literals.  
+- **Cloud-specific drift:** AKS vs EKS vs GKE vs Container Apps may end up with divergent manifests and secret flows.  
+- **Security debt:** potential for secrets in Git history, re-use of production credentials in non-prod, unclear rotation process.  
+
+We need:
+
+- A clear **layered model** (source → transport → consumption).  
+- Explicit rules for **application vs infrastructure** consumers.  
+- A strategy that remains **cloud-agnostic** and aligns with ADR-0002/0004/0006.
+
+---
 
 ## Decision
 
-Adopt a **two-layer secret management strategy**:
+We adopt a three-layer model for secrets:
 
-1. **Transport Layer (Kubernetes Secrets)**
-   - All workloads (Deployments, StatefulSets, Jobs, TriggerAuthentications, Dapr components) must read credentials exclusively from Kubernetes Secrets (`Secret` objects).
-   - Secret names/keys are defined in Helm values (e.g., `database.passwordSecret`) and referenced via `secretKeyRef` or mounted volumes.
-   - No workload may embed literal passwords, tokens, or connection strings in manifests, ConfigMaps, or code.
+1. **Source layer:** where secret material originates (Key Vault, Secrets Manager, Secret Manager, local values files).  
+2. **Transport layer:** how secrets are delivered into the cluster / runtime (Kubernetes / Container Apps Secret objects).  
+3. **Consumption layer:** how workloads read secrets (Dapr secret store for application code, native secrets for infra components).
 
-2. **Source Layer (Environment-Specific Providers)**
-   - **Local / kind:** Helm templates populate `stringData` from gitignored `values/values-local.yaml` (developer-provided throwaway credentials).
-   - **Cloud clusters (AKS/EKS/GKE/Container Apps):** Secrets are hydrated from managed secret stores (Azure Key Vault, AWS Secrets Manager, GCP Secret Manager) via:
-     - External Secrets Operator (ESO) or CSI Secret Store driver, **or**
-     - Dapr secret store component writing into Kubernetes Secrets during bootstrap (Phase 8 Workload Identity).
-   - Each environment must own its credential material; reuse across environments is prohibited.
+### 1. Consumption Layer (How Workloads Read Secrets)
 
-**Enforcement Rules:**
-- Any new Helm chart, KEDA ScaledObject, or Dapr component must accept secret names via values and reference Kubernetes Secrets.
-- Dapr secret store components continue to abstract application-level access, but they themselves source data from Kubernetes Secrets (local) or cloud secret managers (remote).
-- Documentation (AGENTS.md / CLAUDE.md / modernization plans) must point to this ADR when describing how to add or rotate credentials.
+#### 1.1 Application services
+
+- Application code **MUST** obtain secrets via the **Dapr Secret API**, not by reading Kubernetes Secrets directly.
+- Application services **MUST NOT**:
+  - Read secret values directly from `Environment.GetEnvironmentVariable` (except for standard non-secret infra env like `ASPNETCORE_ENVIRONMENT` per ADR-0006).
+  - Mount Kubernetes Secrets volumes and parse files manually for credentials.
+- Dapr secret components are the **only** supported app-facing secret interface:
+  - `.NET`: `DaprClient.GetSecretAsync(...)`.
+  - Go/Python/Node: equivalent Dapr SDK calls.
+
+_Exceptions_: platform-provided identity tokens (e.g., managed identity, Workload Identity tokens), which are not “secrets” in this ADR’s sense and are handled by the platform.
+
+#### 1.2 Infrastructure and platform components
+
+- Non-application workloads **MUST** consume secrets via native secret mechanisms:
+  - **Kubernetes:** `Secret` objects referenced with `valueFrom.secretKeyRef` or mounted volumes (e.g., KEDA `TriggerAuthentication`, SQL Server, RabbitMQ, cert-manager).  
+  - **Azure Container Apps:** Container Apps Secret resources referenced via `env` / `secretRef`.
+- These components **do not** use Dapr secret APIs directly.
+
+---
+
+### 2. Transport Layer (Cluster / Environment Secret Objects)
+
+#### 2.1 Kubernetes clusters (AKS, EKS, GKE, local)
+
+- **Kubernetes Secret** is the canonical transport object:
+  - All credentials exposed to workloads **MUST** be stored in `Secret` objects.
+  - Workloads **MUST** reference secrets via `secretKeyRef` or volumes; **no** inline literals in Deployments, StatefulSets, KEDA objects, or Dapr component YAML.
+- Kubernetes Secrets **MUST NOT**:
+  - Be committed with real values (`data`/`stringData`) into Git.
+  - Be replaced by ConfigMaps for anything that would be damaging if exposed.
+
+#### 2.2 Azure Container Apps
+
+- Container Apps **Secret** resources are treated as the equivalent transport layer:
+  - Secrets are referenced from app containers only by name.
+  - The Bicep/YAML definitions for Container Apps **MUST NOT** contain raw secret values; they reference either:
+    - Pre-created Container Apps secrets, or
+    - Key Vault references where supported.
+
+---
+
+### 3. Source Layer (Where Secret Material Comes From)
+
+We distinguish between **local/dev** and **cloud** sources.
+
+#### 3.1 Local / kind / dev clusters
+
+- Secret material is provided via **gitignored** Helm values files (e.g., `values/values-local.yaml`) and rendered into K8s Secrets as `stringData`.
+- Local credentials:
+  - **MUST NOT** be reused in shared environments (dev/stage/prod).
+  - **SHOULD** be obviously non-production (e.g., `LocalOnly!123`).
+
+#### 3.2 Cloud clusters (AKS, EKS, GKE)
+
+- For persistent environments, the **source of truth** for secrets is a **managed secret store**, not Helm values:
+  - Azure Key Vault.  
+  - AWS Secrets Manager or SSM Parameter Store.  
+  - GCP Secret Manager.
+- The **primary pattern** is:
+
+  > Managed secret store → External Secrets Operator (ESO) or Secret Store CSI driver → Kubernetes Secret → Workloads / Dapr secret store.
+
+- Access to secret managers **MUST** use identity-based authentication where available:
+  - AKS: Azure AD Workload Identity / managed identity.  
+  - EKS: IAM Roles for Service Accounts (IRSA).  
+  - GKE: Workload Identity.  
+- Long-lived access keys for secret managers **MUST NOT** be baked into images or Helm values; if temporarily used, they must themselves be stored in Kubernetes Secrets and rotated promptly.
+
+#### 3.3 Azure Container Apps
+
+- The recommended pattern is:
+
+  > Key Vault (source) → Container Apps secret integration → Container Apps Secret → env var reference in app.
+
+- Where platform integration is not available, secrets may be provisioned out-of-band (e.g., deployment pipeline) but **must not** be embedded directly in declarative templates tracked in Git.
+
+---
+
+### 4. Classification: What Counts as a Secret?
+
+A value **MUST** be treated as a secret if any of the following apply:
+
+- It grants access to an external system (DB passwords, connection strings, API keys, OAuth client secrets).  
+- It authenticates a user or service (JWT signing keys, TLS private keys).  
+- It would cause financial or reputational damage if leaked (mail relay credentials, payment provider tokens).  
+
+Non-secret configuration (timeouts, feature flags, max order sizes, UI labels, etc.) is covered by:
+
+- ADR-0004 (Dapr Configuration API for application config).  
+- ADR-0006 (infrastructure configuration via environment variables).
+
+Secrets **MUST NOT** be used as general config just because it is convenient (e.g., putting non-sensitive config into secret stores “by default”).
+
+---
+
+### 5. Prohibited Practices
+
+The following are explicitly forbidden:
+
+- Literal secrets (passwords, tokens, connection strings) in:
+  - Git-tracked Helm values or Kubernetes manifests.  
+  - ConfigMaps or any non-Secret K8s resources.  
+  - Application source code or `.sample` files with “real” values.
+- Application services bypassing Dapr to read secrets from:
+  - `Environment.GetEnvironmentVariable` / `os.environ` / `process.env`.  
+  - Mounted secret files under `/etc/secrets` or similar.
+- Reusing the same secret value across environments (e.g., dev, stage, prod all sharing one DB password).
+- Treating Kubernetes Secrets as “encryption” instead of a transport: base64 is encoding, not cryptography; at-rest and RBAC protections belong in the cluster/etcd configuration.
+
+---
 
 ## Consequences
 
 ### Positive
 
-- **POS-001:** Clear separation of responsibilities—Kubernetes Secrets deliver credentials to workloads; Dapr secret store abstracts app consumption.
-- **POS-002:** Environment parity—Helm values files reference the same secret names across dev/stage/prod, while actual material differs per environment.
-- **POS-003:** Reduced secret sprawl—no more literals in manifests, ConfigMaps, or Git history.
-- **POS-004:** Simplifies future automation—External Secrets Operator or CSI providers can hydrate secrets without changing application manifests.
-- **POS-005:** Enables KEDA adoption—TriggerAuthentication objects can uniformly reference Kubernetes Secrets, avoiding inline credentials.
+- **POS-001 – Consistent access pattern for apps:** All application services use Dapr secret store, aligning with ADR-0002/0004 and keeping app code cloud-agnostic.  
+- **POS-002 – Cloud-agnostic manifests:** The same manifests/Helm charts work across AKS/EKS/GKE; differences are isolated to secret-source plumbing (ESO/CSI/Key Vault integration).  
+- **POS-003 – Reduced leakage risk:** No secrets in Git; clear rules for where secrets may and may not appear.  
+- **POS-004 – Easier rotation:** Secrets are rotated at the source (Key Vault / Secrets Manager), with ESO/CSI refreshing corresponding K8s Secrets and Dapr + workloads consuming the updated values.  
+- **POS-005 – KEDA and infra alignment:** KEDA, databases, and infra components all adopt a consistent Kubernetes Secret–centric pattern, simplifying scaling configs and infra ops.  
 
 ### Negative
 
-- **NEG-001:** Additional upfront work to provision secrets per environment (Helm templating locally, ESO/CSI in cloud).
-- **NEG-002:** Requires developer discipline to maintain gitignored values files and avoid committing real credentials.
-- **NEG-003:** External secret managers introduce new failure modes (expired identities, secret sync lag) that must be monitored.
+- **NEG-001 – Additional setup work:** ESO/CSI, secret managers, and Workload Identity require initial setup per environment.  
+- **NEG-002 – Developer overhead locally:** Developers must maintain gitignored values files or other local-secret mechanisms instead of “just hardcoding” test credentials.  
+- **NEG-003 – New failure modes:** Misconfigured ESO/CSI, expired identities, or mis-scoped access policies can break secret syncing and thus application startup.  
+- **NEG-004 – Indirection:** Debugging “where does this secret really come from?” now requires understanding the chain from app → Dapr → K8s Secret → ESO/CSI → cloud secret manager.
 
-## Alternatives Considered
-
-1. **Dapr Secret Store Only**
-   - **Rejected:** KEDA, cert-manager, and infrastructure containers still require native Kubernetes Secrets; Dapr secret store does not cover their use cases.
-
-2. **Commit Sample Secrets to Repo**
-   - **Rejected:** Violates security best practices; risks accidental leakage and encourages reuse of shared credentials.
-
-3. **Cloud-Specific Secret Services Per Environment**
-   - **Rejected:** Would require divergent manifests for AKS/EKS/GKE, undermining ADR-0007/0009 cloud-agnostic goals.
+---
 
 ## Implementation Notes
 
-- **Naming Convention:** `component-purpose-secret` (e.g., `sqlserver-secret`, `rabbitmq-keda-secret`). Keys must be uppercase snake case (`SA_PASSWORD`, `RABBITMQ_URI`).
-- **Helm Values:** All charts must expose `secretName`/`secretKey` entries; sample values remain git-tracked but contain placeholders only.
-- **Rotation:** Rotating a secret requires updating the source provider (or Helm values for local), reapplying the secret, and restarting dependent pods (Helm `upgrade --reuse-values` handles this).
-- **KEDA:** TriggerAuthentication objects live in the same namespace as their ScaledObjects and reference the standardized secrets mandated here.
-- **External Secrets:** When ESO/CSI drivers are introduced, they must populate the same Kubernetes Secret names to avoid manifest drift.
+### Naming conventions
+
+- Kubernetes Secret names: `component-purpose-secret`, e.g.:
+  - `sqlserver-secret`, `rabbitmq-secret`, `rabbitmq-keda-secret`, `smtp-secret`.  
+- Keys inside Secrets:
+  - Prefer uppercase snake case where used as environment variables (e.g., `SA_PASSWORD`, `RABBITMQ_URI`).  
+  - When tools require specific key names, follow the tool’s conventions (document the exception).
+
+### Helm values
+
+- All charts must expose secret-related configuration via values such as:
+  - `database.secretName`, `database.usernameKey`, `database.passwordKey`.  
+  - `rabbitmq.authSecretName`, `rabbitmq.uriKey`.  
+- Sample values files in Git:
+  - Contain **placeholders only** (e.g., `CHANGEME`), never real values.  
+  - Clearly document that real values belong in gitignored `values-<env>.yaml` or cloud secret managers.
+
+### Rotation
+
+- Rotation flow (Kubernetes clusters):
+  1. Rotate the value in the **source** (Key Vault / Secrets Manager / Secret Manager or local values file).  
+  2. Allow ESO/CSI to sync new values into K8s Secrets (or re-run Helm for local-only).  
+  3. Restart or roll pods if the workload does not auto-reload credentials.  
+- Rotation cadence:
+  - DB passwords and external API keys **SHOULD** be rotated at least annually, and when staff or environment boundaries change.  
+  - TLS/private keys follow certificate issuance policy (cert-manager, ACME, etc.).
+
+### KEDA
+
+- KEDA `TriggerAuthentication` objects:
+  - Live in the same namespace as the corresponding workloads.  
+  - Reference the same Kubernetes Secrets that app pods use, where sensible (e.g., `RABBITMQ_URI`).  
+  - Must not embed connection strings inline.
+
+### Dapr secret components
+
+- For local/dev:
+  - Dapr secret components may read from Kubernetes Secrets or local secret stores, but app code still only calls Dapr.  
+- For cloud:
+  - Prefer Dapr secret components that talk **directly** to managed secret stores (Key Vault / Secrets Manager / Secret Manager) where available.  
+  - Where that is not possible, Dapr secret components may use K8s Secrets as their backing store (which are themselves hydrated from cloud secret managers via ESO/CSI).
+
+---
 
 ## References
 
-- ADR-0002: Cloud-Agnostic Configuration via Dapr (application-level secrets)
-- ADR-0006: Infrastructure Configuration via Environment Variables
-- ADR-0009: Helm Multi-Environment Deployment
-- plan/upgrade-phase0-platform-foundation-implementation-1.md
-- plan/upgrade-keda-2.18-implementation-1.md
-- AGENTS.md / CLAUDE.md (development prerequisites)
+- **ADR-0002:** Cloud-Agnostic Configuration via Dapr (abstraction principle).  
+- **ADR-0004:** Dapr Configuration API for Application Configuration Management.  
+- **ADR-0006:** Infrastructure Configuration via Environment Variables.  
+- **ADR-0007 / ADR-0009:** Cloud-agnostic deployment and Helm multi-environment strategy.  
+- **plan/upgrade-phase0-platform-foundation-implementation-1.md**  
+- **plan/upgrade-keda-2.18-implementation-1.md**  
+- **AGENTS.md / CLAUDE.md:** Development prerequisites and agent behaviour (MUST reference this ADR when generating manifests involving secrets).

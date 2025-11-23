@@ -14,670 +14,233 @@ superseded_by: ""
 
 **Accepted**
 
-## Implementation Status
+Implementation is being rolled out incrementally. Detailed steps and task-level status are tracked in:
 
-**Current State:** ⚪ Planned (Not Implemented)
+- `plan/feature-opentelemetry-observability-1.md` (implementation plan and migration status)
 
-**What's Working:**
-- Decision documented with comprehensive implementation guidance for .NET, Go, Python, Node.js
-- Native OTLP exporter pattern specified (not third-party sinks)
-- OpenTelemetry Collector configuration designed
+This ADR defines the *architectural standard*; it does not track day-to-day migration progress.
 
-**What's Not Working:**
-- All services currently use **Serilog 4.1.0** with console logging (legacy approach)
-- **Zero** OpenTelemetry packages installed in any service
-- No OpenTelemetry Collector deployed
-- No distributed tracing infrastructure (Jaeger, Zipkin)
-- No centralized logging (Loki, Elasticsearch)
-- TraceId/SpanId not injected into logs (no trace correlation)
-
-**Evidence:**
-- Service .csproj files reference Serilog 4.1.0 (not OpenTelemetry packages)
-- Code search for "OpenTelemetry" or "OTLP" returns zero results
-- No otel-collector deployment in manifests/branch/dependencies/
-- Logs go to console only (kubectl logs required to view)
-
-**Dependencies:**
-- **Blocked By:** ADR-0001 (.NET 10 upgrade required for modern OpenTelemetry APIs)
-- **Depends On:** ADR-0009 (Helm charts will deploy OpenTelemetry Collector, Loki, Jaeger)
-- **Supports:** Production observability, distributed debugging
-
-**Next Steps:**
-1. Complete ADR-0001 (.NET 10 upgrade) for OrderService and AccountingService
-2. Replace Serilog with native OpenTelemetry logging (Microsoft.Extensions.Logging + OTLP exporter)
-3. Deploy OpenTelemetry Collector via Helm chart with Loki/Prometheus/Jaeger exporters
-4. Implement distributed tracing: AddAspNetCoreInstrumentation(), AddHttpClientInstrumentation()
-5. Configure log export to OTLP collector (OTEL_EXPORTER_OTLP_ENDPOINT environment variable)
-6. Implement for polyglot services: slog (Go), structlog (Python), pino (Node.js)
-7. Validate trace correlation: Create order → observe TraceId across OrderService, MakeLineService, LoyaltyService logs
+---
 
 ## Context
 
-Red Dog's polyglot microservices architecture (8 services across 5 languages: .NET, Go, Python, Node.js, Vue.js) requires unified observability to debug distributed transactions, monitor system health, and troubleshoot production issues across multiple cloud platforms (AKS, EKS, GKE, Azure Container Apps).
+Red Dog is a polyglot, multi-cloud microservices system:
 
-**Key Constraints:**
-- Multi-language architecture requires consistent observability patterns across .NET, Go, Python, Node.js
-- Cloud-agnostic deployment targets (AKS, EKS, GKE, Container Apps) require vendor-neutral telemetry export
-- Distributed tracing needed to correlate requests across 8 microservices
-- Teaching/demo focus requires demonstrating industry-standard observability practices
-- ADR-0002 establishes cloud-agnostic architecture principles
-- Legacy implementation uses Serilog 4.1.0 with console logging (no distributed tracing, no centralized aggregation)
+- Services are implemented in **.NET, Go, Python, and Node.js**.
+- Target platforms include **AKS, EKS, GKE, and Azure Container Apps**.
+- ADR-0002 establishes a **cloud-agnostic architecture** using Dapr components as the main abstraction for platform services.
 
-**Problem:**
-Without standardized observability:
-- **No distributed tracing**: Cannot correlate logs across service boundaries (OrderService → MakeLineService → LoyaltyService)
-- **No centralized logging**: Logs scattered across container stdout (must SSH to each pod to debug)
-- **No vendor-neutral export**: Locked into cloud-specific logging (Azure Monitor, CloudWatch, Stackdriver)
-- **Inconsistent implementations**: Each language uses different logging framework (Serilog, winston, logrus, etc.)
-- **No automatic trace correlation**: TraceId/SpanId not automatically injected into logs
+Current observability is minimal and fragmented:
 
-**Available Options:**
-1. **Continue with Serilog + Console Logging**: No changes, no distributed tracing, no centralized aggregation
-2. **Serilog + OpenTelemetry Sink**: Add OTLP exporter to Serilog (hybrid approach, maintains Serilog API)
-3. **Native OpenTelemetry**: Use native OTLP exporters for logs, traces, metrics (industry standard, vendor-neutral)
+- Most services log to **console only**, with no consistent structure.
+- There is **no distributed tracing** and **no central correlation** of requests that cross multiple services.
+- There is **no single, vendor-neutral pipeline** for logs, traces, and metrics.
+- Each language tends to adopt its own logging library and conventions.
+
+This makes it difficult to:
+
+- Diagnose issues in cross-service flows (e.g., `OrderService → MakeLineService → LoyaltyService`).
+- Provide consistent teaching/demo experiences that show modern cloud-native observability.
+- Keep the architecture portable across clouds without coupling to Azure Monitor, CloudWatch, or Stackdriver.
+
+We need a single, cloud-agnostic observability standard that:
+
+- Works across all Red Dog languages and services.
+- Exposes logs, traces, and metrics in a unified way.
+- Allows backends to change (Jaeger, Loki, Prometheus, commercial tools) without code changes.
+
+---
 
 ## Decision
 
-**Adopt Native OpenTelemetry (OTLP) for ALL observability signals (logs, traces, metrics) across ALL Red Dog microservices and ALL languages (.NET, Go, Python, Node.js).**
+**Adopt OpenTelemetry (OTel) with OTLP as the canonical observability standard for all logs, traces, and metrics across all Red Dog services and languages.**
 
-**Scope:**
-- **All 8 services must implement**:
-  - Structured logging with native OTLP exporters (not Serilog sinks)
-  - Distributed tracing via OpenTelemetry instrumentation
-  - Metrics export via OTLP protocol
-- **Applies to**: OrderService, AccountingService, MakeLineService, VirtualWorker, ReceiptGenerationService, VirtualCustomers, LoyaltyService
-- **Export protocol**: OTLP (OpenTelemetry Protocol) via HTTP (port 4318) or gRPC (port 4317)
-- **Backend**: OpenTelemetry Collector → Loki (logs), Prometheus (metrics), Jaeger (traces)
+Concretely:
 
-### Key Principles
+- All services emit **logs, traces, and metrics via OpenTelemetry SDKs** in their respective languages.
+- All telemetry is exported using the **OpenTelemetry Protocol (OTLP)** to a shared **OpenTelemetry Collector**.
+- The Collector fans out to one or more backends (e.g. Loki for logs, Prometheus for metrics, Jaeger for traces, or equivalent), chosen per environment.
+- No service writes directly to cloud-specific logging APIs (Azure Monitor, CloudWatch, etc.) or proprietary agent SDKs.
 
-- **Native OTLP exporters** (not third-party sinks like Serilog.Sinks.OpenTelemetry)
-- **JSON format** for logs (not plain text)
-- **UTC timestamps** (no local timezones)
-- **Automatic trace context correlation** (TraceId, SpanId injected automatically)
-- **Contextual properties** (OrderId, CustomerId, ServiceName)
-- **Push to OpenTelemetry Collector** via OTLP protocol (HTTP or gRPC)
-
-### Why OpenTelemetry?
-
-**OpenTelemetry (OTEL)** is the industry standard for observability in 2025:
-- **Polyglot support:** Works with .NET, Go, Python, Node.js, and 20+ languages
-- **Unified backend:** Single pipeline for logs, traces, and metrics
-- **Vendor-neutral:** Export to Jaeger, Grafana, Application Insights, Datadog, etc.
-- **Native Dapr integration:** Dapr 1.16+ has built-in OTEL support
-- **Logs stable:** OTLP Logs 1.0 specification released October 2024
-
-**Rationale:**
-- **OBS-001**: **Cloud-Agnostic Standard**: OpenTelemetry is vendor-neutral CNCF project. Not locked into Azure Monitor, AWS CloudWatch, or GCP Stackdriver. Same OTLP export works on any cloud.
-- **OBS-002**: **Zero Platform-Specific Code**: OTLP exporters are standard libraries. No Azure SDK, AWS SDK, or GCP SDK for logging. Works with any observability backend.
-- **OBS-003**: **Identical Behavior Across Platforms**: Same telemetry collection works on AKS, EKS, GKE, Container Apps. Backend choice (Jaeger, Grafana, Datadog) is deployment-time decision.
-- **OBS-004**: **Polyglot Compatibility**: Single OTLP protocol works across .NET, Go, Python, Node.js. Language-agnostic observability.
-- **OBS-005**: **Teaching Clarity**: "All Red Dog services use OpenTelemetry OTLP" - simple, memorable, industry-standard. Demonstrates modern observability best practices.
-- **OBS-006**: **Ecosystem Alignment**: Matches patterns used by Kubernetes, Prometheus, Jaeger, and cloud-native best practices.
-- **OBS-007**: **Automatic Trace Correlation**: TraceId/SpanId automatically injected into logs when logging within traced operations. No manual correlation needed.
-
-## Implementation by Language
-
-### .NET (Microsoft.Extensions.Logging + Native OTLP Exporter)
-
-**Why Native:** No third-party dependencies, Microsoft-supported, automatic trace correlation
-
-**Installation:**
-```bash
-dotnet add package OpenTelemetry.Exporter.OpenTelemetryProtocol
-dotnet add package OpenTelemetry.Extensions.Hosting
-dotnet add package OpenTelemetry.Instrumentation.AspNetCore
-```
-
-**Configuration (Program.cs):**
-```csharp
-using Microsoft.Extensions.Logging;
-using OpenTelemetry.Logs;
-using OpenTelemetry.Resources;
-
-var builder = WebApplication.CreateBuilder(args);
-
-// Configure OpenTelemetry logging
-builder.Logging.AddOpenTelemetry(logging =>
-{
-    logging.IncludeFormattedMessage = true;
-    logging.IncludeScopes = true;
-});
-
-// Configure OpenTelemetry SDK
-var otel = builder.Services.AddOpenTelemetry();
-
-// Add resource attributes (service name, version)
-otel.ConfigureResource(resource => resource
-    .AddService("OrderService", serviceVersion: "1.0.0"));
-
-// Add tracing for automatic trace context correlation
-otel.WithTracing(tracing =>
-{
-    tracing.AddAspNetCoreInstrumentation();
-    tracing.AddHttpClientInstrumentation();
-});
-
-// Add metrics (optional)
-otel.WithMetrics(metrics =>
-{
-    metrics.AddAspNetCoreInstrumentation();
-    metrics.AddMeter("Microsoft.AspNetCore.Hosting");
-});
-
-// Export to OTLP collector
-otel.UseOtlpExporter();
-
-var app = builder.Build();
-
-// Example usage with contextual properties
-app.MapPost("/order", (Order order, ILogger<Program> logger) =>
-{
-    logger.LogInformation(
-        "Order created: OrderId={OrderId}, CustomerId={CustomerId}, Quantity={Quantity}",
-        order.OrderId, order.CustomerId, order.Quantity);
-
-    return Results.Ok();
-});
-
-app.Run();
-```
-
-**Configuration (appsettings.json or environment variables):**
-```json
-{
-  "OTEL_EXPORTER_OTLP_ENDPOINT": "http://otel-collector:4318",
-  "OTEL_EXPORTER_OTLP_PROTOCOL": "http/protobuf"
-}
-```
-
-**Key Features:**
-- **Automatic trace correlation:** TraceId/SpanId injected when logging within traced operations
-- **Structured logging:** Use message templates with named parameters
-- **Environment configuration:** Endpoint configurable via `OTEL_EXPORTER_OTLP_ENDPOINT`
-- **JSON format:** Logs exported in OTLP JSON/Protobuf format
+This decision defines the **contract** for how services emit telemetry. It does **not** mandate a specific observability UI (Grafana vs. vendor tools) as long as they can consume OTLP/Collector outputs.
 
 ---
 
-### Go (slog + OpenTelemetry Bridge)
+## Scope
 
-**Why slog:** Standard library since Go 1.21, zero external dependencies, official OTEL bridge support
+Within the scope of this ADR:
 
-**Installation:**
-```bash
-go get go.opentelemetry.io/contrib/bridges/otelslog
-go get go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp
-go get go.opentelemetry.io/otel/sdk/log
-```
+- **Services**  
+  - All core microservices: `OrderService`, `AccountingService`, `MakeLineService`, `VirtualWorker`, `ReceiptGenerationService`, `VirtualCustomers`, `LoyaltyService`, and future services.
+  - Background workers and job processors that participate in business flows.
 
-**Configuration:**
-```go
-package main
+- **Signals**  
+  - **Logs:** Structured, JSON-like logs exported via OTel.
+  - **Traces:** Distributed traces across service boundaries, including HTTP and Dapr calls.
+  - **Metrics:** Basic service metrics (requests, errors, latency) and key business metrics as needed.
 
-import (
-    "context"
-    "log/slog"
-    "os"
+- **Environments**  
+  - Local development, shared dev/test clusters, and production-like environments on AKS/EKS/GKE/Container Apps.
 
-    "go.opentelemetry.io/contrib/bridges/otelslog"
-    "go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp"
-    "go.opentelemetry.io/otel/log/global"
-    sdklog "go.opentelemetry.io/otel/sdk/log"
-    "go.opentelemetry.io/otel/sdk/resource"
-    semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
-)
+Out of scope for this ADR:
 
-func main() {
-    ctx := context.Background()
-
-    // Create resource with service information
-    res, err := resource.New(ctx,
-        resource.WithAttributes(
-            semconv.ServiceName("makeline-service"),
-            semconv.ServiceVersion("1.0.0"),
-        ),
-    )
-    if err != nil {
-        panic(err)
-    }
-
-    // Create OTLP log exporter (HTTP)
-    exporter, err := otlploghttp.New(ctx,
-        otlploghttp.WithEndpoint("otel-collector:4318"),
-        otlploghttp.WithInsecure(),
-    )
-    if err != nil {
-        panic(err)
-    }
-
-    // Create logger provider with batch processor
-    loggerProvider := sdklog.NewLoggerProvider(
-        sdklog.WithResource(res),
-        sdklog.WithProcessor(sdklog.NewBatchProcessor(exporter)),
-    )
-    defer loggerProvider.Shutdown(ctx)
-
-    // Set global logger provider
-    global.SetLoggerProvider(loggerProvider)
-
-    // Create slog logger with OpenTelemetry handler
-    logger := otelslog.NewLogger("makeline-service",
-        otelslog.WithLoggerProvider(loggerProvider),
-    )
-
-    // Use slog normally - trace context automatically included
-    logger.Info("order created",
-        slog.String("orderId", "12345"),
-        slog.String("customerId", "abc-123"),
-        slog.Int("quantity", 2),
-    )
-}
-```
-
-**Key Features:**
-- **Standard library:** No external logging dependencies
-- **Automatic trace correlation:** TraceId/SpanId injected when logging within traced operations
-- **Batch processing:** Efficient batching before export
-- **Resource attributes:** Service name/version attached to all logs
+- Choice of specific long-term backend vendors (Grafana vs. Datadog vs. Application Insights).
+- Detailed SDK wiring and configuration examples for each language (captured in guides).
 
 ---
 
-### Python (structlog + OTLPLogExporter)
+## Key Principles
 
-**Why structlog:** Industry-standard structured logging for Python (Dropbox, Stripe)
+The following principles define the architectural contract:
 
-**Installation:**
-```bash
-pip install structlog
-pip install opentelemetry-api
-pip install opentelemetry-sdk
-pip install opentelemetry-exporter-otlp-proto-grpc
-```
+1. **Native OpenTelemetry SDKs**  
+   Services use the **official OTel SDKs** for their language (e.g. `OpenTelemetry.*` for .NET) rather than vendor-specific or third-party logging sinks as the primary mechanism.
 
-**Configuration:**
-```python
-import logging
-import structlog
-from opentelemetry import trace
-from opentelemetry._logs import set_logger_provider
-from opentelemetry.exporter.otlp.proto.grpc._log_exporter import OTLPLogExporter
-from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
-from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
-from opentelemetry.sdk.resources import Resource
+2. **OTLP as the single wire protocol**  
+   All signals (logs, traces, metrics) are exported over **OTLP** (HTTP or gRPC) to an **OpenTelemetry Collector** endpoint. Services do not export directly to individual backends.
 
-# Create logger provider with service information
-logger_provider = LoggerProvider(
-    resource=Resource.create({
-        "service.name": "receipt-service",
-        "service.version": "1.0.0",
-    })
-)
-set_logger_provider(logger_provider)
+3. **Cloud-agnostic backends**  
+   The Collector is responsible for exporting telemetry to environment-specific backends (Loki, Prometheus, Jaeger, or commercial tools). Swapping or adding backends is a **deployment decision**, not a code change.
 
-# Create OTLP log exporter
-exporter = OTLPLogExporter(endpoint="http://otel-collector:4317", insecure=True)
-logger_provider.add_log_record_processor(BatchLogRecordProcessor(exporter))
+4. **Consistent resource metadata**  
+   All telemetry includes standard resource attributes such as:
+   - `service.name`
+   - `service.version`
+   - `deployment.environment` (e.g. `local`, `dev`, `prod`)
 
-# Attach OTLP handler to root logger
-handler = LoggingHandler(level=logging.INFO, logger_provider=logger_provider)
-logging.getLogger().addHandler(handler)
-logging.getLogger().setLevel(logging.INFO)
+5. **Trace-first design**  
+   - Incoming external requests are traced from the edge (gateway/ingress) through downstream calls.
+   - Application logs emitted within a trace context automatically include trace identifiers (TraceId/SpanId) for correlation.
+   - Dapr and other infrastructure are configured to participate in the same trace context where reasonable.
 
-# Add trace context processor for structlog
-def add_trace_context(logger, method_name, event_dict):
-    """Add OpenTelemetry trace context to structlog events."""
-    span = trace.get_current_span()
-    if span:
-        span_context = span.get_span_context()
-        event_dict["trace_id"] = format(span_context.trace_id, "032x")
-        event_dict["span_id"] = format(span_context.span_id, "016x")
-    return event_dict
+6. **Structured logging standard**  
+   - Logs follow a minimal, shared schema (e.g. timestamp, level, message template, service name, key domain IDs such as OrderId/CustomerId).
+   - The detailed schema is maintained in a separate standard document:
+     - `docs/standards/logging-schema.md`
 
-# Configure structlog to use stdlib logging (which has OTLP handler)
-structlog.configure(
-    processors=[
-        structlog.stdlib.filter_by_level,
-        add_trace_context,
-        structlog.stdlib.add_logger_name,
-        structlog.stdlib.add_log_level,
-        structlog.processors.TimeStamper(fmt="iso"),
-        structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
-    ],
-    logger_factory=structlog.stdlib.LoggerFactory(),
-    cache_logger_on_first_use=True,
-)
-
-# Use structlog normally
-logger = structlog.get_logger()
-logger.info("receipt_generated", order_id="12345", customer_id="abc-123", amount=45.50)
-
-# Shutdown before exit
-logger_provider.shutdown()
-```
-
-**Key Features:**
-- **OTLPLogExporter:** Sends logs to OTLP collector (not just traces)
-- **LoggingHandler bridge:** Structlog → stdlib → OTLP
-- **Trace correlation:** Manual processor adds trace_id/span_id to logs
-- **Batch processing:** Efficient batching before export
+7. **Configuration via environment / manifests**  
+   - Service code uses configuration (e.g. environment variables like `OTEL_EXPORTER_OTLP_ENDPOINT`) rather than hard-coded endpoints.
+   - Canonical Collector configuration for the project lives alongside manifests, not baked into service code.
 
 ---
 
-### Node.js (pino + Instrumentation + Transport)
+## Architectural Shape
 
-**Why pino:** Fastest JSON logger for Node.js (5-10x faster than winston/bunyan)
+At a high level, observability in Red Dog follows this pattern:
 
-**Installation:**
-```bash
-npm install pino
-npm install @opentelemetry/instrumentation-pino
-npm install pino-opentelemetry-transport
-```
+1. **Application services**  
+   - Emit logs, traces, and metrics via language-specific OTel SDKs.
+   - Export them to the local cluster endpoint exposed by the OpenTelemetry Collector using OTLP.
 
-**Configuration (Two-Part Setup):**
+2. **OpenTelemetry Collector**  
+   - Runs as a shared component in the cluster (e.g. Deployment/DaemonSet).
+   - Receives OTLP traffic on standard ports (4317/4318).
+   - Applies resource/tag enrichment and batching.
+   - Exports to configured backends (Loki, Prometheus, Jaeger, or equivalents).
 
-**Part 1: instrumentation.js** (trace correlation):
-```javascript
-const { NodeSDK } = require('@opentelemetry/sdk-node');
-const { OTLPTraceExporter } = require('@opentelemetry/exporter-trace-otlp-grpc');
-const { OTLPLogExporter } = require('@opentelemetry/exporter-logs-otlp-grpc');
-const { Resource } = require('@opentelemetry/resources');
-const { SEMRESATTRS_SERVICE_NAME, SEMRESATTRS_SERVICE_VERSION } = require('@opentelemetry/semantic-conventions');
-const { PinoInstrumentation } = require('@opentelemetry/instrumentation-pino');
+3. **Backends and UI**  
+   - Backends are environment-specific and can be swapped without changing service code.
+   - Typical baseline: Loki (logs), Prometheus (metrics), Jaeger (traces) visualized via Grafana.
 
-const sdk = new NodeSDK({
-  resource: new Resource({
-    [SEMRESATTRS_SERVICE_NAME]: 'loyalty-service',
-    [SEMRESATTRS_SERVICE_VERSION]: '1.0.0',
-  }),
-  traceExporter: new OTLPTraceExporter({ url: 'http://otel-collector:4317' }),
-  logExporter: new OTLPLogExporter({ url: 'http://otel-collector:4317' }),
-  instrumentations: [
-    new PinoInstrumentation({
-      logSending: true,
-      logKeys: {
-        traceId: 'trace_id',
-        spanId: 'span_id',
-        traceFlags: 'trace_flags',
-      },
-    }),
-  ],
-});
+Canonical, repo-specific configuration is kept in:
 
-sdk.start();
-
-process.on('SIGTERM', () => {
-  sdk.shutdown()
-    .then(() => console.log('OpenTelemetry terminated'))
-    .finally(() => process.exit(0));
-});
-
-module.exports = sdk;
-```
-
-**Part 2: app.js** (application code):
-```javascript
-require('./instrumentation'); // MUST be first!
-
-const express = require('express');
-const pino = require('pino');
-
-const logger = pino({ level: 'info' });
-
-const app = express();
-
-app.post('/award', (req, res) => {
-  logger.info({ orderId: '12345', points: 50 }, 'loyalty points awarded');
-  res.json({ success: true });
-});
-
-app.listen(5400, () => {
-  logger.info('loyalty service started on port 5400');
-});
-```
-
-**Key Features:**
-- **Two packages work together:**
-  - `@opentelemetry/instrumentation-pino`: Adds trace_id/span_id to logs
-  - `pino-opentelemetry-transport`: Sends logs to OTLP collector
-- **Automatic trace correlation:** TraceId/SpanId injected into every log
-- **Log sending:** `logSending: true` exports logs to OTLP
-- **Must load first:** Instrumentation must be required before any other code
+- `manifests/observability/otel-collector-config.yaml` (Collector config)
+- `docs/guides/opentelemetry-collector-setup.md` (Collector deployment guide)
+- `docs/guides/opentelemetry-setup-<language>.md` (per-language wiring guides)
 
 ---
-
-## Required Contextual Properties
-
-All log entries **must** include these properties (when available):
-
-| Property | Type | Description | Example |
-|----------|------|-------------|---------|
-| `@t` | ISO 8601 UTC | Timestamp in UTC | `2025-11-06T10:30:45.123Z` |
-| `@mt` | string | Message template | `Order created: {Quantity} items` |
-| `serviceName` | string | Service identifier | `OrderService`, `MakeLineService` |
-| `orderId` | string | Order ID (if applicable) | `12345` |
-| `customerId` | string | Customer ID (if applicable) | `abc-123` |
-| `traceId` | string | Distributed trace ID | `00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01` |
-| `level` | string | Log level | `Information`, `Warning`, `Error` |
-
-## OpenTelemetry Collector Configuration
-
-**Deployment:** Run OpenTelemetry Collector as a sidecar or DaemonSet
-
-**Complete Collector Config (otel-collector-config.yaml):**
-```yaml
-# OpenTelemetry Collector Configuration for Red Dog
-# Receives logs, metrics, and traces from all services
-# Exports to Loki (logs), Prometheus (metrics), and Jaeger (traces)
-
-receivers:
-  # OTLP receiver for all signals
-  otlp:
-    protocols:
-      grpc:
-        endpoint: 0.0.0.0:4317
-      http:
-        endpoint: 0.0.0.0:4318
-
-processors:
-  # Batch processor for efficient export
-  batch:
-    timeout: 10s
-    send_batch_size: 1024
-
-  # Memory limiter to prevent OOM
-  memory_limiter:
-    check_interval: 1s
-    limit_mib: 512
-
-  # Resource processor to add environment tags
-  resource:
-    attributes:
-      - key: deployment.environment
-        value: production
-        action: insert
-
-exporters:
-  # Loki exporter for logs (native OTLP endpoint)
-  otlphttp/logs:
-    endpoint: http://loki:3100/otlp
-    tls:
-      insecure: true
-    retry_on_failure:
-      enabled: true
-      initial_interval: 5s
-      max_interval: 30s
-
-  # Prometheus exporter for metrics (scrape endpoint)
-  prometheus:
-    endpoint: 0.0.0.0:8889
-    namespace: reddog
-    const_labels:
-      environment: production
-    resource_to_telemetry_conversion:
-      enabled: true
-
-  # Jaeger exporter for traces (using OTLP)
-  otlp/jaeger:
-    endpoint: jaeger:4317
-    tls:
-      insecure: true
-    retry_on_failure:
-      enabled: true
-
-  # Debug exporter for troubleshooting (optional)
-  debug:
-    verbosity: detailed
-    sampling_initial: 5
-    sampling_thereafter: 200
-
-service:
-  # Telemetry for collector self-monitoring
-  telemetry:
-    logs:
-      level: info
-    metrics:
-      address: 0.0.0.0:8888
-
-  # Define pipelines for each signal type
-  pipelines:
-    # Logs: Applications → OTLP → Batch → Loki
-    logs:
-      receivers: [otlp]
-      processors: [memory_limiter, batch, resource]
-      exporters: [otlphttp/logs, debug]
-
-    # Metrics: Applications + Dapr → OTLP → Batch → Prometheus
-    metrics:
-      receivers: [otlp]
-      processors: [memory_limiter, batch, resource]
-      exporters: [prometheus]
-
-    # Traces: Applications + Dapr → OTLP → Batch → Jaeger
-    traces:
-      receivers: [otlp]
-      processors: [memory_limiter, batch, resource]
-      exporters: [otlp/jaeger, debug]
-```
-
-**Architecture Flow:**
-```
-┌─────────────────────────────────────────────────────┐
-│         Red Dog Services (.NET, Go, Python, Node)   │
-│                                                      │
-│  Logs ───┐                                          │
-│  Metrics ┼──► OTLP (gRPC/HTTP) ──► Collector       │
-│  Traces ─┘                                          │
-└─────────────────────────────────────────────────────┘
-                       │
-        ┌──────────────┼──────────────┐
-        │              │              │
-        ▼              ▼              ▼
-     LOGS          METRICS        TRACES
-      │              │              │
-      ▼              ▼              ▼
-    LOKI        PROMETHEUS       JAEGER
- (Port 3100)    (Port 8889)   (Port 4317)
-      │              │              │
-      └──────────────┼──────────────┘
-                     ▼
-                 GRAFANA
-              (Unified UI)
-```
-
-**Key Features:**
-- **Loki native OTLP:** Uses `/otlp` endpoint (not Promtail)
-- **Jaeger OTLP:** Modern OTLP protocol (not legacy Jaeger protocol)
-- **Prometheus scraping:** Exposes metrics at `:8889/metrics`
-- **Batch processing:** Groups telemetry for efficiency
-- **Memory protection:** Limits collector memory usage
-- **Retry logic:** Automatic retry on export failures
-
-## Log Levels
-
-Use these standard log levels consistently:
-
-| Level | Usage | Example |
-|-------|-------|---------|
-| **Trace** | Very detailed debugging | `Entering method: CalculateTotal()` |
-| **Debug** | Debugging information | `Order validation passed: orderId=12345` |
-| **Information** | General operational messages | `Order created: 12345` |
-| **Warning** | Unusual but handled situations | `Retry attempt 2/3 for Dapr call` |
-| **Error** | Errors that need attention | `Failed to publish order to pub/sub` |
-| **Critical** | Service-level failures | `Database connection pool exhausted` |
-
-**Production Recommendation:** Set minimum level to **Information** (not Debug/Trace)
-
-## Testing Logs
-
-**Verify JSON format:**
-```bash
-# .NET
-curl http://localhost:5100/order | jq '.@t, .@mt, .orderId'
-
-# Check OTEL collector
-curl http://otel-collector:13133/  # Health endpoint
-```
-
-**Verify Jaeger traces:**
-```bash
-# Open Jaeger UI
-http://localhost:16686
-
-# Search for serviceName=OrderService
-```
 
 ## Consequences
 
 ### Positive
 
-- **POS-001**: **Unified Observability**: Single OTLP protocol for logs, traces, metrics across all services
-- **POS-002**: **Automatic Trace Correlation**: TraceId/SpanId automatically injected into logs during traced operations
-- **POS-003**: **Cloud Portability**: Same OTLP export works on AKS, EKS, GKE, Container Apps
-- **POS-004**: **Vendor Neutral**: Not locked into Azure Monitor, CloudWatch, or Stackdriver
-- **POS-005**: **Polyglot Consistency**: Same OTLP pattern across .NET, Go, Python, Node.js
-- **POS-006**: **Production-Grade Debugging**: Distributed tracing enables debugging complex multi-service transactions
-- **POS-007**: **Teaching Value**: Demonstrates industry-standard observability (CNCF OpenTelemetry)
-- **POS-008**: **Flexible Backend**: Can switch from Jaeger to Datadog to Application Insights without code changes
+- **Unified observability model**  
+  All services and languages emit telemetry in a consistent way, through the same protocol and Collector.
+
+- **Cloud and vendor portability**  
+  Backends and vendors can change by reconfiguring the Collector; service code and SDK usage remain the same.
+
+- **Distributed tracing and correlation**  
+  Cross-service flows can be traced end-to-end, and logs can be correlated via TraceId/SpanId.
+
+- **Teaching and demo value**  
+  The project demonstrates current CNCF best practice (OpenTelemetry) instead of fragmented, service-specific logging.
+
+- **Alignment with Dapr and ADR-0002**  
+  Observability follows the same “cloud-agnostic, component-based” philosophy as Dapr for platform services.
 
 ### Negative
 
-- **NEG-001**: **Migration Effort**: Must replace Serilog with native OTLP exporters in all .NET services
-- **NEG-002**: **Collector Dependency**: Requires deploying OpenTelemetry Collector (additional infrastructure)
-- **NEG-003**: **Learning Curve**: Teams must learn OpenTelemetry SDK APIs (different from Serilog)
-- **NEG-004**: **Configuration Complexity**: OTEL Collector config (receivers, processors, exporters) adds complexity
-- **NEG-005**: **Performance Overhead**: OTLP export adds ~5-10ms latency per request (batch processing mitigates)
-- **NEG-006**: **Backend Setup**: Requires deploying Loki, Prometheus, Jaeger for local development
+- **Migration effort**  
+  Existing logging code (e.g. Serilog-only console logging) must be migrated or adapted to emit via OpenTelemetry.
+
+- **Additional infrastructure**  
+  The OpenTelemetry Collector (and any default backends like Loki/Prometheus/Jaeger) must be deployed and operated as part of the baseline platform.
+
+- **Learning curve**  
+  Teams must learn OpenTelemetry concepts (resources, spans, exporters, Collector pipelines) in addition to existing platform knowledge.
+
+- **Configuration complexity**  
+  Collector configuration and environment-specific exporters add YAML and operational complexity that must be managed carefully.
+
+---
 
 ## Alternatives Considered
 
-### Alternative 1: Continue with Serilog + Console Logging
+### 1. Continue with Serilog + Console (status quo)
 
-- **Description**: Keep existing Serilog 4.1.0 implementation, log to console, rely on container orchestrator log aggregation
-- **Rejection Reason**: No distributed tracing, no automatic trace correlation, no centralized aggregation, vendor-locked to cloud-specific log viewers. Unacceptable for production observability.
+- **Description:** Keep per-service logging frameworks (e.g. Serilog) writing to console; rely on cluster log aggregation or cloud-native logging.
+- **Reason Rejected:** No first-class distributed tracing, no unified cross-language standard, and strong coupling to per-cloud logging products.
 
-### Alternative 2: Serilog + OpenTelemetry Sink
+### 2. Serilog + OpenTelemetry Sink (hybrid)
 
-- **Description**: Add `Serilog.Sinks.OpenTelemetry` package to existing Serilog implementations, export to OTLP collector
-- **Pros**: Maintains Serilog API, less code changes, gradual migration path
-- **Cons**: Adds third-party dependency, not Microsoft-supported, limited trace correlation features, hybrid approach adds complexity
-- **Rejection Reason**: Native OpenTelemetry provides better trace correlation, vendor support, and polyglot consistency. Serilog sink is a transitional pattern, not target architecture.
+- **Description:** Keep Serilog as the primary logging API in .NET services and add an OTel/OTLP sink for export.
+- **Pros:** Smaller code changes for .NET; gradual migration.
+- **Reason Rejected as target state:** Adds an extra abstraction layer, is not polyglot across languages, and does not align as cleanly with official OpenTelemetry SDKs as the long-term standard. Acceptable as a **transition tactic**, not a final architecture.
 
-### Alternative 3: Cloud-Specific Logging (Azure Monitor, CloudWatch, Stackdriver)
+### 3. Cloud-specific logging stacks (Azure Monitor, CloudWatch, Stackdriver)
 
-- **Description**: Use Azure Monitor for AKS, CloudWatch for EKS, Stackdriver for GKE
-- **Rejection Reason**: Violates ADR-0002 cloud-agnostic principles. Vendor lock-in. Different APIs per cloud. Unacceptable.
+- **Description:** Use each cloud’s native logging and tracing solution directly from services.
+- **Reason Rejected:** Violates Red Dog’s cloud-agnostic goals and ADR-0002; increases cognitive load; makes teaching and multi-cloud demos harder.
+
+---
+
+## Implementation Notes
+
+- New services MUST use OpenTelemetry from the beginning, following the per-language guides.
+- Existing services SHOULD be migrated in batches, according to the tasks and phases defined in:
+  - `plan/feature-opentelemetry-observability-1.md`
+- The presence and configuration of the OpenTelemetry Collector is treated as **part of the platform baseline**, similar to ingress and Dapr.
+
+---
+
+## Relationship to Other ADRs
+
+- **ADR-0002 — Cloud-Agnostic Configuration via Dapr**  
+  - This ADR applies the same cloud-agnostic principle to observability; backend choice is handled by configuration and the Collector, not by code.
+
+- **ADR-0005 — Kubernetes Health Probe Standardization**  
+  - Health probes complement this ADR by ensuring basic liveness/readiness signals; OpenTelemetry provides deeper diagnostics.
+
+- **ADR-0010 — Nginx Ingress Controller for Cloud-Agnostic Traffic Routing**  
+  - Ingress sits at the edge of request flows; OpenTelemetry traces should begin at or near this boundary for end-to-end visibility.
+
+---
 
 ## Related Documentation
 
-- **ADR-0002:** Cloud-Agnostic Configuration via Dapr (establishes vendor-neutral architecture principles)
-- **ADR-0005:** Kubernetes Health Probe Standardization (complementary observability for liveness/readiness)
-- **docs/standards/web-api-standards.md:** Web API standards (references this ADR for logging)
+The detailed “how-to” material for wiring and running OpenTelemetry lives outside this ADR:
 
-## References
+- `docs/standards/logging-schema.md` — Standard logging fields and levels.
+- `docs/guides/opentelemetry-collector-setup.md` — How to deploy and configure the Collector.
+- `docs/guides/opentelemetry-setup-dotnet.md` — .NET specific setup.
+- `docs/guides/opentelemetry-setup-go.md` — Go specific setup.
+- `docs/guides/opentelemetry-setup-python.md` — Python specific setup.
+- `docs/guides/opentelemetry-setup-nodejs.md` — Node.js specific setup.
+
+External references:
 
 - [OpenTelemetry Specification](https://opentelemetry.io/docs/specs/otel/)
-- [OTLP Logs 1.0 Specification](https://opentelemetry.io/docs/specs/otlp/#otlplog)
+- [OTLP Protocol](https://opentelemetry.io/docs/specs/otlp/)
 - [OpenTelemetry .NET Documentation](https://opentelemetry.io/docs/languages/net/)
-- [W3C Trace Context](https://www.w3.org/TR/trace-context/)
 - [CNCF OpenTelemetry Project](https://www.cncf.io/projects/opentelemetry/)

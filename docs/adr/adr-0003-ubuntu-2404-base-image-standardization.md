@@ -14,220 +14,131 @@ superseded_by: ""
 
 **Accepted**
 
-## Implementation Status
-
-**Current State:** 🔵 Accepted (Not Implemented)
-
-**What's Working:**
-- Decision documented and approved
-- Microsoft's .NET 10 default images already use Ubuntu 24.04 (upstream alignment confirmed)
-
-**What's Not Working:**
-- No Dockerfiles exist for any services yet (neither .NET, Go, Python, nor Node.js)
-- Services still run on .NET 6.0, not migrated to polyglot architecture
-- No validation of Canonical ubuntu/* images for Go/Python/Node.js
-
-**Evidence:**
-- Repository search shows no Dockerfile files in service directories
-- .NET services still target net6.0 (not net10.0), so Ubuntu 24.04 images not yet applicable
-- Go, Python, Node.js service migrations not started (plan/modernization-strategy.md Phase 2-7)
-
-**Dependencies:**
-- **Blocked By:** ADR-0001 (.NET 10 upgrade must complete first for .NET services)
-- **Blocked By:** Service polyglot migrations (Go, Python, Node.js services don't exist yet)
-- **Blocks:** Container image builds for all services
-
-**Next Steps:**
-1. Complete ADR-0001 (.NET 10 upgrade) for OrderService and AccountingService
-2. Create Dockerfiles using mcr.microsoft.com/dotnet/aspnet:10.0 for .NET services
-3. During polyglot migrations (Phase 2-7), create Dockerfiles using ubuntu/go:24.04, ubuntu/python:24.04, ubuntu/node:24.04
-4. Validate image sizes and performance vs official language images
-5. Document Dockerfile patterns in service migration plans
-
 ## Context
 
-Red Dog's modernization strategy migrates from a .NET-only architecture (10 services) to a polyglot architecture (8 services across 5 languages):
-- **.NET 10**: OrderService, AccountingService
-- **Go**: MakeLineService, VirtualWorker
-- **Python**: ReceiptGenerationService, VirtualCustomers
-- **Node.js 24**: LoyaltyService
-- **Vue.js 3.5 (Node.js 24 build)**: UI
+Red Dog is moving from a .NET-only codebase to a polyglot microservices architecture:
 
-**Key Constraints:**
-- Multi-cloud deployment targets (AKS, Container Apps, EKS, GKE) require consistent container base images
-- Teaching/demo focus requires simplified operational explanations ("What OS do your containers run?")
-- Security maintenance must be manageable across 8 different services in 5 languages
-- REQ-004 (from `plan/orderservice-dotnet10-upgrade.md`) mandates platform-agnostic Docker images
+- .NET 10 (OrderService, AccountingService)
+- Go (MakeLineService, VirtualWorker)
+- Python (ReceiptGenerationService, VirtualCustomers)
+- Node.js (LoyaltyService, UI build)
 
-**Current State:**
-- Existing .NET 6.0 services use unclear/mixed base images (likely Debian-based `mcr.microsoft.com/dotnet/aspnet:6.0`)
-- No standardized container OS strategy documented
-- Upcoming polyglot migration introduces potential for mixed base images (Debian for Go/Python/Node, Ubuntu for .NET)
+These services will run as containers on multiple platforms (AKS, Azure Container Apps, EKS, GKE).
 
-**Available Base Image Options:**
+Without a standard base operating system for application containers, we risk:
 
-| Language | Official Image | Base OS | Support |
-|----------|---------------|---------|---------|
-| .NET 10 | `mcr.microsoft.com/dotnet/aspnet:10.0` | Ubuntu 24.04 (default as of Oct 30, 2025) | Microsoft 3-year LTS |
-| Go | `golang:1.23-bookworm` | Debian 12 Bookworm | Golang team |
-| Python | `python:3.12-slim-bookworm` | Debian 12 Bookworm | Python team |
-| Node.js | `node:24-bookworm-slim` | Debian 12 Bookworm | Node.js team |
+- OS fragmentation across services (Debian here, Ubuntu there, maybe Alpine elsewhere).
+- More complex vulnerability management (different CVE feeds and patch cycles per OS).
+- Higher operational and teaching overhead (“which OS is this service running?” per service).
+- Divergent container hardening and debugging practices.
 
-**Canonical's Alternative:**
-- **ubuntu/go**, **ubuntu/python**, **ubuntu/node** images available on Docker Hub
-- Ubuntu 24.04 "Noble Numbat" LTS (EOL April 2029)
-- Canonical is a Docker Verified Publisher with LTS Docker Image Portfolio
-- Free 5-year security maintenance, 12-year support with Ubuntu Pro
-- 24-hour critical CVE response SLA
+At the same time:
 
-**Problem:**
-Using official language-specific images creates **OS fragmentation**: Ubuntu for .NET, Debian for Go/Python/Node. This complicates:
-- Vulnerability scanning (different CVE databases, patch cycles)
-- Operations runbooks ("Which OS is service X running?")
-- Teaching narratives ("We use Debian for some, Ubuntu for others... why?")
+- .NET 10 upstream images already use Ubuntu 24.04 by default.
+- Ubuntu 24.04 LTS has a clear support window suitable for the expected lifetime of the Red Dog sample.
+
+We need a single, explicit standard for the base OS family used in application containers.
 
 ## Decision
 
-**Adopt Ubuntu 24.04 LTS "Noble Numbat" as the standardized base operating system for all Red Dog container images.**
+**All Red Dog application containers MUST use Ubuntu 24.04 LTS as their base operating system (or a direct derivative).**
 
-**Implementation:**
-- **.NET 10 services**: Use `mcr.microsoft.com/dotnet/aspnet:10.0` (already Ubuntu 24.04 default)
-- **Go services**: Use `ubuntu/go` from Canonical (Ubuntu 24.04-based)
-- **Python services**: Use `ubuntu/python` from Canonical (Ubuntu 24.04-based)
-- **Node.js services**: Use `ubuntu/node` from Canonical (Ubuntu 24.04-based)
+In practice:
+
+- .NET services use the official .NET 10 images, which are based on Ubuntu 24.04.
+- Go, Python, and Node.js services build on Ubuntu 24.04-based images for both build and runtime stages.
+- Where multi-stage builds are used, the final runtime image MUST be Ubuntu 24.04-based.
+
+This ADR does **not** standardize image names or tags beyond “Ubuntu 24.04-based”; concrete image choices and Dockerfile patterns are documented in repository knowledge items and implementation guides, not in this ADR.
 
 ## Scope
 
-This ADR applies to **application containers** (services we build and maintain):
-- OrderService, AccountingService, MakeLineService, LoyaltyService, ReceiptGenerationService, VirtualCustomers, VirtualWorker
-- RedDog.UI build stage (Node.js compilation)
+### In Scope
 
-This ADR does **NOT** apply to **infrastructure containers** (third-party dependencies we consume):
-- Redis, PostgreSQL, SQL Server, Nginx (runtime for UI), RabbitMQ, message brokers, databases
-- **Rationale:** Use official upstream-maintained images for:
-  - **Performance optimization:** Official images use glibc (2x faster than musl on Alpine for Redis/databases)
-  - **Security hardening:** Vendor-provided security patches and CVE response SLAs
-  - **Maintenance reduction:** Avoid custom build pipelines for infrastructure components
-  - **Battle-tested reliability:** Production-validated by millions of deployments
+- **Application/service containers** owned by the Red Dog team:
+  - OrderService
+  - AccountingService
+  - MakeLineService
+  - LoyaltyService
+  - ReceiptGenerationService
+  - VirtualCustomers
+  - VirtualWorker
+  - UI build container (Node.js build stage)
 
-**Infrastructure image selection documented in ADR-0007 (Cloud-Agnostic Deployment Strategy).**
+### Out of Scope
 
-**Rationale:**
-- **STD-001**: **Single Base OS Family**: All 8 services run on Ubuntu 24.04, eliminating OS fragmentation. Operators learn one OS, one package manager (apt), one CVE database (Ubuntu Security Notices).
-- **STD-002**: **Aligned with .NET Default**: Microsoft changed .NET 10 default images to Ubuntu 24.04 (October 30, 2025). Standardizing on Ubuntu aligns with this upstream decision.
-- **STD-003**: **Canonical LTS Commitment**: Ubuntu 24.04 LTS supported until April 2029 (5 years), with optional 12-year Ubuntu Pro support. Outlives most runtime releases (.NET 10 EOL November 2028).
-- **STD-004**: **Unified Security Patching**: Single vendor (Canonical) provides base OS patches for all images. Simplifies vulnerability management, reduces scanner noise from OS-level CVEs.
-- **STD-005**: **Teaching/Demo Simplification**: "All Red Dog services run on Ubuntu 24.04" - single, clear message. No need to explain Debian vs Ubuntu differences during workshops.
-- **STD-006**: **Cloud Provider Ubiquity**: Ubuntu is the most widely deployed Linux distribution on AKS, EKS, GKE, and Azure Container Apps. Node images pre-validated by cloud providers.
+- **Infrastructure / third-party containers**, for which we use upstream images:
+  - Databases (e.g., PostgreSQL, SQL Server)
+  - Caches and queues (e.g., Redis, RabbitMQ)
+  - Reverse proxies / ingress (e.g., Nginx used to serve the built UI)
+- Host OS for Kubernetes nodes or container runtimes (controlled by the platform).
+
+Infrastructure image selection and rationale are covered by ADR-0007 and related documentation.
+
+## Rationale
+
+- **OS-001: Single base OS family**  
+  One OS family (Ubuntu 24.04) across all application containers simplifies operations, security posture, and on-call debugging.
+
+- **OS-002: Alignment with .NET defaults**  
+  .NET 10 official images have already standardized on Ubuntu 24.04; following that default avoids divergence between .NET and non-.NET services.
+
+- **OS-003: LTS lifecycle suitability**  
+  Ubuntu 24.04 LTS has a support window that comfortably covers the intended lifetime of Red Dog’s reference implementation and the .NET 10 LTS window.
+
+- **OS-004: Simplified security and compliance**  
+  A single base OS allows security tooling and CVE triage to focus on one set of security advisories and patching practices.
+
+- **OS-005: Teaching and documentation clarity**  
+  For workshops and education, “all application containers run Ubuntu 24.04” is simple to explain and remember.
+
+- **OS-006: Cloud platform ubiquity**  
+  Ubuntu images are first-class citizens on the target platforms (AKS, EKS, GKE, Azure Container Apps), reducing surprises related to OS support.
 
 ## Consequences
 
 ### Positive
 
-- **POS-001**: **Operational Consistency**: Single base OS across all services. Debugging, troubleshooting, and security patching use identical tooling (`apt`, `dpkg`, `ufw`).
-- **POS-002**: **Simplified Vulnerability Scanning**: Scan results reference single CVE database (Ubuntu Security Notices). No context switching between Debian Security Tracker and Ubuntu USN.
-- **POS-003**: **Canonical Security SLA**: 24-hour response for critical CVEs, free for 5 years. High/critical vulnerabilities patched faster than community-maintained Debian images.
-- **POS-004**: **Longer Support Window**: Ubuntu 24.04 EOL April 2029 (5 years) vs Debian 12 Bookworm EOL ~June 2028 (4 years). Extends base OS support beyond .NET 10 lifecycle.
-- **POS-005**: **Docker Verified Publisher**: Canonical images vetted by Docker, with guaranteed update cadence and security compliance. Not community/third-party images.
-- **POS-006**: **Teaching Clarity**: Instructors explain "Ubuntu everywhere" once. No cognitive overhead from mixed OS strategy. Simplifies slide decks, documentation, workshop guides.
-- **POS-007**: **Consistent Cloud Validation**: All cloud providers (Azure, AWS, GCP) pre-validate Ubuntu images for Kubernetes. Reduces deployment surprises or OS-specific bugs.
-- **POS-008**: **Ubuntu Pro Upgrade Path**: Option to extend support to 12 years with Ubuntu Pro subscription. Future-proofs long-lived deployments.
+- **POS-001: Operational consistency**  
+  Common debugging and troubleshooting steps (package inspection, logs, shell tools) are the same across all application containers.
+
+- **POS-002: Unified vulnerability management**  
+  Security scanning and patching can assume an Ubuntu 24.04 baseline for application images, reducing noise and fragmentation.
+
+- **POS-003: Easier container hardening**  
+  Hardening guidance (TLS ciphers, OS packages, user accounts) is reusable across services because they share the same base OS family.
+
+- **POS-004: Clear story for users and learners**  
+  Documentation and diagrams can describe “Ubuntu 24.04 application containers” without exception lists.
 
 ### Negative
 
-- **NEG-001**: **Not Language-Official Images**: Deviates from golang, python, and node.js project-maintained images. Language teams optimize official images for specific runtime performance.
-- **NEG-002**: **Canonical Dependency**: All non-.NET images sourced from single vendor (Canonical). If Canonical discontinues LTS Docker Image Portfolio, migration required.
-- **NEG-003**: **Potential Image Size Increase**: Ubuntu base images may be larger than Debian slim/Alpine variants. Typical overhead: +20-50 MB per image vs slim-bookworm (mitigated by multi-stage builds).
-- **NEG-004**: **Community Support Differences**: Language-specific communities (gophers, pythonistas, Node.js devs) primarily document Debian/Alpine-based images. Ubuntu-specific issues may have less Stack Overflow coverage.
-- **NEG-005**: **Build Tool Availability**: Canonical's ubuntu/* images may not include latest language build tools immediately after upstream releases. Slight lag compared to language team images.
-- **NEG-006**: **Performance Unknowns**: Official language images optimized for runtime performance (e.g., Python PGO builds). Canonical images may lack these optimizations (requires benchmarking to validate).
+- **NEG-001: Divergence from some language defaults**  
+  Go, Python, and Node.js official images typically use Debian-based or Alpine variants; we deviate from those defaults.
 
-## Alternatives Considered
+- **NEG-002: Potential image size overhead**  
+  Ubuntu 24.04 images may be larger than language-specific “slim” or Alpine images, increasing base image size (partially mitigated by multi-stage builds).
 
-### Mixed Base Images (Debian + Ubuntu)
+- **NEG-003: Dependence on Ubuntu 24.04 ecosystem**  
+  If Ubuntu 24.04 images for a given runtime lag behind official language images, we may wait longer for certain runtime features or need to adjust our image choice.
 
-- **ALT-001**: **Description**: Use official language images for each runtime (Debian for Go/Python/Node, Ubuntu for .NET). No standardization.
-- **ALT-002**: **Rejection Reason**: Creates OS fragmentation. Security scanning complexity (Debian + Ubuntu CVE databases). Operational overhead (two OS families to maintain). Teaching confusion ("Why different OSes?"). Violates consistency principle.
-
-### Alpine Linux Standardization
-
-- **ALT-003**: **Description**: Use Alpine-based images for all services (golang:alpine, python:alpine, node:alpine, custom .NET Alpine images).
-- **ALT-004**: **Rejection Reason**: .NET 10 default is Ubuntu (Microsoft's strategic direction). Alpine uses musl libc (not glibc), causing compatibility issues with some libraries. Smaller ecosystem (fewer pre-built packages). Security patching less transparent than Canonical's Ubuntu Security Notices.
-
-### Debian 12 Bookworm Standardization
-
-- **ALT-005**: **Description**: Use Debian 12 Bookworm for all services (golang:bookworm, python:bookworm, node:bookworm, custom .NET Debian images).
-- **ALT-006**: **Rejection Reason**: .NET 10 default is Ubuntu (contradicts Microsoft's upstream decision). Debian 12 EOL ~June 2028 (shorter than Ubuntu 24.04's April 2029). No commercial support SLA like Canonical's 24-hour critical CVE response. Less alignment with cloud provider defaults (Ubuntu dominant on AKS/EKS/GKE).
-
-### Build Official, Deploy Ubuntu (Hybrid)
-
-- **ALT-007**: **Description**: Multi-stage Dockerfiles using official language images for build stage (golang:bookworm), Ubuntu 24.04 for runtime stage (ubuntu:24.04 + manual runtime install).
-- **ALT-008**: **Rejection Reason**: Complexity overhead (manual runtime installation, library dependency management). Canonical's ubuntu/* images already provide optimized runtime environments. Risk of version mismatches between build and runtime stages. Not DRY (duplicates Canonical's work).
+- **NEG-004: Benchmarking and tuning required**  
+  Some workloads may perform slightly differently compared to language-official images; performance needs to be verified and tuned where relevant.
 
 ## Implementation Notes
 
-- **IMP-001**: **Image Selection Table**:
+- Per-language Dockerfile patterns (build vs runtime stages, recommended base images, and image pinning strategy) are documented in repository knowledge items and service-specific migration guides.
+- Application images SHOULD pin to specific Ubuntu 24.04-based tags or digests to avoid unexpected base image changes during builds.
+- Infrastructure containers (databases, caches, proxies) continue to use upstream official images; cross-image compatibility (e.g., glibc vs musl) is handled within ADR-0007 and related infra documentation.
+- When upgrading to a future Ubuntu LTS as a new standard, this ADR SHOULD be superseded by a new ADR documenting the new baseline and migration strategy.
 
-| Service | Language | Build Image | Runtime Image | Notes |
-|---------|----------|-------------|---------------|-------|
-| OrderService | .NET 10 | `mcr.microsoft.com/dotnet/sdk:10.0` | `mcr.microsoft.com/dotnet/aspnet:10.0` | Microsoft default (Ubuntu 24.04) |
-| AccountingService | .NET 10 | `mcr.microsoft.com/dotnet/sdk:10.0` | `mcr.microsoft.com/dotnet/aspnet:10.0` | Microsoft default (Ubuntu 24.04) |
-| MakeLineService | Go | `ubuntu/go:24.04` | `ubuntu:24.04` + compiled binary | Multi-stage build |
-| VirtualWorker | Go | `ubuntu/go:24.04` | `ubuntu:24.04` + compiled binary | Multi-stage build |
-| ReceiptGenerationService | Python | `ubuntu/python:24.04` | `ubuntu/python:24.04-slim` (if available) | Single/multi-stage |
-| VirtualCustomers | Python | `ubuntu/python:24.04` | `ubuntu/python:24.04-slim` (if available) | Single/multi-stage |
-| LoyaltyService | Node.js 24 | `ubuntu/node:24.04` | `ubuntu/node:24.04-slim` (if available) | Single/multi-stage |
-| UI | Node.js 24 | `ubuntu/node:24.04` (build) | `nginx:1.27-bookworm` (runtime) | Static site hosting (see ADR-0007 for infrastructure image rationale) |
+## Relationship to Other ADRs
 
-- **IMP-002**: **Dockerfile Pattern (Go Example)**:
-```dockerfile
-# Build stage
-FROM ubuntu/go:24.04 AS build
-WORKDIR /app
-COPY go.mod go.sum ./
-RUN go mod download
-COPY . .
-RUN CGO_ENABLED=0 go build -o makeline-service
+- **ADR-0001** – .NET 10 LTS Adoption  
+  .NET 10 default images are Ubuntu 24.04-based; ADR-0003 aligns the rest of the stack with this baseline.
 
-# Runtime stage
-FROM ubuntu:24.04
-RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
-COPY --from=build /app/makeline-service /usr/local/bin/
-CMD ["makeline-service"]
-```
+- **ADR-0002** – Cloud-Agnostic Configuration via Dapr Abstraction  
+  Standardizing the container OS supports a consistent multi-cloud deployment story for Dapr-enabled services.
 
-- **IMP-003**: **Validation Steps**:
-  1. Verify Canonical `ubuntu/go`, `ubuntu/python`, `ubuntu/node` images exist on Docker Hub
-  2. Test multi-stage builds for each language (ensure no runtime issues)
-  3. Benchmark application performance (compare vs official language images)
-  4. Scan images with Trivy/Grype (establish baseline CVE counts)
-  5. Document any Canonical image limitations (missing packages, version lags)
-
-- **IMP-004**: **Rollback Plan**: If Canonical images introduce breaking changes or performance regressions:
-  - Option 1: Pin to specific Ubuntu 24.04 image SHA256 digest (prevents unexpected updates)
-  - Option 2: Revert to official language images (Debian-based) with documented OS fragmentation trade-off
-  - Option 3: Build custom Ubuntu 24.04 images using `ubuntu:24.04` base + manual runtime installation
-
-- **IMP-005**: **Success Criteria**:
-  - All 8 service Dockerfiles use Ubuntu 24.04-based images (verified via `docker inspect`)
-  - Zero high/critical OS-level CVEs in base images (`docker scan` or Trivy)
-  - Application performance within 5% of Debian-based baseline (P95 latency, memory usage)
-  - Deployment succeeds on all 4 target platforms (AKS, Container Apps, EKS, GKE)
-
-- **IMP-006**: **Documentation Updates**:
-  - Update `plan/orderservice-dotnet10-upgrade.md` TASK-502 with Ubuntu 24.04 requirement
-  - Update `plan/modernization-strategy.md` Phase 2-7 service migration Dockerfiles
-  - Add Dockerfile examples to each service migration plan (Go, Python, Node.js)
-  - Create `docs/docker-base-images.md` explaining Ubuntu 24.04 standardization decision
-
-## References
-
-- **REF-001**: Related ADR: `docs/adr/adr-0001-dotnet10-lts-adoption.md` (documents .NET 10 LTS choice, Ubuntu 24.04 default)
-- **REF-002**: Related Plan: `plan/orderservice-dotnet10-upgrade.md` TASK-502 (Dockerfile updates)
-- **REF-003**: Related Plan: `plan/modernization-strategy.md` (Phase 2-7 service migrations)
-- **REF-004**: Canonical Announcement: [LTS Docker Image Portfolio on Docker Hub](https://canonical.com/blog/canonical-publishes-lts-docker-image-portfolio-on-docker-hub)
-- **REF-005**: Microsoft Announcement: [Default .NET images changed to Ubuntu 24.04 (October 30, 2025)](https://github.com/dotnet/dotnet-docker/blob/main/documentation/supported-tags.md)
-- **REF-006**: Ubuntu Release: [Ubuntu 24.04 LTS Noble Numbat (EOL April 2029)](https://ubuntu.com/about/release-cycle)
-- **REF-007**: Docker Hub: [ubuntu/go](https://hub.docker.com/r/ubuntu/go), [ubuntu/python](https://hub.docker.com/r/ubuntu/python), [ubuntu/node](https://hub.docker.com/r/ubuntu/node)
-- **REF-008**: Session Log: `.claude/sessions/2025-11-02-1105-orderservice-dotnet10-refinement.md` (Ubuntu 24.04 research and standardization discussion)
-- **REF-009**: Related ADR: `docs/adr/adr-0007-cloud-agnostic-deployment-strategy.md` (infrastructure container image selection and cloud-agnostic portability rationale)
+- **ADR-0007** – Cloud-Agnostic Deployment Strategy  
+  Defines how containers (including infrastructure images) are deployed across AKS, EKS, GKE, and Container Apps; ADR-0003 constrains the base OS for the application subset of those containers.

@@ -2,6 +2,7 @@
 title: "ADR-0006: Infrastructure Configuration via Environment Variables"
 status: "Accepted"
 date: "2025-11-02"
+last_updated: "2025-11-22"
 authors: "Red Dog Modernization Team"
 tags: ["architecture", "decision", "configuration", "environment-variables", "cloud-agnostic", "polyglot"]
 supersedes: ""
@@ -14,444 +15,236 @@ superseded_by: ""
 
 **Accepted**
 
-## Implementation Status
+Most services already derive ports and Dapr sidecar ports from environment variables.  
+Some business/application settings are still configured via environment variables and will be migrated to the Dapr Configuration API under ADR-0004. This ADR does not track implementation status beyond this note.
 
-**Current State:** 🔵 Accepted (Implemented in Practice)
-
-**What's Working:**
-- Services currently use environment variables for infrastructure configuration (ports, Dapr endpoints)
-- `ASPNETCORE_URLS` pattern used in .NET services (ASP.NET convention)
-- `DAPR_HTTP_PORT`, `DAPR_GRPC_PORT` environment variables used for Dapr sidecar communication
-- Environment-driven configuration enables same Docker image across dev/staging/production
-
-**What's Not Working:**
-- Mixing of infrastructure AND application settings in environment variables (anti-pattern per ADR-0004)
-- No formal validation of required environment variables at startup (fails late, not fast)
-- Documentation scattered (no centralized environment variable reference per service)
-
-**Evidence:**
-- Service code uses Environment.GetEnvironmentVariable() for Dapr ports and service ports
-- Kubernetes manifests in manifests/branch/ show env: blocks with infrastructure settings
-- No distinction enforced between infrastructure config (this ADR) vs application config (ADR-0004)
-
-**Dependencies:**
-- **Complements:** ADR-0004 (Dapr Config API for application settings)
-- **Supports:** ADR-0009 (Helm charts set environment variables from values files)
-- **Depends On:** ADR-0002 (Dapr abstraction requires Dapr port configuration)
-
-**Next Steps:**
-1. Audit all environment variable usage: classify as infrastructure vs application config
-2. Migrate application settings from environment variables to Dapr Configuration API (ADR-0004)
-3. Implement startup validation for required infrastructure environment variables
-4. Document required environment variables per service in Helm chart README
-5. Enforce clear boundary: env vars for "how to run", Dapr Config API for "what to do"
+---
 
 ## Context
 
-Red Dog's polyglot microservices architecture (8 services across 5 languages: .NET, Go, Python, Node.js, Vue.js) requires a clear strategy for managing two distinct types of configuration:
+Red Dog is a polyglot microservices system (.NET, Go, Python, Node.js, Vue.js) that must run unchanged across multiple platforms:
 
-1. **Infrastructure/Runtime Configuration**: Container ports, network addresses, Dapr sidecar ports, runtime modes
-2. **Application Configuration**: Business logic settings, feature flags, operational parameters (covered by ADR-0004)
+- Local development
+- Azure Kubernetes Service (AKS)
+- Azure Container Apps
+- AWS EKS
+- GCP GKE
 
-**Key Constraints:**
-- Services must deploy to multiple platforms (AKS, EKS, GKE, Azure Container Apps) with different port conventions
-- Same Docker image must run in different environments without rebuilding
-- Infrastructure settings must be known **before application startup** (cannot wait for Dapr Configuration API calls)
-- Container orchestrators (Kubernetes, Azure Container Apps) need to know listening ports for traffic routing
-- Multi-language architecture requires consistent pattern across .NET, Go, Python, Node.js
-- ADR-0002 establishes cloud-agnostic architecture principles
-- ADR-0004 establishes Dapr Configuration API for application settings
+The system has two distinct configuration concerns:
 
-**Problem:**
-Without clear guidelines, developers might:
-- **Hard-code infrastructure settings** in application code (ports, addresses) → Cannot change without rebuilding Docker image
-- **Mix infrastructure and application config** → Unclear which settings use environment variables vs Dapr Configuration API
-- **Platform detection logic** → Application code checks "Am I on Azure? Use port 8080. Am I on AWS? Use port 80." (violates cloud-agnostic principles)
+1. **Infrastructure / runtime configuration**  
+   How a container is run and wired into its environment: listening ports, bind addresses, Dapr sidecar ports, runtime mode, log level.
 
-**Real-World Scenarios Requiring Different Infrastructure Config:**
+2. **Application configuration**  
+   What the application does: business rules, feature flags, per-tenant settings, operational tunables.
 
-| Platform | HTTP Port | Dapr HTTP Port | Why Different |
-|----------|-----------|----------------|---------------|
-| **Local Development** | 5100 | 5180 | Avoid port conflicts between multiple services |
-| **AKS (Kubernetes)** | 80 | 3500 | Standard HTTP port, standard Dapr port |
-| **Azure Container Apps** | 8080 | 3500 | Non-privileged port convention |
-| **EKS (AWS)** | 8080 | 3500 | Same as Container Apps |
-| **GKE (Google)** | 8080 | 3500 | Same as Container Apps |
+Key constraints:
 
-**Available Options:**
-1. **Hard-code in application code**: `app.listen(5100)` - Requires rebuild per environment
-2. **Environment variables**: Read `PORT` or `ASPNETCORE_URLS` from environment - Same image, different config
-3. **Configuration files**: Bundle `appsettings.json`, `config.yaml` in Docker image - Still requires rebuild per environment
-4. **Dapr Configuration API**: Retrieve from centralized store - Too late (need port before app starts)
+- The same container image should be deployable to dev, staging, and production without rebuilds.
+- Orchestrators (Kubernetes, Container Apps, Docker Compose) must know container ports and bindings before the app starts.
+- We want a **cloud-agnostic** pattern (ADR-0002): no Azure-only, AWS-only, or GCP-only configuration mechanisms in application code.
+- ADR-0004 defines the Dapr Configuration API as the standard for application/business configuration.
+
+Without a clear boundary, teams have been:
+
+- Mixing infrastructure and application settings in environment variables.
+- Hard-coding ports and addresses in application code.
+- Considering platform-detection logic inside services (“if Azure then port 8080, else 80”), which violates cloud-agnostic goals.
+
+---
 
 ## Decision
 
-**Adopt environment variables as the EXCLUSIVE mechanism for infrastructure/runtime configuration across ALL Red Dog microservices.**
+**Use environment variables as the standard interface between the platform and Red Dog services for infrastructure/runtime configuration.**
 
-**Scope - What MUST Use Environment Variables:**
+Application/business configuration is handled separately via the Dapr Configuration API (ADR-0004).
 
-| Category | Examples | Why Environment Variables |
-|----------|----------|---------------------------|
-| **HTTP/gRPC Listening Ports** | `ASPNETCORE_URLS` (.NET), `PORT` (Go/Python/Node.js) | Container orchestrator needs to route traffic to correct port |
-| **Dapr Sidecar Ports** | `DAPR_HTTP_PORT`, `DAPR_GRPC_PORT` | Application needs Dapr address before startup |
-| **Network Addresses** | `HOST`, `BIND_ADDRESS` | Container binding configuration |
-| **Runtime Modes** | `ASPNETCORE_ENVIRONMENT`, `NODE_ENV`, `GO_ENV` | Development vs Production behavior |
-| **Logging Levels** | `LOG_LEVEL` | Infrastructure-level observability |
+### In Scope: MUST Use Environment Variables
 
-**Scope - What MUST NOT Use Environment Variables (Use Dapr Configuration API per ADR-0004):**
+The following categories are considered **infrastructure/runtime configuration** and MUST be supplied to services via environment variables (or equivalent orchestrator mechanism that surfaces as env vars inside the container):
 
-| Category | Examples | Why Dapr Configuration API |
-|----------|----------|---------------------------|
-| **Business Logic Settings** | `storeId`, `maxOrderSize`, `orderTimeout` | Application-level, can change at runtime |
-| **Feature Flags** | `enableLoyalty`, `enableReceipts` | Dynamic toggle without redeployment |
-| **Operational Parameters** | `maxRetries`, `requestTimeout` | Tune behavior without restart |
+- **Listening ports and bind addresses**
+  - HTTP/gRPC ports (e.g. `ASPNETCORE_URLS`, `PORT`, `HOST`)
+- **Dapr sidecar connectivity**
+  - `DAPR_HTTP_PORT`, `DAPR_GRPC_PORT`
+- **Runtime mode**
+  - `ASPNETCORE_ENVIRONMENT`, `NODE_ENV`, `GO_ENV`, `PYTHON_ENV`
+- **Logging level and basic sink selection**
+  - e.g. `LOG_LEVEL` where it only affects how the process runs, not business behavior
 
-**Rationale:**
-- **INF-001**: **Cloud-Agnostic Standard**: Environment variables are **universal across all platforms** (Docker, Kubernetes, Container Apps, systemd, etc.). Not proprietary to Azure, AWS, or GCP.
-- **INF-002**: **Polyglot Compatibility**: All languages support environment variables (POSIX standard). Works identically in .NET, Go, Python, Node.js, shell scripts.
-- **INF-003**: **Container Orchestrator Integration**: Kubernetes Deployments, Container Apps configurations, Docker Compose all provide native environment variable injection. No custom tooling required.
-- **INF-004**: **Same Image, Multiple Environments**: Build Docker image **once**, deploy to dev/staging/production with different environment variables. No code changes, no rebuilds.
-- **INF-005**: **Startup Dependency**: Infrastructure settings (ports, addresses) must be known **before application starts**. Cannot wait for async Dapr Configuration API call during startup.
-- **INF-006**: **Clear Separation of Concerns**: Infrastructure config (how container runs) vs application config (what app does). Environment variables for "how", Dapr Config API for "what".
-- **INF-007**: **12-Factor App Principle**: Follows [12-Factor App methodology](https://12factor.net/config) - "Store config in the environment" for infrastructure settings.
+Application code MUST read these values from environment variables at startup rather than hard-coding them or deriving them from platform detection.
+
+### Out of Scope: MUST NOT Use Environment Variables
+
+The following categories MUST NOT be treated as infrastructure config and MUST NOT be modelled as environment-variable “knobs” by default:
+
+- **Business / domain settings**  
+  Examples: `storeId`, `maxOrderSize`, `orderTimeout`, loyalty enablement flags.  
+  These belong in the Dapr Configuration API per ADR-0004.
+
+- **Feature flags and runtime behaviour toggles**  
+  Examples: `enableLoyalty`, `enableReceipts`, `enableExperimentalWorkflow`.  
+  These should be controlled via configuration stores or feature-flag services, not env vars.
+
+- **Secrets and credentials**  
+  Examples: connection strings, API keys, usernames/passwords, tokens.  
+  These MUST be stored in secret stores (e.g. Dapr secret components backed by Key Vault, Secrets Manager, Secret Manager) and consumed via Dapr or cloud-native secret mechanisms, not directly as environment variables, except where the platform itself injects them and no alternative exists.
+
+Where an existing service currently uses environment variables for application settings or secrets, that is considered technical debt to be removed under ADR-0004 and any secrets ADR.
+
+---
+
+## Scope
+
+This decision applies to:
+
+- All Red Dog runtime services (OrderService, AccountingService, MakeLineService, LoyaltyService, ReceiptGenerationService, VirtualCustomers, VirtualWorker, UI backend/build containers).
+- All supported platforms (local dev, AKS, EKS, GKE, Azure Container Apps).
+- All supported languages (.NET, Go, Python, Node.js).
+
+It does **not** prescribe a particular orchestration tool (Kubernetes, Bicep, Terraform, etc.), only that:
+
+- The **contract between the platform and the service** for infrastructure/runtime settings is environment variables.
+
+---
+
+## Rationale
+
+- **CFG-001 – Cloud-agnostic and platform-neutral**  
+  Environment variables are universally available across Docker, Kubernetes, Container Apps, systemd, and process managers. They do not introduce Azure-, AWS-, or GCP-specific APIs into the codebase.
+
+- **CFG-002 – Polyglot friendly**  
+  All languages used in Red Dog have first-class support for environment variables. This avoids per-language configuration patterns and keeps the architecture consistent.
+
+- **CFG-003 – Build-once, deploy-many**  
+  Ports, bind addresses, Dapr ports, and runtime modes can vary per environment without rebuilding images. The same artifact can be promoted from dev → staging → production just by changing env vars in manifests.
+
+- **CFG-004 – 12-Factor alignment**  
+  Infrastructure/runtime settings align with the 12-Factor App principle of storing config in the environment, while leaving business configuration to dedicated configuration APIs (Dapr).
+
+- **CFG-005 – Orchestrator integration**  
+  Kubernetes, Azure Container Apps, and Docker Compose all inject environment variables natively. No custom config-loader or sidecar is required to get infra settings into the process.
+
+- **CFG-006 – Clear separation of concerns**  
+  “How the container runs” (infra) is separated from “what the app does” (business). This makes ownership clearer and reduces accidental coupling between deployment details and domain logic.
+
+---
 
 ## Consequences
 
 ### Positive
 
-- **POS-001**: **Zero Rebuilds for Port Changes**: Change listening port from 5100 → 8080 by updating Kubernetes YAML or Container Apps config. No Docker image rebuild.
-- **POS-002**: **Platform-Agnostic Application Code**: No `if (Azure) { port = 8080 } else if (AWS) { port = 80 }` logic. Same code runs everywhere.
-- **POS-003**: **Polyglot Consistency**: .NET uses `ASPNETCORE_URLS`, Go/Python/Node.js use `PORT`. Different variables, same pattern (environment-driven configuration).
-- **POS-004**: **Container Orchestrator Native**: Kubernetes `env:` blocks, Container Apps `env:` arrays, Docker Compose `environment:` sections work without custom configuration loaders.
-- **POS-005**: **Deployment Simplicity**: Deployment manifests (Kubernetes YAML, Bicep, Terraform) directly set environment variables. No application code changes needed.
-- **POS-006**: **Testing Isolation**: Integration tests set environment variables per test (`PORT=9999`). No global state pollution, no configuration file conflicts.
-- **POS-007**: **Clear Documentation**: Operators know infrastructure settings are in deployment manifests, application settings in Dapr Configuration stores. No confusion about "where is this setting?".
-- **POS-008**: **Fail-Fast Validation**: Missing required environment variables (e.g., `ASPNETCORE_URLS`) cause immediate startup failure. Easy to diagnose.
+- **POS-001 – No rebuilds for infra changes**  
+  Port changes or Dapr port changes are handled by editing manifests, not rebuilding images.
+
+- **POS-002 – Simpler, cloud-agnostic services**  
+  Service code does not contain platform-detection branches; all deployment differences live in manifests and env configuration.
+
+- **POS-003 – Consistent cross-language pattern**  
+  Every service, regardless of language, follows “read infra config from env at startup”, which simplifies reasoning and teaching.
+
+- **POS-004 – Cleaner CI/CD**  
+  Pipelines can use the same image across environments and apply environment-specific configuration via Helm values, ARM/Bicep parameters, or Terraform variables.
+
+- **POS-005 – Easier operational documentation**  
+  Operators can reliably answer “how do I change the port / runtime mode?” by looking at env settings in manifests rather than searching code.
 
 ### Negative
 
-- **NEG-001**: **Environment Variable Proliferation**: Large number of environment variables across all services. Kubernetes Deployments can become verbose.
-- **NEG-002**: **No Centralized Management UI**: Unlike Dapr Configuration API (Azure App Configuration UI, AWS Parameter Store UI), environment variables edited in YAML/Bicep files.
-- **NEG-003**: **No Runtime Updates**: Changing environment variable requires pod restart (Kubernetes) or revision deployment (Container Apps). Cannot update without downtime.
-- **NEG-004**: **Type Safety Loss**: Environment variables are strings. Must parse/validate (`int.Parse(PORT)`, `bool(ENABLE_DEBUG)`). Runtime errors if invalid values.
-- **NEG-005**: **Secret Exposure Risk**: If developers mistakenly put secrets in environment variables (vs Dapr secret store), visible in `kubectl describe pod`. Requires developer education.
-- **NEG-006**: **Documentation Overhead**: Must document which environment variables each service requires. Deployment guides need comprehensive env var tables.
-- **NEG-007**: **Local Development Configuration**: Developers need `.env/` directory files, shell export scripts, or IDE launch configurations to set environment variables locally.
+- **NEG-001 – Environment variable sprawl**  
+  Without discipline, services can accumulate many env vars. This increases the documentation burden and risk of misconfiguration.
+
+- **NEG-002 – No live updates**  
+  Changing environment variables typically requires a pod restart or new revision. Infra changes (e.g. ports) cannot be hot-reloaded.
+
+- **NEG-003 – Type-safety and validation overhead**  
+  Values arrive as strings and must be parsed/validated. Services must fail fast on invalid or missing infra settings to avoid subtle runtime errors.
+
+- **NEG-004 – Misuse risk**  
+  Developers may be tempted to put business config or secrets in env vars “because it’s easy.” This must be actively discouraged and treated as a violation of this ADR and ADR-0004/secret guidance.
+
+---
 
 ## Alternatives Considered
 
-### Hard-Coded Infrastructure Settings
+### Alternative 1: Hard-coded infrastructure settings
 
-- **ALT-001**: **Description**: Hard-code listening ports, Dapr addresses in application code. `app.listen(5100)`, `daprClient = new DaprClient("localhost:3500")`.
-- **ALT-002**: **Rejection Reason**: Requires Docker image rebuild for every environment (dev: 5100, staging: 8080, production: 80). Cannot use same image across platforms. Violates immutable infrastructure principle. Deployment becomes error-prone (did we rebuild the right image?).
+**Description:**  
+Listening ports, Dapr ports, and bind addresses are compiled into the application code (e.g., `app.listen(5100)`).
 
-### Configuration Files Bundled in Docker Image
+**Reasons for rejection:**
 
-- **ALT-003**: **Description**: Bundle `appsettings.json` (. NET), `config.yaml` (Go/Python/Node.js) in Docker image with environment-specific values. Build separate images: `orderservice:dev`, `orderservice:staging`, `orderservice:prod`.
-- **ALT-004**: **Rejection Reason**: Violates "build once, deploy many" principle. Must rebuild Docker image for configuration changes. Configuration drift risk (dev image accidentally deployed to production). Increases CI/CD complexity (multiple image tags to manage).
+- Requires new builds for each environment and platform.
+- Increases the risk of shipping binaries compiled with incorrect settings.
+- Conflicts with immutable infrastructure and promotion of artefacts across environments.
 
-### Platform Detection Logic
+---
 
-- **ALT-005**: **Description**: Application code detects platform at runtime (`if (Azure) { port = 8080 } else if (AWS) { port = 80 }`). Use metadata endpoints (Azure Instance Metadata Service, AWS EC2 metadata) to identify platform.
-- **ALT-006**: **Rejection Reason**: Violates cloud-agnostic principles (ADR-0002). Application code coupled to platform detection logic. Brittle (metadata endpoints change, new platforms require code updates). Testing requires mocking platform metadata. Not polyglot-friendly (Go, Python, Node.js all need platform detection libraries).
+### Alternative 2: Environment-specific configuration files baked into images
 
-### Dapr Configuration API for All Settings
+**Description:**  
+Use `appsettings.json`, `config.yaml`, or similar files baked into the image, possibly with separate images per environment (`orderservice-dev`, `orderservice-prod`).
 
-- **ALT-007**: **Description**: Use Dapr Configuration API (ADR-0004) for both application settings AND infrastructure settings. Retrieve `listeningPort`, `daprHttpPort` from Dapr Configuration store at startup.
-- **ALT-008**: **Rejection Reason**: Chicken-and-egg problem. Application needs to know Dapr HTTP port (`DAPR_HTTP_PORT`) to call Dapr Configuration API. Cannot retrieve Dapr port from Dapr itself. Also, container orchestrator needs to know listening port for traffic routing BEFORE app starts (cannot wait for async Configuration API call).
+**Reasons for rejection:**
 
-## Implementation Notes
+- Violates “build once, deploy many”; configuration changes require image rebuilds.
+- Encourages environment-specific images and configuration drift.
+- Harder to standardize across languages and platforms.
 
-- **IMP-001**: **Required Environment Variables by Service Type**:
+---
 
-**All Services (.NET, Go, Python, Node.js):**
-```bash
-# Dapr sidecar communication
-DAPR_HTTP_PORT=3500      # Dapr HTTP API endpoint
-DAPR_GRPC_PORT=50001     # Dapr gRPC API endpoint (optional, HTTP sufficient)
+### Alternative 3: Platform-detection logic inside services
 
-# Runtime mode
-<LANGUAGE>_ENV=production  # ASPNETCORE_ENVIRONMENT, NODE_ENV, GO_ENV, PYTHON_ENV
-```
+**Description:**  
+Application code detects the platform (Azure, AWS, GCP, local) via metadata services and then chooses ports, addresses, etc.
 
-**.NET Services (OrderService, AccountingService):**
-```bash
-# HTTP listening configuration
-ASPNETCORE_URLS=http://+:80   # ASP.NET Core binding (+ = all interfaces 0.0.0.0)
+**Reasons for rejection:**
 
-# Runtime environment
-ASPNETCORE_ENVIRONMENT=Production   # Development, Staging, Production
-```
+- Introduces cloud-specific code paths and dependencies, contrary to ADR-0002.
+- Harder to test and mock.
+- Requires updates whenever new platforms or behaviours are added.
 
-**Go Services (MakeLineService, VirtualWorker):**
-```bash
-# HTTP listening configuration
-PORT=8080           # Go standard convention (or HOST_PORT, HTTP_PORT)
-HOST=0.0.0.0        # Bind address (0.0.0.0 = all interfaces)
+---
 
-# Runtime environment
-GO_ENV=production   # development, production
-```
+### Alternative 4: Dapr Configuration API for infrastructure settings
 
-**Python Services (ReceiptGenerationService, VirtualCustomers):**
-```bash
-# HTTP listening configuration
-PORT=8080           # Python web framework convention (Flask, FastAPI)
-HOST=0.0.0.0        # Bind address
+**Description:**  
+Use the Dapr Configuration API to fetch ports and infra settings, just like business config.
 
-# Runtime environment
-PYTHON_ENV=production   # development, production
-```
+**Reasons for rejection:**
 
-**Node.js Services (LoyaltyService):**
-```bash
-# HTTP listening configuration
-PORT=8080           # Node.js standard convention (process.env.PORT)
-HOST=0.0.0.0        # Bind address
+- Circular dependency: the service must know the Dapr HTTP/gRPC ports in order to call Dapr.
+- Orchestrators need port information before the app has started.
+- Conflates infra/runtime configuration with domain/application configuration.
 
-# Runtime environment
-NODE_ENV=production   # development, production
-```
+---
 
-- **IMP-002**: **Language-Specific Implementation Patterns**:
+## Guidance for Future Work
 
-**.NET (ASP.NET Core):**
-```csharp
-// Program.cs
-var builder = WebApplication.CreateBuilder(args);
+- New services MUST:
+  - Read listening ports, bind addresses, and Dapr ports from environment variables at startup.
+  - Treat missing required infra env vars as startup failures.
+- New business settings, feature flags, and tunables MUST:
+  - Be modelled via the Dapr Configuration API (ADR-0004) or a dedicated feature-flag system, not as additional environment variables.
+- Secrets MUST:
+  - Be provisioned and consumed via secret stores and Dapr secret components, not added as environment variables, unless explicitly justified and documented in a secrets-focused ADR.
 
-// ASP.NET Core automatically reads ASPNETCORE_URLS
-// No explicit configuration needed!
+If a change proposal appears to require new environment variables, it SHOULD be reviewed against this ADR and ADR-0004 to determine whether it is truly infra/runtime configuration or should live in a configuration/secret store instead.
 
-var app = builder.Build();
+---
 
-// Optional: Validate required Dapr environment variables
-var daprHttpPort = Environment.GetEnvironmentVariable("DAPR_HTTP_PORT")
-    ?? throw new InvalidOperationException("DAPR_HTTP_PORT not set");
+## Relationship to Other ADRs
 
-app.Run();
-// Application listens on ASPNETCORE_URLS value (e.g., http://+:80)
-```
+- **ADR-0002 – Cloud-Agnostic Configuration via Dapr Abstraction**  
+  Defines Dapr as the abstraction over cloud-specific services. ADR-0006 complements this by defining how infra/runtime parameters reach the services themselves.
 
-**Go (net/http):**
-```go
-package main
+- **ADR-0004 – Dapr Configuration API Standardization**  
+  Governs application/business configuration. ADR-0006 explicitly delegates non-infra settings to ADR-0004.
 
-import (
-    "fmt"
-    "net/http"
-    "os"
-)
-
-func main() {
-    // Read infrastructure config from environment
-    port := os.Getenv("PORT")
-    if port == "" {
-        port = "8080" // Default fallback
-    }
-
-    host := os.Getenv("HOST")
-    if host == "" {
-        host = "0.0.0.0" // Default: all interfaces
-    }
-
-    daprHttpPort := os.Getenv("DAPR_HTTP_PORT")
-    if daprHttpPort == "" {
-        panic("DAPR_HTTP_PORT not set")
-    }
-
-    addr := fmt.Sprintf("%s:%s", host, port)
-    fmt.Printf("Listening on %s\n", addr)
-    http.ListenAndServe(addr, nil)
-}
-```
-
-**Python (FastAPI):**
-```python
-import os
-import uvicorn
-from fastapi import FastAPI
-
-app = FastAPI()
-
-# Read infrastructure config from environment
-port = int(os.getenv("PORT", "8080"))  # Default 8080
-host = os.getenv("HOST", "0.0.0.0")    # Default all interfaces
-
-dapr_http_port = os.getenv("DAPR_HTTP_PORT")
-if not dapr_http_port:
-    raise ValueError("DAPR_HTTP_PORT not set")
-
-if __name__ == "__main__":
-    uvicorn.run(app, host=host, port=port)
-```
-
-**Node.js (Express):**
-```javascript
-const express = require('express');
-const app = express();
-
-// Read infrastructure config from environment
-const port = process.env.PORT || 8080;  // Default 8080
-const host = process.env.HOST || '0.0.0.0';  // Default all interfaces
-
-const daprHttpPort = process.env.DAPR_HTTP_PORT;
-if (!daprHttpPort) {
-    throw new Error('DAPR_HTTP_PORT not set');
-}
-
-app.listen(port, host, () => {
-    console.log(`Listening on ${host}:${port}`);
-});
-```
-
-- **IMP-003**: **Kubernetes Deployment Example (AKS/EKS/GKE)**:
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: orderservice
-spec:
-  template:
-    metadata:
-      annotations:
-        dapr.io/enabled: "true"
-        dapr.io/app-id: "order-service"
-        dapr.io/app-port: "80"
-    spec:
-      containers:
-      - name: orderservice
-        image: ghcr.io/azure/reddog-orderservice:latest
-        env:
-        # Infrastructure configuration (THIS ADR)
-        - name: ASPNETCORE_URLS
-          value: "http://+:80"
-        - name: DAPR_HTTP_PORT
-          value: "3500"
-        - name: DAPR_GRPC_PORT
-          value: "50001"
-        - name: ASPNETCORE_ENVIRONMENT
-          value: "Production"
-
-        # Application configuration retrieved from Dapr Config API (ADR-0004)
-        # NOT set as environment variables!
-        # App calls: daprClient.GetConfiguration("reddog.config", ["storeId", "maxOrderSize"])
-
-        ports:
-        - containerPort: 80
-```
-
-- **IMP-004**: **Azure Container Apps Example**:
-
-```yaml
-properties:
-  template:
-    containers:
-    - name: orderservice
-      image: ghcr.io/azure/reddog-orderservice:latest
-      env:
-      # Infrastructure configuration
-      - name: ASPNETCORE_URLS
-        value: "http://+:8080"
-      - name: DAPR_HTTP_PORT
-        value: "3500"
-      - name: ASPNETCORE_ENVIRONMENT
-        value: "Production"
-
-      # Application configuration from Dapr Config API (NOT env vars)
-
-    dapr:
-      enabled: true
-      appId: order-service
-      appPort: 8080
-```
-
-- **IMP-005**: **Docker Compose (Local Development)**:
-
-```yaml
-version: '3.8'
-services:
-  orderservice:
-    image: reddog-orderservice
-    environment:
-      # Infrastructure configuration
-      - ASPNETCORE_URLS=http://+:5100
-      - DAPR_HTTP_PORT=5180
-      - DAPR_GRPC_PORT=5181
-      - ASPNETCORE_ENVIRONMENT=Development
-    ports:
-      - "5100:5100"
-    depends_on:
-      - redis
-      - sqlserver
-```
-
-- **IMP-006**: **Local Development (.env/ directory)**:
-
-```bash
-# .env/local (for local development - NOT committed to Git)
-ASPNETCORE_URLS=http://localhost:5100
-DAPR_HTTP_PORT=5180
-DAPR_GRPC_PORT=5181
-ASPNETCORE_ENVIRONMENT=Development
-LOG_LEVEL=Debug
-```
-
-```bash
-# Load .env/local and run
-dotnet run --project RedDog.OrderService
-```
-
-- **IMP-007**: **Environment Variable Validation Pattern**:
-
-**.NET Validation:**
-```csharp
-// Startup validation helper
-public static class EnvironmentValidator
-{
-    public static void ValidateInfrastructureConfig()
-    {
-        var required = new[] { "ASPNETCORE_URLS", "DAPR_HTTP_PORT" };
-        var missing = required.Where(v => string.IsNullOrEmpty(Environment.GetEnvironmentVariable(v)));
-
-        if (missing.Any())
-            throw new InvalidOperationException(
-                $"Missing required environment variables: {string.Join(", ", missing)}");
-    }
-}
-
-// Program.cs
-EnvironmentValidator.ValidateInfrastructureConfig();
-var app = builder.Build();
-```
-
-- **IMP-008**: **Documentation Requirements**:
-  - Each service README.md must include "Required Environment Variables" table
-  - Deployment guides must specify environment variables per platform (AKS, Container Apps, EKS, GKE)
-  - Example Kubernetes YAML manifests with all required environment variables
-  - Local development setup instructions with `.env/` directory examples
-
-- **IMP-009**: **Testing Strategy**:
-  - **Unit Tests**: Mock environment variables using test frameworks (`Environment.SetEnvironmentVariable` in .NET, `os.environ` in Python)
-  - **Integration Tests**: Docker Compose with test-specific environment variables (`PORT=9999` for test isolation)
-  - **E2E Tests**: Verify correct port binding (`curl http://orderservice:80/healthz`)
-
-- **IMP-010**: **Migration Strategy**:
-  1. **Audit**: Identify all hard-coded infrastructure settings (ports, addresses)
-  2. **Refactor**: Replace with environment variable reads
-  3. **Default Values**: Provide sensible defaults for local development (`PORT ?? 5100`)
-  4. **Validate**: Add startup validation for required environment variables
-  5. **Document**: Update deployment manifests and README files
+---
 
 ## References
 
-- **REF-001**: Related ADR: `docs/adr/adr-0004-dapr-configuration-api-standardization.md` (application settings use Dapr Config API, NOT environment variables)
-- **REF-002**: Related ADR: `docs/adr/adr-0002-cloud-agnostic-configuration-via-dapr.md` (cloud-agnostic architecture principles)
-- **REF-003**: Related Plan: `plan/orderservice-dotnet10-upgrade.md` REQ-004 (configurable port via ASPNETCORE_URLS)
-- **REF-004**: Related Plan: `plan/modernization-strategy.md` (applies to all service migrations: Go, Python, Node.js, .NET)
-- **REF-005**: 12-Factor App: [III. Config - Store config in the environment](https://12factor.net/config)
-- **REF-006**: Microsoft Docs: [ASP.NET Core Configuration - Environment Variables](https://learn.microsoft.com/aspnet/core/fundamentals/configuration/#environment-variables)
-- **REF-007**: Kubernetes Docs: [Define Environment Variables for a Container](https://kubernetes.io/docs/tasks/inject-data-application/define-environment-variable-container/)
-- **REF-008**: Azure Docs: [Manage environment variables in Azure Container Apps](https://learn.microsoft.com/azure/container-apps/environment-variables)
-- **REF-009**: Session Log: `.claude/sessions/2025-11-02-1105-orderservice-dotnet10-refinement.md` (ASPNETCORE_URLS discussion)
+- [The Twelve-Factor App – Config](https://12factor.net/config)
+- Kubernetes documentation on [environment variables for containers](https://kubernetes.io/docs/tasks/inject-data-application/define-environment-variable-container/)
+- Azure Container Apps documentation on [environment variables](https://learn.microsoft.com/azure/container-apps/environment-variables)

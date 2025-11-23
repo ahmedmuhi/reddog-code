@@ -1,6 +1,6 @@
 ---
 title: "ADR-0012: Dapr Bindings for Object Storage"
-status: "Implemented"
+status: "Accepted"
 date: "2025-11-11"
 authors: "Red Dog Modernization Team"
 tags: ["architecture", "decision", "dapr", "bindings", "storage", "cloud-native"]
@@ -12,124 +12,91 @@ superseded_by: ""
 
 ## Status
 
-**Implemented** (Phase 0.5 - Local Development)
-
-## Implementation Status
-
-**Current State:** 🟢 Implemented (Local), 🔵 Accepted (Production)
-
-**What's Working:**
-- Local development: emptyDir volume + `dapr.io/volume-mounts-rw` + `fsGroup: 65532`
-- Receipt generation service writes successfully to `/tmp/receipts/`
-- Dapr localstorage binding operational (validated in Phase 0.5)
-
-**What's Planned:**
-- Production: Azure Blob Storage / AWS S3 / GCP Cloud Storage bindings
-- Component swap via Helm values (local vs cloud configuration)
-
-**Evidence:**
-- charts/reddog/templates/receipt-generation-service.yaml:41 - volume-mounts-rw annotation
-- charts/reddog/templates/dapr-components/binding-receipt.yaml:1 - localstorage binding
-- docs/research/dapr-volume-mounts-configuration.md - Implementation research
+**Decision:** Accepted  
+**Implementation:** 🟢 Local development implemented, 🔵 Production rollout planned
 
 ## Context
 
-Red Dog services require object storage for receipts and documents. Unlike message brokers or caches (covered by ADR-0007), object storage has different characteristics:
-- Large blob storage (potentially GBs/TBs)
-- Less latency-sensitive (async write, infrequent read)
-- Cloud providers offer unique features: lifecycle policies, CDN integration, geo-replication
+Several Red Dog services need to write and later read binary artifacts such as receipt PDFs and other documents. These have different characteristics from transactional data and messaging:
 
-**Key Question:** Should we use cloud-native blob storage (Azure Blob, S3, GCS) or self-hosted MinIO for cloud-agnostic portability?
+- Potentially large objects (MB–GB).
+- Write-heavy, latency-tolerant workloads.
+- Strong durability requirements in production.
+- Native cloud services (Azure Blob Storage, S3, GCS) provide lifecycle management, encryption, and CDN integration.
+
+At the same time, we want:
+
+- Application code to remain cloud-agnostic and polyglot.
+- Local development to work without cloud dependencies.
+- Operations to use native cloud storage in production rather than self-hosted object stores.
+
+The architectural choice is how Red Dog services should access object storage, and whether we standardise on cloud-native storage, self-hosted (e.g. MinIO), or a mixture.
 
 ## Decision
 
-**Use cloud-native blob storage for production, ephemeral local storage for development.**
+1. **Use Dapr output bindings as the abstraction for all application-level object storage.**
 
-**Local Development:**
-- Dapr `bindings.localstorage` component
-- Kubernetes emptyDir volume (ephemeral, pod-scoped)
-- `dapr.io/volume-mounts-rw` annotation + `securityContext.fsGroup: 65532`
+   - Application code must interact with object storage **only** via Dapr bindings, not via cloud SDKs or raw HTTP APIs.
+   - Each logical use case gets a stable binding name (e.g. `receipt-storage` for receipt PDFs).
 
-**Production (Cloud-Specific):**
-- Azure deployments: `bindings.azure.blobstorage`
-- AWS deployments: `bindings.aws.s3`
-- GCP deployments: `bindings.gcp.bucket`
+2. **Use ephemeral local storage for development and cloud-native blob storage in higher environments.**
 
-**Rationale:**
-- Cloud blob storage offers better features (lifecycle management, CDN, geo-replication) than self-hosted alternatives
-- Object storage less critical than messaging (ADR-0007's RabbitMQ decision) - acceptable to use cloud-native
-- Dapr binding abstraction means application code identical across clouds
-- Operational simplicity: No need to manage MinIO StatefulSets, backups, scaling
+   - **Local development:**
+     - Dapr `localstorage` binding backed by an ephemeral filesystem path (e.g. Kubernetes `emptyDir` or local directory).
+     - Suitable for demos and functional testing; no durability guarantees.
+   - **Production / non-prod cloud environments:**
+     - Azure: binding configured against Azure Blob Storage.
+     - AWS: binding configured against S3.
+     - GCP: binding configured against Cloud Storage.
+     - Component types and metadata follow Dapr’s official bindings for each provider.
+
+3. **Keep the binding contract stable across environments.**
+
+   - The binding **name**, supported operations (e.g. `create`, optional `get`/`delete`), and basic metadata contract (object key, content type, optional path/prefix) are consistent.
+   - Environment-specific details (connection strings, buckets, containers, regions) are handled in Dapr component configuration and secrets, not in application code.
 
 ## Consequences
 
 ### Positive
-- **Simpler Operations:** No self-hosted object storage to manage (MinIO StatefulSets, backups)
-- **Better Features:** Cloud blob storage lifecycle policies, CDN integration, geo-replication
-- **Cost Efficiency:** Pay-per-use pricing, no compute overhead for storage clusters
-- **High Availability:** Cloud storage SLAs (99.9%+) without manual HA configuration
+
+- **Cloud-agnostic application code:** All services call the same Dapr binding name and operations regardless of cloud provider.
+- **Operationally simple in production:** Use fully managed blob storage services; no MinIO or other self-hosted object storage to deploy, scale, or back up.
+- **Feature-rich storage:** Can use provider features such as lifecycle policies, encryption-at-rest, versioning, and CDN integration where needed.
+- **Local developer experience:** Local storage works with Docker / Kubernetes using simple ephemeral volumes, no cloud accounts required.
 
 ### Negative
-- **Platform-Specific Components:** Different Dapr binding components per cloud (not fully cloud-agnostic)
-- **Testing Gap:** Local emptyDir ephemeral storage differs from cloud blob persistence
-- **Migration Complexity:** Moving between clouds requires Dapr component updates + data migration
+
+- **Data-layer portability:** Moving between cloud providers still requires data migration between blob stores; changing only Dapr components is not enough.
+- **Behaviour differences:** Local ephemeral storage has weaker durability and consistency characteristics than production blob storage; some bugs may only surface in non-local environments.
+- **Provider-specific configuration:** Dapr component YAML must be maintained per cloud (different metadata fields, auth mechanisms).
 
 ### Mitigations
-- Dapr binding API abstraction keeps application code portable
-- For multi-cloud validation, consider MinIO as staging environment (not production)
-- Document component configuration differences in Helm values
 
-## Alternatives Considered
+- Treat application code as portable, and accept that **data** migration between providers is a deliberate, manual operation.
+- Use at least one non-local environment wired to real blob storage for integration and performance testing.
+- Document component configuration patterns and binding contracts centrally (see associated Knowledge Item).
 
-**MinIO (Self-Hosted S3-Compatible Storage):**
-- Rejected: Adds operational complexity (StatefulSets, persistence, backups) for minimal portability gain
-- Alternative use case: Staging/testing environment for S3 API validation (not production)
+## Implementation Notes (High-Level)
 
-## Implementation
+- **Binding naming:**
+  - `receipt-storage` for receipt PDFs and related artifacts.
+  - Additional bindings for other document domains must follow the same pattern and be documented before use.
 
-**Local Development (emptyDir + localstorage):**
-```yaml
-# Pod annotation
-dapr.io/volume-mounts-rw: "receipts:/tmp/receipts"
+- **Local development pattern (illustrative only):**
+  - Dapr `localstorage` binding with `rootPath` mapped to a writable path inside the app container.
+  - In Kubernetes, use an `emptyDir` (or equivalent) and Dapr’s volume-mount annotation / container volume mounts to provide that path.
+  - Security context (e.g. `fsGroup`) must ensure the Dapr sidecar and app container can both write to the path.
 
-# Pod securityContext
-securityContext:
-  fsGroup: 65532  # Match Dapr UID for write permissions
+- **Cloud environments pattern (illustrative only):**
+  - Each environment defines a Dapr binding component named `receipt-storage` pointing at the appropriate blob storage backend.
+  - Provider-specific details (account, bucket/container name, region, credentials) are configured via metadata and secret references in the component.
+  - CI/CD or Helm values control which component variant is deployed in each environment.
 
-# Dapr component
-type: bindings.localstorage
-metadata:
-  - name: rootPath
-    value: /tmp/receipts
-```
-
-**Production (Cloud Blob Storage):**
-```yaml
-# Azure
-type: bindings.azure.blobstorage
-metadata:
-  - name: storageAccount
-    value: reddog-storage
-  - name: container
-    value: receipts
-
-# AWS
-type: bindings.aws.s3
-metadata:
-  - name: bucket
-    value: reddog-receipts
-  - name: region
-    value: us-west-2
-
-# GCP
-type: bindings.gcp.bucket
-metadata:
-  - name: bucket
-    value: reddog-receipts
-```
+Detailed binding contracts, example component YAML, and environment mappings are maintained in the associated Knowledge Item.
 
 ## References
 
-- ADR-0002: Cloud-Agnostic Configuration via Dapr (Dapr abstraction principle)
-- ADR-0007: Cloud-Agnostic Deployment Strategy (infrastructure containers - does NOT cover object storage)
-- docs/research/dapr-volume-mounts-configuration.md: Volume mount implementation research
+- `docs/adr/adr-0002-cloud-agnostic-configuration-via-dapr.md` (Dapr abstraction principle)
+- `docs/adr/adr-0007-cloud-agnostic-deployment-strategy.md` (infrastructure container and cloud portability rationale)
+- `knowledge/dapr-object-storage-bindings-ki.md` (binding contract and implementation patterns)
+- `docs/research/dapr-volume-mounts-configuration.md` (volume-mount implementation details for local storage)

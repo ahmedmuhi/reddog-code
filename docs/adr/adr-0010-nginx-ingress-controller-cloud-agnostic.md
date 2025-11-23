@@ -13,189 +13,213 @@ superseded_by: ""
 
 ## Status
 
-**Implemented** (as of 2025-11-23)
+**Implemented**
 
-## Implementation Status
+This ADR records the architectural decision to use the Nginx Ingress Controller as the
+standard HTTP/HTTPS ingress implementation for Red Dog across all Kubernetes-based
+environments.
 
-**Canonical Deployment:**
-- Helm wrapper chart: `charts/external/nginx-ingress/` (ingress-nginx 4.14.0)
-- Base configuration: `charts/external/nginx-ingress/values-base.yaml`
-- Environment-specific values: `values-azure.yaml`, `values-aws.yaml`, `values-gcp.yaml`
-- Red Dog ingress template: `charts/reddog/templates/ingress.yaml`
-- Local values example: `values/values-local.yaml` (ingress configuration)
+Implementation details (exact Helm values, install commands, and troubleshooting) are
+tracked in:
 
-**Dependencies:**
-- **Depends On:** ADR-0009 (Helm multi-environment deployment)
-- **Supports:** ADR-0008 (kind local development with localhost:80 access)
-- **Implements:** Cloud-agnostic HTTP routing per ADR-0007
+- `docs/guides/nginx-ingress-setup.md`
+- `knowledge/ki-deploy-helm-multi-environment-001.md`
+- relevant implementation plans under `plan/`
+
+As of 2025-11-23:
+
+- Nginx is deployed via a Helm wrapper chart under `charts/external/nginx-ingress/`.
+- Red Dog application ingress is defined once in
+  `charts/reddog/templates/ingress.yaml` and configured via values files.
+- Local development uses `values/values-local.yaml`; cloud deployments use
+  `values-base.yaml` plus environment-specific values under
+  `charts/external/nginx-ingress/values-{azure,aws,gcp}.yaml`.
+
+This ADR does not track day-to-day configuration changes or upgrade history.
 
 ## Context
 
-Red Dog Coffee requires external HTTP/HTTPS access to microservices across four environments: local (kind), Azure AKS, AWS EKS, and GCP GKE. Kubernetes provides the Ingress API for defining HTTP routing rules, but requires an Ingress Controller implementation.
+Red Dog services must be exposed over HTTP/HTTPS across multiple environments:
 
-**Key Requirements:**
-- **Cloud-Agnostic**: Same Ingress manifests work across all environments (ADR-0007)
-- **Path-Based Routing**: Route by URL path (`/` → UI, `/api/orders` → OrderService)
-- **Cost Efficiency**: Single load balancer for all services vs. one per service (75-80% savings)
-- **Teaching Focus**: Students learn portable Kubernetes patterns
+- Local: kind
+- Cloud: Azure AKS, AWS EKS, GCP GKE
 
-**Current Implementation:**
-Red Dog uses Helm-based deployment (ADR-0009) with:
-- Nginx wrapper chart: `charts/external/nginx-ingress/` (ingress-nginx 4.14.0)
-- Application ingress template: `charts/reddog/templates/ingress.yaml`
-- Environment values: `values-base.yaml` + cloud-specific overrides
-- All services accessible via single external endpoint
+Requirements:
 
-**Ingress Flow:**
-```
-User → Cloud Load Balancer → Nginx Controller Pod → Backend Services
-      (auto-provisioned)     (reads Ingress rules)  (order, ui, etc.)
-```
+- **R-001: Cloud-agnostic routing**  
+  One ingress definition per environment, not per cloud vendor. Same Ingress template
+  should work across clusters (ADR-0007, ADR-0009).
 
-**Alternatives Evaluated:**
-- **Cloud-native controllers** (Azure AGIC, AWS ALB): Rejected - breaks multi-cloud portability
-- **LoadBalancer per service**: Rejected - 5× cost, no centralized routing
-- **Traefik/HAProxy**: Rejected - different config syntax, lower adoption (18%/12% vs Nginx 64%)
+- **R-002: Path-based routing**  
+  A single external endpoint must route to multiple services by URL path
+  (e.g. `/` → UI, `/api/orders` → OrderService).
+
+- **R-003: Cost efficiency**  
+  Use a single load balancer per environment, not one per service.
+
+- **R-004: Teaching value**  
+  The repo should demonstrate portable Kubernetes patterns rather than
+  cloud-specific ingress controllers.
+
+Kubernetes exposes HTTP routing through the Ingress API, but requires an Ingress
+Controller to implement that API and provision underlying load balancers.
+
+We needed a controller that:
+
+- Works consistently across kind, AKS, EKS, and GKE.
+- Uses the standard `networking.k8s.io/v1` Ingress API.
+- Does not tie the sample to a single cloud provider’s PaaS ingress solution.
 
 ## Decision
 
-**Use Nginx Ingress Controller as the standard ingress implementation across all Red Dog environments.**
+**Adopt Nginx Ingress Controller as the standard ingress implementation for Red Dog
+across all Kubernetes-based environments.**
 
-**Core Implementation:**
-- Deploy via Helm wrapper chart: `charts/external/nginx-ingress/` (wraps upstream `ingress-nginx` 4.14.0 with Red Dog defaults)
-- Environment-specific configuration via values files (ADR-0009 pattern)
-- Identical Ingress resources across environments (defined in `charts/reddog/templates/ingress.yaml`)
-- Cloud load balancers auto-provisioned via `type: LoadBalancer` Service
+### Scope
 
-**Canonical Files:**
-- `charts/external/nginx-ingress/Chart.yaml` - Helm chart definition
-- `charts/external/nginx-ingress/values-base.yaml` - Common settings (resources, metrics, HA)
-- `charts/external/nginx-ingress/values-{azure,aws,gcp}.yaml` - Cloud-specific annotations
-- `charts/reddog/templates/ingress.yaml` - Red Dog application ingress template
-- `values/values-local.yaml` - Local ingress configuration example
+Within this decision:
 
-**Deployment:**
-See [Nginx Ingress Setup Guide](../guides/nginx-ingress-setup.md) for detailed installation instructions.
+- The **Ingress Controller** is Nginx, deployed as pods in the cluster.
+- External HTTP/HTTPS traffic terminates at Nginx and is routed to Red Dog services via
+  Kubernetes Services.
+- A single Red Dog Ingress resource is rendered from
+  `charts/reddog/templates/ingress.yaml`, configured by environment-specific values.
 
-**Example Ingress Configuration (from values file):**
-```yaml
-ingress:
-  enabled: true
-  className: nginx
-  hosts:
-    - host: localhost  # Or cloud-specific hostname
-      paths:
-        - path: /
-          service: ui
-          port: 80
-        - path: /api/orders
-          service: orderservice
-          port: 80
-```
+Outside this decision:
 
-**Rationale:**
-- **Cloud-Agnostic**: Same Ingress manifests work on kind, AKS, EKS, GKE
-- **Cost-Effective**: Single load balancer vs. one per service (75-80% cost reduction)
-- **Industry Standard**: 64% adoption (CNCF 2024), extensive documentation
-- **Teaching Value**: Students learn portable Kubernetes Ingress API
-- **Feature-Rich**: SSL/TLS, rate limiting, authentication, URL rewriting via annotations
-- **Production-Ready**: Battle-tested, active community support
+- Non-HTTP/HTTPS protocols (e.g. gRPC without HTTP/1.1, TCP-only services) may still
+  use dedicated `Service` objects with `type: LoadBalancer` or other mechanisms.
+- Detailed operational practices (certificate management, dashboard selection,
+  observability stack) are handled in guides and implementation plans.
+
+### Canonical contracts and files
+
+- **Controller deployment:**
+  - `charts/external/nginx-ingress/Chart.yaml`
+  - `charts/external/nginx-ingress/values-base.yaml`
+  - `charts/external/nginx-ingress/values-{azure,aws,gcp}.yaml`
+
+- **Application ingress:**
+  - Template: `charts/reddog/templates/ingress.yaml`
+  - Local example: `values/values-local.yaml` (`ingress` section)
+
+- **Values contract (simplified):**
+  - `ingress.enabled` (bool)
+  - `ingress.className` (e.g. `nginx`)
+  - `ingress.tls.enabled` (bool)
+  - `ingress.annotations` (map)
+  - `ingress.hosts[*].host`
+  - `ingress.hosts[*].paths[*].{path,pathType,service,port}`
+
+To expose a new service externally, environment-specific values files are updated;
+the ingress template is not modified per service.
 
 ## Consequences
 
 ### Positive
-- **Unified Configuration**: Same Ingress manifests deploy across all environments
-- **Cost Savings**: Single load balancer vs. one per service ($20/month vs. $100/month per cloud)
-- **Kubernetes-Native**: Standard Ingress API, not cloud-proprietary solutions
-- **Local Development**: kind supports Nginx via port mappings (localhost:80)
-- **SSL/TLS Support**: cert-manager integration for automatic HTTPS certificates
-- **Feature-Rich**: Path/host-based routing, rate limiting, authentication, CORS, URL rewriting
-- **Observability**: Prometheus metrics, access logs, Grafana dashboards
-- **Teaching Value**: Portable patterns, transferable to any Kubernetes environment
+
+- **POS-001: Cloud-agnostic HTTP entrypoint**  
+  The same ingress template and values pattern apply to kind, AKS, EKS, and GKE
+  (ADR-0007, ADR-0009).
+
+- **POS-002: Single load balancer per environment**  
+  Nginx fronts multiple services via path-based routing, reducing cost and simplifying
+  external DNS.
+
+- **POS-003: Standard Kubernetes Ingress API**  
+  Students and contributors learn the portable Ingress API rather than cloud-specific
+  controllers and CRDs.
+
+- **POS-004: Clear separation of concerns**  
+  External traffic (user → Nginx → service) is handled by this ADR; internal
+  service-to-service traffic uses Dapr (ADR-0002).
+
+- **POS-005: Extensibility**  
+  Nginx supports TLS termination, rate limiting, authentication, and URL rewriting
+  via well-documented annotations.
 
 ### Negative
-- **Resource Overhead**: Controller pods consume ~128Mi RAM per replica (mitigated via resource limits in values-base.yaml)
-- **HTTP/HTTPS Only**: Non-HTTP protocols require separate LoadBalancer services
-- **Cloud Features Lost**: Azure WAF, AWS Shield not available (acceptable trade-off for portability)
-- **Port Conflicts**: Local development requires ports 80/443 available (documented in setup guide)
-- **Upgrade Maintenance**: Controller upgraded separately from applications (standard Helm workflow)
 
-## Relationship to Other ADRs
+- **NEG-001: Controller overhead**  
+  Nginx pods consume additional CPU/memory and must be managed as part of the
+  platform baseline.
 
-| ADR | Relationship |
-|-----|--------------|
-| **ADR-0007** | Ingress controller deployed as containers, not PaaS (cloud-agnostic) |
-| **ADR-0008** | Nginx enables localhost:80 access for kind local development |
-| **ADR-0009** | Deployed via Helm with environment-specific values |
-| **ADR-0002** | Ingress routes external traffic; Dapr handles internal service calls |
+- **NEG-002: HTTP/HTTPS scope only**  
+  Non-HTTP protocols still require separate `LoadBalancer` Services or other
+  mechanisms.
 
-**Traffic Flow:**
-- **External:** User → Nginx Ingress → Application Services
-- **Internal:** Service A → Dapr sidecar → Service B (no Ingress involved)
+- **NEG-003: Loss of cloud-specific features**  
+  Cloud-native WAF or advanced load-balancer features (e.g. Azure WAF, AWS Shield)
+  are not used directly; they must be added separately if required.
+
+- **NEG-004: Operational upkeep**  
+  Nginx upgrades (chart and image) must be coordinated and tested separately from
+  application releases.
 
 ## Alternatives Considered
 
-### Cloud-Native Controllers (Azure AGIC, AWS ALB, GCP Ingress)
-**Rejected:** Breaks multi-cloud portability (ADR-0007). Each cloud requires different configurations and annotations, preventing "write once, deploy anywhere" goal. Students would learn cloud-specific patterns instead of portable Kubernetes skills.
+### Cloud-native ingress controllers (AGIC, AWS ALB, GCP Ingress)
 
-### LoadBalancer Service Per Service
-**Rejected:** 5× cost ($100/month vs $20/month per cloud). No centralized routing, SSL termination, or path-based rules. Requires separate external IP per service.
+- **ALT-001: Description**  
+  Use Azure Application Gateway Ingress Controller on AKS, AWS ALB ingress controller
+  on EKS, and GCP’s native ingress solution on GKE.
 
-### Traefik Ingress Controller
-**Rejected:** Lower adoption (18% vs Nginx 64%), different config syntax (CRDs vs standard Ingress), less teaching materials.
+- **ALT-002: Rejection reason**  
+  Ties each environment to a different controller, configuration model, and set of
+  annotations. Conflicts with the multi-cloud teaching goal and complicates reuse of
+  manifests across providers (ADR-0007).
 
-### Service Mesh (Istio/Linkerd) for Ingress
-**Rejected:** Complexity overkill for HTTP routing. Service mesh adds ~1GB RAM overhead, requires mesh concepts training. Nginx sufficient for ingress needs.
+### LoadBalancer per service
 
-## Guidance for Future Plans
+- **ALT-003: Description**  
+  Expose each service with its own `Service` of `type: LoadBalancer`.
 
-### Adding New Services
-When adding services that require external access:
-1. Add path configuration to ingress section in appropriate `values-{env}.yaml`
-2. Ingress template (`charts/reddog/templates/ingress.yaml`) automatically generates routes
-3. No Nginx-specific configuration needed - use standard Kubernetes Ingress API
+- **ALT-004: Rejection reason**  
+  Increases cost, external IP sprawl, and management overhead. Provides no centralized
+  routing or TLS termination pattern.
 
-### Enabling HTTPS/TLS
-For production environments:
-1. Deploy cert-manager (see `values/cert-manager/`)
-2. Add `cert-manager.io/cluster-issuer` annotation to ingress
-3. Enable TLS in values: `ingress.tls.enabled: true`
-4. Certificate automatically provisioned and renewed
+### Alternative ingress controllers (Traefik, HAProxy, etc.)
 
-### Environment-Specific Customization
-Modify cloud-specific values files for:
-- **Azure**: DNS labels, load balancer SKU
-- **AWS**: NLB settings, cross-zone balancing
-- **GCP**: External load balancer config
-- Base settings in `values-base.yaml` apply to all environments
+- **ALT-005: Description**  
+  Use another open-source ingress controller with CRD-based configuration.
 
-### Monitoring and Observability
-- Metrics enabled by default (`controller.metrics.enabled: true`)
-- Access logs via `kubectl logs` in `ingress-nginx` namespace
-- Import Grafana dashboard ID 9614 for visualizations
+- **ALT-006: Rejection reason**  
+  Comparable capabilities, but Nginx has higher adoption and more teaching material.
+  Choosing Nginx reduces surprise for readers and aligns with common industry defaults.
 
-**Detailed Setup Instructions:** See [Nginx Ingress Setup Guide](../guides/nginx-ingress-setup.md)
+### Service mesh as primary ingress (Istio/Linkerd)
 
-## References
+- **ALT-007: Description**  
+  Use a service mesh gateway for all external traffic and intra-cluster routing.
 
-### Related ADRs
-- [ADR-0007: Cloud-Agnostic Deployment Strategy](adr-0007-cloud-agnostic-deployment-strategy.md)
-- [ADR-0008: kind Local Development Environment](adr-0008-kind-local-development-environment.md)
-- [ADR-0009: Helm Multi-Environment Deployment](adr-0009-helm-multi-environment-deployment.md)
+- **ALT-008: Rejection reason**  
+  Adds significant complexity and resource overhead for a learning-focused sample.
+  For Red Dog, a simple Ingress controller is sufficient at the edge; service mesh can
+  be an optional future layer, not the baseline.
 
-### Knowledge Items
-- [KI: Red Dog Architecture](../../knowledge/ki-red-dog-architecture-001.md) - Service boundaries and communication patterns
-- [KI: Helm Multi-Environment Deployment](../../knowledge/ki-deploy-helm-multi-environment-001.md) - Values-based configuration
+## Implementation Notes
 
-### Implementation Files
-- `charts/external/nginx-ingress/Chart.yaml` - Helm chart wrapper
-- `charts/external/nginx-ingress/values-base.yaml` - Common configuration
-- `charts/external/nginx-ingress/values-{azure,aws,gcp}.yaml` - Cloud-specific settings
-- `charts/reddog/templates/ingress.yaml` - Application ingress template
-- `values/values-local.yaml` - Local development ingress configuration
+These notes connect this decision to other work; operational details are in guides and
+plans.
 
-### External Documentation
-- [Nginx Ingress Official Docs](https://kubernetes.github.io/ingress-nginx/)
-- [kind Ingress Guide](https://kind.sigs.k8s.io/docs/user/ingress/)
-- [Kubernetes Ingress Concepts](https://kubernetes.io/docs/concepts/services-networking/ingress/)
-- [Setup Guide](../guides/nginx-ingress-setup.md) - Detailed installation and troubleshooting
+- **IMP-001: Relationship to other ADRs**
+  - ADR-0007: Nginx is deployed as containers inside the cluster to preserve
+    cloud-agnostic behavior.
+  - ADR-0008: Local kind clusters use Nginx to expose the app on `localhost`.
+  - ADR-0009: Nginx is installed and configured via Helm with environment-specific
+    values files.
+  - ADR-0002: Ingress is for external traffic only; internal calls use Dapr sidecars.
+
+- **IMP-002: Where to change routing**
+  - To add or change external paths/hosts, update the `ingress` section in the
+    relevant values file (local or cloud).
+  - Do not modify `charts/reddog/templates/ingress.yaml` for one-off routes unless
+    the template contract itself needs to change.
+
+- **IMP-003: Further details**
+  - Installation commands, environment-specific flags, and troubleshooting steps are
+    documented in `docs/guides/nginx-ingress-setup.md`.
+  - Multi-environment Helm deployment patterns are covered in
+    `knowledge/ki-deploy-helm-multi-environment-001.md`.
+
+---
