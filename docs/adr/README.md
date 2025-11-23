@@ -17,6 +17,7 @@
 - ✅ .NET 10 LTS - ALL 12 services upgraded (ADR-0001)
 - ✅ Dapr Secret Store - secrets.yaml component, GetSecretAsync() in use (ADR-0002)
 - ✅ Helm Charts - charts/reddog/ with templates for all services (ADR-0009)
+- ✅ Nginx Ingress - Helm wrapper chart with multi-cloud support (ADR-0010)
 - ✅ UI Stack - Vue 3.5 + Vite 7.2 + ESLint 9 + TypeScript + Day.js + Chart.js 4
 
 **In Progress:**
@@ -27,6 +28,7 @@
 - ⚪ kind local development environment (ADR-0008)
 - ⚪ Dapr Configuration API for business rules (ADR-0004)
 - ⚪ Health probe migration to /healthz, /livez, /readyz (ADR-0005)
+- ⚪ Nginx Ingress full local validation
 
 ---
 
@@ -57,7 +59,7 @@
 | [ADR-0007](adr-0007-cloud-agnostic-deployment-strategy.md) | Cloud-Agnostic via Containerized Infrastructure | 🔵 Accepted |
 | [ADR-0008](adr-0008-kind-local-development-environment.md) | kind for Local Development | ⚪ Planned |
 | [ADR-0009](adr-0009-helm-multi-environment-deployment.md) | Helm Multi-Environment Deployment | 🟡 In Progress |
-| [ADR-0010](adr-0010-nginx-ingress-controller-cloud-agnostic.md) | Nginx Ingress Controller | ⚪ Planned |
+| [ADR-0010](adr-0010-nginx-ingress-controller-cloud-agnostic.md) | Nginx Ingress Controller | 🟢 Implemented |
 
 ### Operational Standards
 
