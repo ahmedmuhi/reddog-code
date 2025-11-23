@@ -15,7 +15,7 @@ This document provides a consolidated summary of all Architecture Decision Recor
 | [0007](#adr-0007-cloud-agnostic-deployment-strategy) | Cloud-Agnostic Deployment Strategy | Accepted | 2025-11-08 |
 | [0008](#adr-0008-kind-local-development-environment) | kind Local Development Environment | Accepted | 2025-11-08 |
 | [0009](#adr-0009-helm-based-multi-environment-deployment-strategy) | Helm-Based Multi-Environment Deployment Strategy | Accepted | 2025-11-09 |
-| [0010](#adr-0010-nginx-ingress-controller-for-cloud-agnostic-traffic-routing) | Nginx Ingress Controller for Cloud-Agnostic Traffic Routing | Accepted | 2025-11-09 |
+| [0010](#adr-0010-nginx-ingress-controller-for-cloud-agnostic-traffic-routing) | Nginx Ingress Controller for Cloud-Agnostic Traffic Routing | Implemented | 2025-11-09 |
 | [0011](#adr-0011-opentelemetry-observability-standard-logs-traces-metrics) | OpenTelemetry Observability Standard | Accepted | 2025-11-09 |
 | [0012](#adr-0012-dapr-bindings-for-object-storage) | Dapr Bindings for Object Storage | Implemented | 2025-11-11 |
 | [0013](#adr-0013-secret-management-strategy) | Secret Management Strategy | Accepted | 2025-11-14 |
@@ -203,20 +203,25 @@ Use **Helm Charts** as the single source of truth for deployment manifests. Envi
 
 ## ADR-0010: Nginx Ingress Controller for Cloud-Agnostic Traffic Routing
 
-**Status:** Accepted  
-**Date:** 2025-11-09
+**Status:** Implemented  
+**Date:** 2025-11-09  
+**Last Updated:** 2025-11-23
 
 ### Decision
-Use **Nginx Ingress Controller** for all environments (Local, Azure, AWS, GCP) instead of cloud-specific load balancers (AGIC, ALB). This ensures routing rules and ingress manifests are identical across all platforms.
+Use **Nginx Ingress Controller** deployed via Helm wrapper chart across all environments (Local kind, Azure AKS, AWS EKS, GCP GKE) for cloud-agnostic HTTP/HTTPS routing.
 
 ### Key Technical Details
-- **Controller:** `ingress-nginx`.
-- **Resource:** Standard Kubernetes `Ingress` resource.
-- **Routing:** Path-based routing (`/`, `/api/orders`, `/queue`).
+- **Chart:** `charts/external/nginx-ingress/` (wraps ingress-nginx 4.14.0)
+- **Configuration:** Base values + environment-specific overrides (Azure/AWS/GCP)
+- **Application:** `charts/reddog/templates/ingress.yaml` - Red Dog ingress template
+- **Routing:** Path-based routing (`/`, `/api/orders`, `/api/makeline`, `/api/accounting`)
 
 ### Implications
-- **Positive:** Identical configuration everywhere; lower cost (one LoadBalancer IP vs. many); rich feature set (rewrites, auth).
-- **Negative:** Misses out on some cloud-native features (Azure WAF, AWS Shield integration) unless layered in front.
+- **Positive:** Unified config across clouds; 75-80% cost savings (single LB); Kubernetes-native; SSL/TLS support; rich features (rate limiting, auth, CORS)
+- **Negative:** HTTP/HTTPS only; misses cloud-native WAF/Shield (acceptable for portability); ~128Mi RAM overhead per replica
+
+### Implementation Files
+See `charts/external/nginx-ingress/` and [Setup Guide](../guides/nginx-ingress-setup.md)
 
 ---
 
