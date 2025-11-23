@@ -1,5 +1,5 @@
 ---
-id: KI_REDDOG_ARCHITECTURE_001
+id: KI-REDDOG-ARCHITECTURE-001
 title: Red Dog Target Architecture and Service Boundaries
 tags:
   - architecture

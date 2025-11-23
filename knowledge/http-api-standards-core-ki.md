@@ -1,5 +1,5 @@
 ---
-id: KI_HTTP_API_STANDARDS_CORE_001
+id: KI-HTTP-API-STANDARDS-CORE-001
 title: Core HTTP API Standards for Red Dog Services
 tags:
   - http

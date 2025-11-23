@@ -1,5 +1,5 @@
 ---
-id: KI_HTTP_API_PLATFORM_INTEGRATION_001
+id: KI-HTTP-API-PLATFORM-INTEGRATION-001
 title: HTTP API Platform Integration (CORS, Edge Security, Rate Limiting)
 tags:
   - http

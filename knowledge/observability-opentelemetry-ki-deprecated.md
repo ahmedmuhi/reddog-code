@@ -1,5 +1,5 @@
 ---
-id: KI_OBSERVABILITY_OPENTELEMETRY_001
+id: KI-OBSERVABILITY-OPENTELEMETRY-001
 title: Observability Standards (OpenTelemetry for Red Dog Services)
 tags:
   - observability
