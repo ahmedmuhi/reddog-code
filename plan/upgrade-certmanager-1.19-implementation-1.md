@@ -1,8 +1,8 @@
 ---
 goal: "Deploy cert-manager v1.19.1 for TLS Certificate Management"
-version: 2.0
+version: 2.1
 date_created: 2025-11-09
-last_updated: 2025-11-16
+last_updated: 2025-11-24
 owner: "Red Dog Modernization Team"
 status: 'Planned'
 tags: [infrastructure, certmanager, tls, phase-3]
@@ -10,7 +10,9 @@ tags: [infrastructure, certmanager, tls, phase-3]
 
 # cert-manager v1.19.1 Deployment
 
-![Status: Deferred](https://img.shields.io/badge/status-Deferred-yellow)
+![Status: Planned](https://img.shields.io/badge/status-Planned-blue)
+
+**⚠️ NOT YET DEPLOYED** - This plan is ready for execution but requires cloud cluster access (AKS/EKS/GKE) to verify and complete. Local/kind environments intentionally do not use cert-manager.
 
 **Cloud-only scope (Phase 3 deployment)** – Production and staging clusters get cert-manager; **local/kind environments stay without cert-manager** (developers continue using HTTP locally).
 
