@@ -52,6 +52,8 @@ project.fragment.lock.json
 artifacts/*
 !artifacts/image-manifests/
 !artifacts/image-manifests/**
+!artifacts/cert-manager/
+!artifacts/cert-manager/**
 
 *_i.c
 *_p.c

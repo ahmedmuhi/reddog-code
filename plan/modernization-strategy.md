@@ -260,7 +260,7 @@ These components satisfy Phase 1A (.NET 10 upgrade) requirements. The upgrades b
 
 - ✅ Dapr 1.16.2 operational on all clusters (AKS, EKS, GKE, Container Apps)
 - ✅ KEDA 2.18.1 installed and healthy
-- ✅ cert-manager 1.19 issuing Let's Encrypt certificates (plan updated 2025-11-16; scoped to cloud clusters only)
+- ⚠️ cert-manager 1.19 - Planned (not deployed; requires cloud cluster access for verification; plan ready at `plan/upgrade-certmanager-1.19-implementation-1.md`)
 - ✅ State stores migrated to cloud-native databases (no data loss)
 - ✅ Object storage using cloud-agnostic Dapr bindings
 - ✅ All infrastructure containers upgraded to latest stable versions
