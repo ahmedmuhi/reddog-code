@@ -29,7 +29,7 @@ builder.Services.AddOptions<CorsOptions>()
     .ValidateOnStart();
 
 // Configure OpenTelemetry (ADR-0011)
-var serviceName = "MakeLineService";
+var serviceName = "make-line-service";
 var otlpEndpoint = Environment.GetEnvironmentVariable("OTEL_EXPORTER_OTLP_ENDPOINT") ?? "http://localhost:4318";
 
 builder.Services.AddOpenTelemetry()

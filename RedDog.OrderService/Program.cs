@@ -13,7 +13,7 @@ ValidateEnvironmentVariables();
 var builder = WebApplication.CreateBuilder(args);
 
 // Configure OpenTelemetry (ADR-0011)
-var serviceName = "OrderService";
+var serviceName = "order-service";
 var otlpEndpoint = Environment.GetEnvironmentVariable("OTEL_EXPORTER_OTLP_ENDPOINT") ?? "http://localhost:4318";
 
 builder.Services.AddOpenTelemetry()

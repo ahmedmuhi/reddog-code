@@ -14,7 +14,7 @@ var daprHttpPort = Environment.GetEnvironmentVariable("DAPR_HTTP_PORT") ?? "3500
 
 // ADR-0011: OpenTelemetry observability with OTLP exporter
 var otlpEndpoint = Environment.GetEnvironmentVariable("OTEL_EXPORTER_OTLP_ENDPOINT") ?? "http://localhost:4317";
-var serviceName = "RedDog.ReceiptGenerationService";
+var serviceName = "receipt-generation-service";
 var serviceVersion = "1.0.0";
 
 builder.Services.AddOpenTelemetry()

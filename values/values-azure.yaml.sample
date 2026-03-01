@@ -57,15 +57,15 @@ ingress:
       paths:
         - path: /api/orders(/|$)(.*)
           pathType: ImplementationSpecific
-          service: orderservice
+          service: order-service
           port: 80
         - path: /api/makeline(/|$)(.*)
           pathType: ImplementationSpecific
-          service: makelineservice
+          service: make-line-service
           port: 80
         - path: /api/accounting(/|$)(.*)
           pathType: ImplementationSpecific
-          service: accountingservice
+          service: accounting-service
           port: 80
         - path: /()(.*)
           pathType: ImplementationSpecific

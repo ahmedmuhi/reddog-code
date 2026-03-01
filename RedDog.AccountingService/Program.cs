@@ -11,7 +11,7 @@ using Scalar.AspNetCore;
 var builder = WebApplication.CreateBuilder(args);
 
 // Service name for OpenTelemetry (ADR-0011)
-const string serviceName = "accountingservice";
+const string serviceName = "accounting-service";
 const string serviceVersion = "1.0.0";
 
 // Get connection string from configuration (ADR-0006)

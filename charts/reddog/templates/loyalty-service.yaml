@@ -3,7 +3,7 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: loyaltyservice
+  name: loyalty-service
   namespace: {{ .Values.global.namespace }}
   labels:
     app: loyalty-service

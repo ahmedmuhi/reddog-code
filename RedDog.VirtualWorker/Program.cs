@@ -25,7 +25,7 @@ builder.Services.AddOptions<CorsOptions>()
     .ValidateDataAnnotations()
     .ValidateOnStart();
 
-var serviceName = "VirtualWorker";
+var serviceName = "virtual-worker";
 var otlpEndpoint = Environment.GetEnvironmentVariable("OTEL_EXPORTER_OTLP_ENDPOINT") ?? "http://localhost:4318";
 
 builder.Services.AddOpenTelemetry()

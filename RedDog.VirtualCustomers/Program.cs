@@ -40,7 +40,7 @@ builder.Services.AddOptions<VirtualCustomerOptions>()
     .Validate(opts => opts.MinSecondsToPlaceOrder <= opts.MaxSecondsToPlaceOrder, "MinSecondsToPlaceOrder must be <= MaxSecondsToPlaceOrder")
     .Validate(opts => opts.MinSecondsBetweenOrders <= opts.MaxSecondsBetweenOrders, "MinSecondsBetweenOrders must be <= MaxSecondsBetweenOrders");
 
-var serviceName = "VirtualCustomers";
+var serviceName = "virtual-customers";
 var otlpEndpoint = Environment.GetEnvironmentVariable("OTEL_EXPORTER_OTLP_ENDPOINT") ?? "http://localhost:4318";
 
 builder.Services.AddOpenTelemetry()
