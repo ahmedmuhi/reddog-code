@@ -125,8 +125,6 @@ helm install dapr dapr/dapr \
     --wait \
     --timeout 5m
 print_status "Dapr installed"
-print_warning "Known Issue: Dapr 1.16.x sidecars will show 1/2 Ready due to probe port bug (port 3501 vs 3500)"
-print_warning "This is cosmetic only - services are functional. See docs/known-issues.md for details."
 echo ""
 
 # Verify Dapr installation
@@ -149,10 +147,14 @@ kubectl wait --namespace ingress-nginx \
 print_status "Nginx Ingress Controller ${NGINX_VERSION} installed"
 echo ""
 
-# 4. Deploy infrastructure
-echo "Step 4: Deploying infrastructure (SQL Server, Redis)..."
+# 4. Create application namespace and deploy infrastructure
+echo "Step 4: Creating namespace and deploying infrastructure (SQL Server, Redis)..."
+kubectl create namespace reddog --dry-run=client -o yaml | kubectl apply -f -
+print_status "Namespace 'reddog' ready"
+
 helm install reddog-infra ./charts/infrastructure \
     -f values/values-local.yaml \
+    --namespace reddog \
     --wait \
     --timeout 10m
 print_status "Infrastructure deployed"
@@ -178,6 +180,7 @@ echo ""
 echo "Step 5: Deploying Red Dog application..."
 helm install reddog ./charts/reddog \
     -f values/values-local.yaml \
+    --namespace reddog \
     --wait \
     --timeout 10m
 print_status "Red Dog application deployed"

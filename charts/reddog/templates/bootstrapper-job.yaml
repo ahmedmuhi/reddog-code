@@ -20,9 +20,11 @@ spec:
         dapr.io/enabled: "true"
         dapr.io/app-id: {{ .Values.bootstrapper.dapr.appId | quote }}
         dapr.io/log-level: {{ .Values.services.common.dapr.logLevel | quote }}
-        dapr.io/config: {{ default "reddog.configuration" .Values.dapr.configuration.name | quote }}
+        dapr.io/config: {{ default "reddog.configuration" .Values.dapr.configuration.name }}.no-health-check
         dapr.io/enable-metrics: "true"
         dapr.io/metrics-port: "9090"
+        dapr.io/enable-app-health-check: "false"
+        dapr.io/sidecar-lifecycle-auto-shutdown: "true"
     spec:
       {{- if .Values.services.common.image.pullSecrets }}
       imagePullSecrets:
@@ -40,5 +42,5 @@ spec:
               value: {{ .Values.bootstrapper.dapr.httpPort | quote }}
             - name: DAPR_GRPC_PORT
               value: {{ .Values.bootstrapper.dapr.grpcPort | quote }}
-  backoffLimit: 1
+  backoffLimit: 3
 {{- end }}
