@@ -163,6 +163,7 @@ echo ""
 # Wait for SQL Server to be ready
 echo "Waiting for SQL Server to be ready..."
 kubectl wait --for=condition=ready pod \
+    -n reddog \
     --selector=app=sqlserver \
     --timeout=300s
 print_status "SQL Server is ready"
@@ -171,6 +172,7 @@ echo ""
 # Wait for Redis to be ready
 echo "Waiting for Redis to be ready..."
 kubectl wait --for=condition=ready pod \
+    -n reddog \
     --selector=app=redis \
     --timeout=120s
 print_status "Redis is ready"
@@ -199,17 +201,17 @@ echo "Dapr Status:"
 kubectl get pods -n dapr-system
 echo ""
 echo "Infrastructure Status:"
-kubectl get pods -l app=sqlserver -o wide
-kubectl get pods -l app=redis -o wide
+kubectl get pods -n reddog -l app=sqlserver -o wide
+kubectl get pods -n reddog -l app=redis -o wide
 echo ""
 echo "Application Status:"
-kubectl get pods -l app.kubernetes.io/managed-by=Helm
+kubectl get pods -n reddog
 echo ""
 echo "Services:"
-kubectl get svc
+kubectl get svc -n reddog
 echo ""
 echo "Ingress:"
-kubectl get ingress
+kubectl get ingress -n reddog
 echo ""
 echo "========================================="
 echo "Access Points:"

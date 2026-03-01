@@ -20,11 +20,15 @@ spec:
         dapr.io/enabled: "true"
         dapr.io/app-id: {{ .Values.bootstrapper.dapr.appId | quote }}
         dapr.io/log-level: {{ .Values.services.common.dapr.logLevel | quote }}
-        dapr.io/config: {{ default "reddog.configuration" .Values.dapr.configuration.name }}.no-health-check
+        dapr.io/config: {{ default "reddog.configuration" .Values.dapr.configuration.name | quote }}
         dapr.io/enable-metrics: "true"
         dapr.io/metrics-port: "9090"
         dapr.io/enable-app-health-check: "false"
         dapr.io/sidecar-lifecycle-auto-shutdown: "true"
+        dapr.io/sidecar-cpu-request: {{ .Values.services.common.dapr.resources.requests.cpu | quote }}
+        dapr.io/sidecar-memory-request: {{ .Values.services.common.dapr.resources.requests.memory | quote }}
+        dapr.io/sidecar-cpu-limit: {{ .Values.services.common.dapr.resources.limits.cpu | quote }}
+        dapr.io/sidecar-memory-limit: {{ .Values.services.common.dapr.resources.limits.memory | quote }}
     spec:
       {{- if .Values.services.common.image.pullSecrets }}
       imagePullSecrets:

@@ -20,16 +20,4 @@ spec:
   features:
     - name: AppHealthCheck
       enabled: {{ $health }}
----
-apiVersion: dapr.io/v1alpha1
-kind: Configuration
-metadata:
-  name: {{ $name }}.no-health-check
-  namespace: {{ .Values.global.namespace }}
-spec:
-  tracing:
-    samplingRate: {{ $sampling | quote }}
-  features:
-    - name: AppHealthCheck
-      enabled: false
 {{- end }}
