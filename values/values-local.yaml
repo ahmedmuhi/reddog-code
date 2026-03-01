@@ -80,6 +80,8 @@ ingress:
   # Local development: no TLS
   tls:
     enabled: false
+  # Regex rewrite strips /api/{service} prefix before forwarding to backend.
+  # Capture group $2 holds the remainder path (e.g., /api/makeline/orders/X → /orders/X).
   annotations:
     nginx.ingress.kubernetes.io/use-regex: "true"
     nginx.ingress.kubernetes.io/rewrite-target: /$2
