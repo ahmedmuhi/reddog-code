@@ -36,4 +36,10 @@ public sealed class VirtualCustomerOptions
     /// When true, Dapr calls are skipped (used for local smoke tests).
     /// </summary>
     public bool DisableDaprCalls { get; init; }
+
+    /// <summary>
+    /// Dapr app ID of the OrderService for service invocation.
+    /// </summary>
+    [Required]
+    public string OrderServiceAppId { get; init; } = "orderservice";
 }

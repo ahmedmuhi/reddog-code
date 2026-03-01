@@ -25,7 +25,6 @@ public class VirtualWorkerServiceTests
         var options = Options.Create(new DaprOptions
         {
             StoreId = "TestStore",
-            MakeLineServiceAppId = "makelineservice",
             MinSecondsToCompleteItem = 1,
             MaxSecondsToCompleteItem = 2
         });
@@ -45,7 +44,6 @@ public class VirtualWorkerServiceTests
         var options = Options.Create(new DaprOptions
         {
             StoreId = "TestStore",
-            MakeLineServiceAppId = "makelineservice",
             MinSecondsToCompleteItem = 1,
             MaxSecondsToCompleteItem = 2
         });
@@ -67,7 +65,6 @@ public class VirtualWorkerServiceTests
         services.AddSingleton(Options.Create(new DaprOptions
         {
             StoreId = "TestStore",
-            MakeLineServiceAppId = "makelineservice",
             MinSecondsToCompleteItem = 1,
             MaxSecondsToCompleteItem = 2
         }));

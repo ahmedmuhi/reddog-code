@@ -10,8 +10,6 @@ namespace RedDog.VirtualCustomers;
 
 public sealed class VirtualCustomersWorker : BackgroundService
 {
-    private const string OrderServiceDaprId = "orderservice";
-
     private readonly IHostApplicationLifetime _lifetime;
     private readonly DaprClient _daprClient;
     private readonly ILogger<VirtualCustomersWorker> _logger;
@@ -95,7 +93,7 @@ public sealed class VirtualCustomersWorker : BackgroundService
             {
                 _products = await _daprClient.InvokeMethodAsync<List<Product>>(
                     HttpMethod.Get,
-                    OrderServiceDaprId,
+                    _options.OrderServiceAppId,
                     "product",
                     stoppingToken);
             }
@@ -120,7 +118,7 @@ public sealed class VirtualCustomersWorker : BackgroundService
 
         try
         {
-            await _daprClient.InvokeMethodAsync(OrderServiceDaprId, "order", order, stoppingToken);
+            await _daprClient.InvokeMethodAsync(_options.OrderServiceAppId, "order", order, stoppingToken);
             await Task.Delay(RandomDelay(_options.MinSecondsToPlaceOrder, _options.MaxSecondsToPlaceOrder), stoppingToken);
             _logger.LogInformation("Customer {First} {Last} order submitted", order.FirstName, order.LastName);
         }
