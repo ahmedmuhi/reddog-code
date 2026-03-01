@@ -144,8 +144,9 @@ Dapr state store keys are prefixed with `<appId>||<key>`. Changing app IDs means
 - LoyaltyService: keys prefixed `loyaltyservice||` will not be found under `loyalty-service||`
 
 **Mitigation:**
-- **Local/dev**: Flush Redis and start fresh (development data is disposable).
-- **Cloud/shared**: Create migration script (TASK-006a) to `RENAME` all keys matching `<old-appid>||*` to `<new-appid>||*`. Coordinate with data owners before executing.
+- **Local/dev**: Flush Redis (`redis-cli FLUSHALL`) or simply redeploy — development data is disposable.
+- **Cloud/shared**: Run `scripts/migrate-state-keys.sh` against the target Redis instance. The script scans for keys matching `<old-appid>||*` and renames them to `<new-appid>||*`. Coordinate with data owners before executing.
+- **Verify after migration**: Confirm MakeLineService and LoyaltyService can read their state by checking service logs for state access errors after deployment with new app IDs.
 
 ### 6.2 C# Code Changes
 

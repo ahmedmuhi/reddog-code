@@ -1,0 +1,100 @@
+#!/usr/bin/env bash
+# Migrate Dapr state store keys after app ID rename (no-separator → kebab-case).
+# Dapr prefixes state keys with "<appId>||", so renaming an app ID makes existing
+# keys unreachable unless the prefix is updated.
+#
+# Usage: ./scripts/migrate-state-keys.sh [REDIS_HOST] [REDIS_PORT]
+#   REDIS_HOST  defaults to localhost
+#   REDIS_PORT  defaults to 6379
+
+set -euo pipefail
+
+REDIS_HOST="${1:-localhost}"
+REDIS_PORT="${2:-6379}"
+
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+NC='\033[0m'
+
+print_status()  { echo -e "${GREEN}✓${NC} $1"; }
+print_warning() { echo -e "${YELLOW}⚠${NC} $1"; }
+print_error()   { echo -e "${RED}✗${NC} $1"; }
+
+# App ID mappings for stateful services only (MakeLine and Loyalty use Dapr state stores).
+declare -A MIGRATIONS=(
+  ["makelineservice"]="make-line-service"
+  ["loyaltyservice"]="loyalty-service"
+)
+
+echo "========================================="
+echo "Dapr State Key Migration"
+echo "========================================="
+echo "Redis: ${REDIS_HOST}:${REDIS_PORT}"
+echo ""
+
+if ! command -v redis-cli >/dev/null 2>&1; then
+  print_error "redis-cli is not installed"
+  exit 1
+fi
+
+if ! redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" PING >/dev/null 2>&1; then
+  print_error "Cannot connect to Redis at ${REDIS_HOST}:${REDIS_PORT}"
+  exit 1
+fi
+
+print_status "Connected to Redis"
+echo ""
+
+TOTAL_MIGRATED=0
+
+for OLD_APP_ID in "${!MIGRATIONS[@]}"; do
+  NEW_APP_ID="${MIGRATIONS[$OLD_APP_ID]}"
+  PATTERN="${OLD_APP_ID}||*"
+
+  echo "-----------------------------------------"
+  echo "Migrating: ${OLD_APP_ID} → ${NEW_APP_ID}"
+  echo "Scanning for keys matching: ${PATTERN}"
+
+  KEYS=()
+  CURSOR=0
+  while true; do
+    RESULT=$(redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" SCAN "$CURSOR" MATCH "$PATTERN" COUNT 100)
+    CURSOR=$(echo "$RESULT" | head -1)
+    BATCH=$(echo "$RESULT" | tail -n +2)
+
+    while IFS= read -r KEY; do
+      [[ -z "$KEY" ]] && continue
+      KEYS+=("$KEY")
+    done <<< "$BATCH"
+
+    [[ "$CURSOR" == "0" ]] && break
+  done
+
+  COUNT=${#KEYS[@]}
+  if [[ "$COUNT" -eq 0 ]]; then
+    print_warning "No keys found for ${OLD_APP_ID}"
+    continue
+  fi
+
+  echo "Found ${COUNT} key(s) to migrate"
+  MIGRATED=0
+
+  for KEY in "${KEYS[@]}"; do
+    # Replace the old app ID prefix with the new one
+    NEW_KEY="${NEW_APP_ID}${KEY#"$OLD_APP_ID"}"
+    if redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" RENAME "$KEY" "$NEW_KEY" >/dev/null 2>&1; then
+      ((MIGRATED++))
+    else
+      print_error "Failed to rename: ${KEY} → ${NEW_KEY}"
+    fi
+  done
+
+  print_status "Migrated ${MIGRATED}/${COUNT} keys for ${OLD_APP_ID} → ${NEW_APP_ID}"
+  TOTAL_MIGRATED=$((TOTAL_MIGRATED + MIGRATED))
+done
+
+echo ""
+echo "========================================="
+print_status "Migration complete. Total keys migrated: ${TOTAL_MIGRATED}"
+echo "========================================="

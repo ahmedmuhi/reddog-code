@@ -41,5 +41,5 @@ public sealed class VirtualCustomerOptions
     /// Dapr app ID of the OrderService for service invocation.
     /// </summary>
     [Required]
-    public string OrderServiceAppId { get; init; } = "orderservice";
+    public string OrderServiceAppId { get; init; } = "order-service";
 }

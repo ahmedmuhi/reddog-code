@@ -7,7 +7,7 @@ public sealed class DaprOptions
     public const string SectionName = "Dapr";
 
     [Required]
-    public string MakeLineServiceAppId { get; init; } = "makelineservice";
+    public string MakeLineServiceAppId { get; init; } = "make-line-service";
 
     [Required]
     public string StoreId { get; init; } = "Redmond";

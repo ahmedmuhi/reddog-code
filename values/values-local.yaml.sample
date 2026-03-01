@@ -7,7 +7,7 @@
 global:
   environment: local
   domain: localhost
-  namespace: default
+  namespace: reddog
 
 # Dapr Configuration
 # Local uses Redis for both state stores and pub/sub (NOT RabbitMQ - cloud only)
@@ -183,7 +183,7 @@ services:
       repository: ghcr.io/ahmedmuhi/reddog-orderservice
     port: 5100
     dapr:
-      appId: orderservice
+      appId: order-service
       appPort: 5100
 
   # MakeLineService
@@ -194,7 +194,7 @@ services:
       repository: ghcr.io/ahmedmuhi/reddog-makelineservice
     port: 5200
     dapr:
-      appId: makelineservice
+      appId: make-line-service
       appPort: 5200
 
   # LoyaltyService
@@ -205,7 +205,7 @@ services:
       repository: ghcr.io/ahmedmuhi/reddog-loyaltyservice
     port: 5400
     dapr:
-      appId: loyaltyservice
+      appId: loyalty-service
       appPort: 5400
 
   # AccountingService
@@ -216,7 +216,7 @@ services:
       repository: ghcr.io/ahmedmuhi/reddog-accountingservice
     port: 5700
     dapr:
-      appId: accountingservice
+      appId: accounting-service
       appPort: 5700
 
   # ReceiptGenerationService
@@ -227,7 +227,7 @@ services:
       repository: ghcr.io/ahmedmuhi/reddog-receiptgenerationservice
     port: 5300
     dapr:
-      appId: receiptgenerationservice
+      appId: receipt-generation-service
       appPort: 5300
     binding:
       enabled: false
@@ -242,7 +242,7 @@ services:
     image:
       repository: ghcr.io/ahmedmuhi/reddog-virtualcustomers
     dapr:
-      appId: virtualcustomers
+      appId: virtual-customers
     env:
       VirtualCustomers__StoreId: Redmond
       VirtualCustomers__MaxItemQuantity: 4
@@ -262,7 +262,7 @@ services:
       repository: ghcr.io/ahmedmuhi/reddog-virtualworker
     port: 5500
     dapr:
-      appId: virtualworker
+      appId: virtual-worker
       appPort: 5500
     binding:
       metadata:

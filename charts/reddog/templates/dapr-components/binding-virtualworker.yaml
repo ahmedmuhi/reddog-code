@@ -2,7 +2,7 @@
 apiVersion: dapr.io/v1alpha1
 kind: Component
 metadata:
-  name: virtualworker.cron
+  name: orders
   namespace: {{ .Values.global.namespace }}
 spec:
   type: bindings.cron
