@@ -10,7 +10,7 @@ namespace RedDog.VirtualCustomers;
 
 public sealed class VirtualCustomersWorker : BackgroundService
 {
-    private const string OrderServiceDaprId = "order-service";
+    private const string OrderServiceDaprId = "orderservice";
 
     private readonly IHostApplicationLifetime _lifetime;
     private readonly DaprClient _daprClient;

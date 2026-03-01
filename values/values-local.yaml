@@ -230,7 +230,7 @@ services:
       appId: receiptgenerationservice
       appPort: 80
     binding:
-      enabled: false
+      enabled: true
       metadata:
         - name: rootPath
           value: /tmp/receipts
