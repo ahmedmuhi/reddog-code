@@ -1,4 +1,7 @@
 #!/bin/bash
+# Local Development Workflow: kind + Helm (sole supported method)
+# The legacy `dapr run` workflow with `.dapr/components/` is no longer supported.
+# All Dapr components are deployed via Helm charts (charts/reddog/templates/dapr-components/).
 set -e
 
 echo "========================================="

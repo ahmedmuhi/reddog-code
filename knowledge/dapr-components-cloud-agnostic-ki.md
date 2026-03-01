@@ -19,11 +19,11 @@ It applies to all services that use Dapr building blocks across **local, Azure, 
   * Dapr **input/output bindings**
 * All environments:
 
-  * Local development (kind/minikube/Docker Desktop)
+  * Local development (kind + Helm — sole supported method)
   * Azure (AKS, Azure Container Apps)
   * AWS (EKS)
   * GCP (GKE)
-* Kubernetes manifests and overlays under `manifests/**`
+* Helm chart templates under `charts/reddog/templates/dapr-components/`
 
 ---
 
@@ -59,7 +59,11 @@ It applies to all services that use Dapr building blocks across **local, Azure, 
 
 5. **FACT-005:** The **sidecar pattern** is standard: every service that uses Dapr building blocks runs with a Dapr sidecar, configured via `dapr.io/*` annotations in Kubernetes manifests.
 
-6. **FACT-006:** Platform differences (Azure vs AWS vs GCP vs local) are encoded **in component YAML and environment-specific overlays**, not in application logic.
+6. **FACT-006:** Platform differences (Azure vs AWS vs GCP vs local) are encoded **in component YAML and environment-specific values files**, not in application logic.
+
+7. **FACT-007:** The legacy `dapr run` workflow with `.dapr/components/` is **deprecated**. Local development uses `kind + Helm` exclusively. All Dapr components are rendered from Helm templates in `charts/reddog/templates/dapr-components/` and configured via `values/values-local.yaml`.
+
+8. **FACT-008:** All Dapr app IDs use **kebab-case** (e.g., `order-service`, `make-line-service`, `loyalty-service`). The old no-separator format (`orderservice`) is deprecated. See `docs/audits/dapr-component-audit.md` for the full mapping.
 
 ---
 
@@ -105,28 +109,29 @@ It applies to all services that use Dapr building blocks across **local, Azure, 
      * `DaprClient` calls
      * Health checks
 
-2. **PAT-002 – Environment-specific component YAML**
+2. **PAT-002 – Environment-specific Helm values**
 
-   * Define base components under e.g. `manifests/branch/base/components/` for the default cloud.
-   * Add overlays under e.g.:
+   * All Dapr components are defined as Helm templates in `charts/reddog/templates/dapr-components/`.
+   * Environment differences are expressed via values files:
 
-     * `manifests/overlays/azure/**`
-     * `manifests/overlays/aws/**`
-     * `manifests/overlays/gcp/**`
-     * `manifests/local/branch/**`
-   * In overlays, keep `metadata.name` the same (e.g. `reddog.secretstore`) and change only:
+     * `values/values-local.yaml` — local kind cluster (Redis for state/pubsub)
+     * `values/values-azure.yaml` — AKS (Cosmos/Key Vault/Service Bus)
+     * `values/values-aws.yaml` — EKS (DynamoDB/Secrets Manager/SNS+SQS)
+     * `values/values-gcp.yaml` — GKE (Firestore/Secret Manager/Pub/Sub)
+   * Templates keep `metadata.name` stable (e.g. `reddog.pubsub`) and parameterize:
 
-     * `type` (e.g. `secretstores.azure.keyvault`, `secretstores.aws.secretsmanager`)
-     * `metadata` fields (vault name, region, etc.)
+     * `type` via `{{ .Values.dapr.<component>.type }}`
+     * `metadata` fields via values
 
 3. **PAT-003 – Local development pattern**
 
+   * Local development uses `kind + Helm` exclusively (`scripts/setup-local-dev.sh`).
    * For local dev, prefer:
 
-     * `secretstores.local.file` (or equivalent) for secrets.
+     * `secretstores.kubernetes` for secrets (backed by K8s Secrets).
      * Redis containers for both state and pubsub (single moving part).
      * Local file-based or dev object storage bindings, where needed.
-   * Ensure local manifests mirror the logical names used in cloud manifests.
+   * Helm templates ensure logical component names are identical across local and cloud.
 
 4. **PAT-004 – Using DaprClient in services**
 
@@ -137,7 +142,13 @@ It applies to all services that use Dapr building blocks across **local, Azure, 
      * Centralise retry and error handling
    * Prefer options binding for component names (`DaprOptions`) rather than magic strings.
 
-5. **PAT-005 – Adding new capabilities**
+5. **PAT-005 – Kebab-case app IDs**
+
+   * All Dapr app IDs use kebab-case: `order-service`, `make-line-service`, `loyalty-service`, `accounting-service`, `receipt-generation-service`, `virtual-worker`, `virtual-customers`, `bootstrapper`.
+   * App IDs are defined in `values/values-local.yaml` under `services.<name>.dapr.appId` and consumed by Helm templates for both sidecar annotations and component scopes.
+   * C# defaults in options classes (`VirtualCustomerOptions`, `DaprOptions`) match the kebab-case convention.
+
+6. **PAT-006 – Adding new capabilities**
 
    * When introducing a new platform capability (e.g. a new output binding):
 
@@ -188,6 +199,7 @@ It applies to all services that use Dapr building blocks across **local, Azure, 
 ## Sources and Provenance
 
 * **ADR-0002 – Cloud-Agnostic Configuration via Dapr Abstraction**
-* Red Dog deployment manifests under `manifests/**`
+* **Dapr Component Audit** — `docs/audits/dapr-component-audit.md`
+* Helm chart templates — `charts/reddog/templates/dapr-components/`
 * Red Dog Web API and platform integration standards
 * Dapr documentation on building blocks and hosting models
