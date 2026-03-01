@@ -18,17 +18,21 @@ superseded_by: ""
 
 **Current State:** 🟡 In Progress
 
-**Already in place:**
+**Implemented (Phase 4 Configuration Consolidation):**
 
-- Helm _infrastructure_ chart creates `sqlserver-secret` and other `Opaque` secrets from gitignored `values/values-<env>.yaml`.  
-- Application workloads consume credentials via Kubernetes Secrets (environment variables or mounted files).  
+- Helm infrastructure chart creates `sqlserver-secret` and `reddog-sql` Kubernetes Secrets from gitignored `values/values-<env>.yaml`.
+- Accounting-service reads its connection string from `reddog-sql` secret via `secretKeyRef` — no more `SA_PASSWORD` env var.
+- Infrastructure chart owns all database configuration (`charts/infrastructure/values.yaml`).
+- `values/values-local.yaml` is gitignored; `values/values-local.yaml.sample` is committed with `CHANGEME` placeholders.
+- `scripts/setup-local-dev.sh` auto-copies sample to real values file when missing.
+- Application workloads do not see connection strings directly; Dapr components reference Kubernetes Secrets.
+- Secret store component (`charts/reddog/templates/dapr-components/secretstore.yaml`) uses Kubernetes secret store locally, overridable to Azure Key Vault / AWS Secrets Manager via values.
 
 **Not yet standardized:**
 
-- KEDA `TriggerAuthentication` secret handling (RabbitMQ, SQL, etc.).  
-- Non-SQL infra components (Redis with auth, SMTP, external APIs).  
-- Cloud secret manager integration (Key Vault / Secrets Manager / Secret Manager) and Workload Identity patterns.  
-- Clear rules for application code: _how_ secrets are accessed (Dapr vs env vars) and _what_ counts as “secret” vs “config”.
+- KEDA `TriggerAuthentication` secret handling (RabbitMQ, SQL, etc.).
+- Cloud secret manager integration (Key Vault / Secrets Manager / Secret Manager) and Workload Identity patterns.
+- External Secrets Operator (ESO) or CSI Driver configuration per cloud provider.
 
 ---
 

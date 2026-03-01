@@ -21,18 +21,22 @@ services.
 Implementation details, current Dapr runtime versions, and per-cloud component mappings
 are tracked in:
 
-- `plan/modernization-strategy.md`
-- deployment guides under `docs/deploy-*.md`
-- Kubernetes manifests under `manifests/**`
+- `knowledge/configuration-architecture-ki.md` — 4-layer configuration architecture
+- deployment guides under `docs/deployment-local.md` and `docs/deployment-cloud.md`
+- Helm charts under `charts/reddog/` and `charts/infrastructure/`
 
-As of 2025-11-23:
+As of 2026-03-02 (post-configuration-consolidation):
 
-- Application code uses `DaprClient` for secrets, state, pub/sub, and service invocation.
-- Logical Dapr components such as `reddog.secretstore`, `reddog.state.makeline`,
-  `reddog.state.loyalty`, `reddog.pubsub`, and receipt/worker bindings are defined in
-  `manifests/branch/base/components/` and overridden by environment-specific manifests.
+- Application code uses `DaprClient` for secrets, state, pub/sub, service invocation,
+  and configuration (ADR-0004 pilot in VirtualCustomers).
+- All Dapr components are defined in `charts/reddog/templates/dapr-components/` (8 components):
+  `pubsub.yaml`, `statestore-makeline.yaml`, `statestore-loyalty.yaml`, `secretstore.yaml`,
+  `binding-receipt.yaml`, `binding-virtualworker.yaml`, `configuration.yaml`, `configstore.yaml`.
+- Environment differences are expressed via `values/values-<env>.yaml` overrides, not
+  manifest overlays. Legacy raw manifests have been archived to `manifests/Archive/`.
 - No cloud-provider SDKs (Azure/AWS/GCP) or direct Redis clients are referenced in the
-  application code; platform differences are isolated to Dapr components and manifests.
+  application code; platform differences are isolated to Dapr component metadata in
+  Helm values files.
 
 This ADR does not attempt to track day-to-day implementation status beyond this note.
 
@@ -112,11 +116,11 @@ Dapr HTTP/gRPC endpoints, not via cloud provider SDKs.
   (e.g., Azure Container Apps) and “self-managed Dapr” (AKS/EKS/GKE) is operational,
   not architectural. The application architecture remains the same.
 
-- **POR-003: Component-based configuration**  
-  Platform differences are encoded in Dapr component manifests
-  (e.g., `manifests/branch/base/components/reddog.secretstore.yaml` and overlays),
-  not in application code. Changing cloud provider means changing YAML, not rewriting
-  services.
+- **POR-003: Component-based configuration**
+  Platform differences are encoded in Dapr component Helm templates
+  (e.g., `charts/reddog/templates/dapr-components/secretstore.yaml`) and parameterised
+  via environment values files (`values/values-<env>.yaml`), not in application code.
+  Changing cloud provider means changing values, not rewriting services.
 
 - **POR-004: Simplified testing and teaching**  
   Developers test a single Dapr-based code path locally. Instructors can deploy the

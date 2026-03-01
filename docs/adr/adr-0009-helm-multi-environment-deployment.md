@@ -16,41 +16,28 @@ superseded_by: ""
 
 ## Implementation Status
 
-**Current State:** 🟡 In Progress (Helm in active use, migration not complete)
+**Current State:** 🟢 Completed (Helm is the sole deployment mechanism)
 
-**What’s Working:**
+**Implemented:**
 
-- `charts/reddog/` exists as a Helm v2 application chart with:
-  - `Chart.yaml` and service Deployments/Services under `templates/`.
-  - Dapr components under `templates/dapr-components/` (pubsub, statestores, secretstore, bindings, configuration).
-- `charts/infrastructure/` exists as a Helm chart for infrastructure dependencies.
-- `values/values-local.yaml` exists and is used by:
-  - `scripts/setup-local-dev.sh`.
-  - `.image-manifest-*` and upgrade scripts (`scripts/upgrade-dotnet10.sh`, `scripts/upgrade-build-images.sh`).
-- `helm template reddog ./charts/reddog -f values/values-local.yaml` renders successfully for the core services and Dapr components.
-- `values/values-local.yaml.sample` and `values/values-azure.yaml.sample` define the intended pattern for environment-specific values.
+- `charts/reddog/` — Helm v2 application chart:
+  - 8 service Deployments/Services under `templates/`.
+  - 8 Dapr components under `templates/dapr-components/` (pubsub, 2 statestores, secretstore, 2 bindings, configuration, configstore).
+  - Config seeder Job and bootstrapper Job.
+  - Ingress with nginx rewrite-target.
+- `charts/infrastructure/` — infrastructure chart (Redis, SQL Server, RBAC, secrets).
+- `values/values-local.yaml` — local/kind overrides (57 lines, down from 320).
+- `values/values-local.yaml.sample` and `values/values-azure.yaml.sample` — committed samples with placeholder secrets.
+- `.gitignore` wildcards `values/values-*.yaml` and allows `!values/values-*.yaml.sample`.
+- `scripts/setup-local-dev.sh` — automated kind cluster setup (auto-copies sample if values file missing).
+- Raw manifests archived to `manifests/Archive/` (Phase 3). CI workflows no longer reference them.
+- Chart defaults in `charts/*/values.yaml`; environment overrides in `values/values-<env>.yaml`.
 
-**What’s Not Yet Complete:**
+**Future Work (Not Blocking):**
 
-- Non-local values:
-  - `values/values-azure.yaml`, `values/values-aws.yaml`, `values/values-gcp.yaml` do not yet exist as first-class, maintained files (only `*.sample` exists for Azure).
-- Raw manifests:
-  - Legacy manifests have been archived to `manifests/Archive/`. CI workflows no longer update them.
-  - No `HelmRelease` resources exist for the `reddog` chart; GitOps wiring (Flux/Argo) is not yet configured.
-- Single source of truth:
-  - Helm is the canonical deployment mechanism. Raw manifests have been archived (Phase 3). Remaining work is adding maintained cloud values files and GitOps wiring.
-
-**Next Steps (Implementation-Oriented, Not Binding on Architecture):**
-
-1. Add and maintain environment values files:
-   - `values/values-azure.yaml`
-   - `values/values-aws.yaml`
-   - `values/values-gcp.yaml`
-2. Decide and document the canonical layout for values (top-level `values/` directory vs chart-local `values/`), and converge repo + ADR on that pattern.
-3. ~~Migrate GitOps manifests to consume the Helm charts and deprecate/remove raw manifests.~~ **Done** — raw manifests archived to `manifests/Archive/` (Phase 3). GitOps `HelmRelease` wiring remains future work.
-4. Add CI checks:
-   - `helm lint ./charts/reddog`
-   - `helm template` for all supported `values/values-*.yaml` to prevent template regressions.
+1. Cloud values files: `values/values-aws.yaml`, `values/values-gcp.yaml` — create when clusters are available.
+2. GitOps wiring: `HelmRelease` resources for Flux/Argo — separate implementation plan.
+3. CI checks: `helm lint` and `helm template` for all values files to prevent regressions.
 
 ---
 
@@ -265,8 +252,8 @@ These points are descriptive of current and intended practice; they are not part
   * Uses `values/values-*.yaml.sample` to document planned structure for cloud environments.
   * Includes Helm charts for `reddog` and `infrastructure`, and external charts (e.g. Nginx Ingress, RabbitMQ) in `charts/external/`.
 
-* Over time, the target is:
+* This target has been achieved:
 
-  * All new deployment work for Red Dog to go through Helm charts.
-  * GitOps manifests to reference Helm charts and values only.
-  * ~~Raw manifests under `manifests/branch` and `manifests/overlays` to be explicitly deprecated and removed once migrations are complete.~~ **Done** — archived to `manifests/Archive/`.
+  * All deployment work for Red Dog goes through Helm charts.
+  * Raw manifests under `manifests/branch` and `manifests/overlays` have been archived to `manifests/Archive/`.
+  * GitOps `HelmRelease` wiring remains future work.
