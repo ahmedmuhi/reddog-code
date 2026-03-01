@@ -1,4 +1,4 @@
-## Red Dog Demo - Azure Application Innovation Scenario
+## Red Dog Demo — Cloud-Native Microservices with Dapr
 
 ### Background
 
@@ -6,42 +6,59 @@ Microservices can be hard. But, while being exceedingly difficult to architect t
 
 Enter [Dapr](https://www.dapr.io) - The Distributed Application Runtime built with developers in mind. Dapr aims to solve some of these microservice-related challenges by providing consistent building blocks in the form of http/gRPC APIs that can be called natively or using one of the dapr language SDKs.
 
-This comprehensive code repository was created as a resource for software developers who are looking to gain a deeper understanding of how to build cloud-native, distributed applications powered by dapr. The codebase can be run on your local development machine or deployed to a container hosting platform of your choosing. In an effort to help you best leverage the codebase, we have also created a series of examples showcasing how to deploy the app using key services and capabilities of the Azure platform. The deployment options we have developed thus far are detailed in the section below. 
+This repository contains the Red Dog application source code and deployment configuration. The same codebase deploys to local development clusters and cloud Kubernetes environments using Helm charts with environment-specific values files.
 
-### Deployment Options
+### Deployment
 
-Below are some example scenarios for deploying the application. Each scenario is in its own repo.
+Red Dog uses a **same chart, different values** pattern — one set of Helm templates serves all environments:
 
-* [Codespaces "Local" Development](docs/local-dev.md)
-* [Hybrid / Arc Deployment](https://github.com/Azure/reddog-hybrid-arc)
-* [Container Apps](https://github.com/Azure/reddog-containerapps)
-* [AKS](https://github.com/Azure/reddog-aks)
+```bash
+# Local (kind)
+helm upgrade --install reddog ./charts/reddog -f values/values-local.yaml --namespace reddog
+
+# Cloud (AKS, EKS, GKE)
+helm upgrade --install reddog ./charts/reddog -f values/values-<cloud>.yaml --namespace reddog
+```
+
+| Environment | Guide | Status |
+|---|---|---|
+| Local (kind) | [docs/deployment-local.md](docs/deployment-local.md) | Tested and working |
+| Azure (AKS) | [docs/deployment-cloud.md](docs/deployment-cloud.md) | Sample values available |
+| AWS (EKS) | [docs/deployment-cloud.md](docs/deployment-cloud.md) | Placeholder — no cluster yet |
+| GCP (GKE) | [docs/deployment-cloud.md](docs/deployment-cloud.md) | Placeholder — no cluster yet |
 
 ### Architecture Diagram and Service Descriptions
 
-The reddog application is developed with .NET and Javascript. As mentioned above, it utilizes Dapr ([Distributed Application Runtime](https://dapr.io)) so it can easily be adapted to multiple scenarios. 
+The Red Dog application is developed with .NET 10 and Vue 3. It uses Dapr ([Distributed Application Runtime](https://dapr.io)) for state management, pub/sub messaging, secret access, service invocation, and runtime configuration.
 
 ![Logical Application Architecture Diagram](assets/reddog_code.png)
 
-
-| Service          | Description                                                                                                 |
-|------------------|-------------------------------------------------------------------------------------------------------------|                               
-| AccountingService | Service used to process, store and aggregate order data, transforming customer orders into meaningful sales metrics that can be showcased via the UI |
-| Bootstrapper | A service that leverages Entity Framework Core Migrations to initialize the tables within Azure SQL DB based on the data model found in Reddog.AccountingModel |
+| Service | Description |
+|---|---|
+| AccountingService | Processes, stores and aggregates order data into sales metrics for the UI |
+| Bootstrapper | Initializes database tables via Entity Framework Core Migrations (runs as a Job) |
 | LoyaltyService | Manages the loyalty program by modifying customer reward points based on spend |
-| MakeLineService | Responsible for simulating and coordinating a 'queue' of current orders. Monitors the processing and completion of each order in the 'queue' | 
-| OrderService | Basic CRUD API that is used to place and manage orders |
-| ReceiptGenerationService | Archival program that generates and stores order receipts for auditing and historical purposes  |
-| UI | Dashboard showcasing order/sales data related to a single hub location and/or for visibility across Hubs via the Corporate Dashboard in Hybrid scenario |
-| VirtualCustomers | 'Customer simulation' program that simulates customers placing orders |
-| VirtualWorker | 'Worker simulation' program that simulates the completion of customer orders |
-| CorporateTransferService* | Azure Function responsible for monitoring order activity via RabbitMQ i.e. order placement and order completion within the context of a specific hub location and propogating these order activities to an Azure Service Bus for Corporate Hub consumption and visibility |
+| MakeLineService | Simulates and coordinates a queue of current orders, monitoring processing and completion |
+| OrderService | CRUD API for placing and managing orders |
+| ReceiptGenerationService | Generates and stores order receipts for auditing and historical purposes |
+| UI | Vue.js dashboard showing order/sales data for a hub location |
+| VirtualCustomers | Customer simulator that generates orders (Dapr Config API pilot) |
+| VirtualWorker | Worker simulator that completes orders on a schedule |
 
-*These services are specific to the Hybrid retail scenario and may not be applicable for other deployment patterns 
+### Configuration Architecture
+
+Red Dog uses a 4-layer configuration model:
+
+1. **Chart defaults** — stable, environment-agnostic settings in `charts/*/values.yaml`
+2. **Environment overrides** — per-environment values in `values/values-<env>.yaml` (gitignored)
+3. **Runtime secrets** — Kubernetes Secrets (local) or managed secret stores (cloud)
+4. **Dapr Configuration API** — business config that can change at runtime without redeployment
+
+For details, see the [Configuration Architecture KI](knowledge/configuration-architecture-ki.md) and the [ADR index](docs/adr/README.md).
 
 ### Contributing
 
-This project welcomes contributions and suggestions.  Most contributions require you to agree to a
+This project welcomes contributions and suggestions. Most contributions require you to agree to a
 Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us
 the rights to use your contribution. For details, visit https://cla.opensource.microsoft.com.
 
