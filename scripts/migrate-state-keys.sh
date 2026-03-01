@@ -3,11 +3,21 @@
 # Dapr prefixes state keys with "<appId>||", so renaming an app ID makes existing
 # keys unreachable unless the prefix is updated.
 #
-# Usage: ./scripts/migrate-state-keys.sh [REDIS_HOST] [REDIS_PORT]
+# Usage: ./scripts/migrate-state-keys.sh [--dry-run] [REDIS_HOST] [REDIS_PORT]
+#   --dry-run   Show what would be renamed without making changes
 #   REDIS_HOST  defaults to localhost
 #   REDIS_PORT  defaults to 6379
+#
+# The script is idempotent: re-running after a successful migration finds no
+# old-prefix keys and exits cleanly with zero renames.
 
 set -euo pipefail
+
+DRY_RUN=false
+if [[ "${1:-}" == "--dry-run" ]]; then
+  DRY_RUN=true
+  shift
+fi
 
 REDIS_HOST="${1:-localhost}"
 REDIS_PORT="${2:-6379}"
@@ -29,6 +39,9 @@ declare -A MIGRATIONS=(
 
 echo "========================================="
 echo "Dapr State Key Migration"
+if [[ "$DRY_RUN" == true ]]; then
+  echo "  *** DRY RUN — no changes will be made ***"
+fi
 echo "========================================="
 echo "Redis: ${REDIS_HOST}:${REDIS_PORT}"
 echo ""
@@ -83,14 +96,21 @@ for OLD_APP_ID in "${!MIGRATIONS[@]}"; do
   for KEY in "${KEYS[@]}"; do
     # Replace the old app ID prefix with the new one
     NEW_KEY="${NEW_APP_ID}${KEY#"$OLD_APP_ID"}"
-    if redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" RENAME "$KEY" "$NEW_KEY" >/dev/null 2>&1; then
-      ((MIGRATED++))
+    if [[ "$DRY_RUN" == true ]]; then
+      echo "  Would rename: ${KEY} → ${NEW_KEY}"
+      MIGRATED=$((MIGRATED + 1))
+    elif redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" RENAME "$KEY" "$NEW_KEY" >/dev/null 2>&1; then
+      MIGRATED=$((MIGRATED + 1))
     else
       print_error "Failed to rename: ${KEY} → ${NEW_KEY}"
     fi
   done
 
-  print_status "Migrated ${MIGRATED}/${COUNT} keys for ${OLD_APP_ID} → ${NEW_APP_ID}"
+  if [[ "$DRY_RUN" == true ]]; then
+    print_status "Would migrate ${MIGRATED}/${COUNT} keys for ${OLD_APP_ID} → ${NEW_APP_ID}"
+  else
+    print_status "Migrated ${MIGRATED}/${COUNT} keys for ${OLD_APP_ID} → ${NEW_APP_ID}"
+  fi
   TOTAL_MIGRATED=$((TOTAL_MIGRATED + MIGRATED))
 done
 
