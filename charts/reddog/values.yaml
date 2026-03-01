@@ -173,6 +173,24 @@ services:
       VITE_MAKELINE_BASE_URL: ""
       VITE_ACCOUNTING_BASE_URL: ""
 
+# Config Seeder (seeds business config keys into Redis for Dapr Config API)
+configSeeder:
+  enabled: true
+  image:
+    repository: redis
+    tag: 7.2-alpine
+    pullPolicy: IfNotPresent
+  redisHost: redis-master.reddog.svc.cluster.local
+  redisPort: 6379
+  virtualCustomers:
+    storeId: Redmond
+    maxItemQuantity: 4
+    maxUniqueItemsPerOrder: 3
+    minSecondsToPlaceOrder: 1
+    maxSecondsToPlaceOrder: 3
+    minSecondsBetweenOrders: 1
+    maxSecondsBetweenOrders: 3
+
 # Bootstrapper (database initialization via EF migrations)
 bootstrapper:
   enabled: true

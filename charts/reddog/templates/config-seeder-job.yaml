@@ -1,0 +1,45 @@
+{{- if .Values.configSeeder.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: reddog-config-seeder
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: reddog-config-seeder
+spec:
+  ttlSecondsAfterFinished: 300
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        app: reddog-config-seeder
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: config-seeder
+          image: {{ .Values.configSeeder.image.repository }}:{{ .Values.configSeeder.image.tag }}
+          imagePullPolicy: {{ .Values.configSeeder.image.pullPolicy }}
+          command:
+            - /bin/sh
+            - -c
+            - |
+              echo "Waiting for Redis..."
+              until redis-cli -h {{ .Values.configSeeder.redisHost }} -p {{ .Values.configSeeder.redisPort }} ping 2>/dev/null | grep -q PONG; do
+                echo "Redis not ready, retrying in 2s..."
+                sleep 2
+              done
+              echo "Redis is ready. Seeding VirtualCustomers config keys..."
+              {{- with .Values.configSeeder.virtualCustomers }}
+              redis-cli -h {{ $.Values.configSeeder.redisHost }} -p {{ $.Values.configSeeder.redisPort }} MSET \
+                "VirtualCustomers||StoreId" {{ .storeId | quote }} \
+                "VirtualCustomers||MaxItemQuantity" {{ .maxItemQuantity | quote }} \
+                "VirtualCustomers||MaxUniqueItemsPerOrder" {{ .maxUniqueItemsPerOrder | quote }} \
+                "VirtualCustomers||MinSecondsToPlaceOrder" {{ .minSecondsToPlaceOrder | quote }} \
+                "VirtualCustomers||MaxSecondsToPlaceOrder" {{ .maxSecondsToPlaceOrder | quote }} \
+                "VirtualCustomers||MinSecondsBetweenOrders" {{ .minSecondsBetweenOrders | quote }} \
+                "VirtualCustomers||MaxSecondsBetweenOrders" {{ .maxSecondsBetweenOrders | quote }}
+              {{- end }}
+              echo "Config seeding complete. Verifying..."
+              redis-cli -h {{ .Values.configSeeder.redisHost }} -p {{ .Values.configSeeder.redisPort }} KEYS "VirtualCustomers||*"
+              echo "Done."
+{{- end }}
