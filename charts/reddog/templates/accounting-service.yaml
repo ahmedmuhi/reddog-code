@@ -60,13 +60,11 @@ spec:
         - containerPort: 80
           protocol: TCP
         env:
-        - name: SA_PASSWORD
+        - name: ConnectionStrings__RedDog
           valueFrom:
             secretKeyRef:
-              name: {{ .Values.database.passwordSecret.name }}
-              key: {{ .Values.database.passwordSecret.key }}
-        - name: ConnectionStrings__RedDog
-          value: {{ .Values.database.connectionString }}
+              name: reddog-sql
+              key: reddog-sql
         resources:
           requests:
             cpu: {{ .Values.services.common.resources.requests.cpu }}

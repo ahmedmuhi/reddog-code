@@ -30,17 +30,6 @@ dapr:
   pubsub:
     type: redis
 
-# Database (shared with infrastructure chart)
-database:
-  host: sqlserver.reddog.svc.cluster.local
-  port: 1433
-  name: reddog
-  username: sa
-  passwordSecret:
-    name: sqlserver-secret
-    key: SA_PASSWORD
-  connectionString: "Server=sqlserver.reddog.svc.cluster.local,1433;Database=reddog;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=True;Encrypt=False;"
-
 # Ingress (environment-specific: override annotations + hosts with paths)
 ingress:
   enabled: true
