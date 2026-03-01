@@ -132,15 +132,9 @@ services:
     dapr:
       appId: virtual-customers
     env:
-      VirtualCustomers__StoreId: Redmond
-      VirtualCustomers__MaxItemQuantity: 4
-      VirtualCustomers__MaxUniqueItemsPerOrder: 3
-      VirtualCustomers__MinSecondsToPlaceOrder: 1
-      VirtualCustomers__MaxSecondsToPlaceOrder: 3
-      VirtualCustomers__MinSecondsBetweenOrders: 1
-      VirtualCustomers__MaxSecondsBetweenOrders: 3
       VirtualCustomers__NumOrders: -1
       VirtualCustomers__DisableDaprCalls: false
+      VirtualCustomers__OrderServiceAppId: order-service
 
   # VirtualWorker (order completion simulator)
   virtualworker:

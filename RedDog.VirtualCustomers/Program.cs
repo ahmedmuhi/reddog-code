@@ -1,4 +1,5 @@
 using Dapr.Client;
+using Dapr.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -12,6 +13,24 @@ using RedDog.VirtualCustomers.Configuration;
 using RedDog.VirtualCustomers;
 
 var builder = Host.CreateApplicationBuilder(args);
+
+// Load business config from Dapr Configuration API (ADR-0004).
+// Separate DaprClient is needed because the DI container isn't built yet.
+var configClient = new DaprClientBuilder().Build();
+builder.Configuration.AddDaprConfigurationStore(
+    "reddog.config",
+    new List<string>
+    {
+        "VirtualCustomers||StoreId",
+        "VirtualCustomers||MaxItemQuantity",
+        "VirtualCustomers||MaxUniqueItemsPerOrder",
+        "VirtualCustomers||MinSecondsToPlaceOrder",
+        "VirtualCustomers||MaxSecondsToPlaceOrder",
+        "VirtualCustomers||MinSecondsBetweenOrders",
+        "VirtualCustomers||MaxSecondsBetweenOrders",
+    },
+    configClient,
+    TimeSpan.FromSeconds(60));
 
 builder.Services.AddOptions<VirtualCustomerOptions>()
     .BindConfiguration(VirtualCustomerOptions.SectionName)
