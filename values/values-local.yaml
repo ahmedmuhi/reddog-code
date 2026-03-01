@@ -80,25 +80,27 @@ ingress:
   # Local development: no TLS
   tls:
     enabled: false
-  annotations: {}
+  annotations:
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
   hosts:
     - host: localhost
       paths:
-        - path: /
-          pathType: Prefix
-          service: ui
-          port: 80
-        - path: /api/orders
-          pathType: Prefix
+        - path: /api/orders(/|$)(.*)
+          pathType: ImplementationSpecific
           service: orderservice
           port: 80
-        - path: /api/makeline
-          pathType: Prefix
+        - path: /api/makeline(/|$)(.*)
+          pathType: ImplementationSpecific
           service: makelineservice
           port: 80
-        - path: /api/accounting
-          pathType: Prefix
+        - path: /api/accounting(/|$)(.*)
+          pathType: ImplementationSpecific
           service: accountingservice
+          port: 80
+        - path: /()(.*)
+          pathType: ImplementationSpecific
+          service: ui
           port: 80
 
 # Infrastructure Components
@@ -284,8 +286,8 @@ services:
         cpu: 500m
         memory: 1Gi
     env:
-      VUE_APP_MAKELINE_BASE_URL: http://localhost/api/makeline
-      VUE_APP_ACCOUNTING_BASE_URL: http://localhost/api/accounting
+      VITE_MAKELINE_BASE_URL: http://localhost/api/makeline
+      VITE_ACCOUNTING_BASE_URL: http://localhost/api/accounting
 
 # Bootstrapper (database initialization via EF migrations)
 bootstrapper:
