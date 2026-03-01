@@ -1,0 +1,207 @@
+# Red Dog Application Chart - Default Values
+# These are shared defaults for all environments.
+# Override per-environment values in values/values-{env}.yaml.
+
+global:
+  namespace: reddog
+
+# Dapr Configuration
+dapr:
+  enabled: true
+  configuration:
+    name: reddog.configuration
+    tracing:
+      samplingRate: "0.05"
+    features:
+      appHealthCheck: true
+
+  # State Store (environment-specific: override type + metadata)
+  stateStore:
+    type: redis
+    host: ""
+    port: 6379
+    password: ""
+
+  # Secret Store (environment-specific: override type + metadata)
+  secretStore:
+    type: kubernetes
+    metadata:
+      - name: namespace
+        value: reddog
+
+  # Pub/Sub (environment-specific: override type + metadata)
+  pubsub:
+    type: redis
+    host: ""
+    port: 6379
+    password: ""
+
+# Database (shared with infrastructure chart)
+database:
+  host: sqlserver.reddog.svc.cluster.local
+  port: 1433
+  name: reddog
+  username: sa
+  passwordSecret:
+    name: sqlserver-secret
+    key: SA_PASSWORD
+  connectionString: "Server=sqlserver.reddog.svc.cluster.local,1433;Database=reddog;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=True;Encrypt=False;"
+
+# Ingress (environment-specific: override annotations + hosts)
+ingress:
+  enabled: true
+  className: nginx
+  tls:
+    enabled: false
+  annotations: {}
+  hosts: []
+
+# Common service settings
+services:
+  common:
+    image:
+      pullPolicy: Always
+      tag: latest
+      pullSecrets:
+        - name: ghcr-cred
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+    dapr:
+      enabled: true
+      appPort: 80
+      logLevel: info
+      resources:
+        requests:
+          cpu: 50m
+          memory: 64Mi
+        limits:
+          cpu: 200m
+          memory: 256Mi
+
+  # OrderService
+  orderservice:
+    enabled: true
+    replicas: 1
+    image:
+      repository: ghcr.io/ahmedmuhi/reddog-orderservice
+    port: 5100
+    dapr:
+      appId: order-service
+      appPort: 80
+
+  # MakeLineService
+  makelineservice:
+    enabled: true
+    replicas: 1
+    image:
+      repository: ghcr.io/ahmedmuhi/reddog-makelineservice
+    port: 5200
+    dapr:
+      appId: make-line-service
+      appPort: 80
+
+  # LoyaltyService
+  loyaltyservice:
+    enabled: true
+    replicas: 1
+    image:
+      repository: ghcr.io/ahmedmuhi/reddog-loyaltyservice
+    port: 5400
+    dapr:
+      appId: loyalty-service
+      appPort: 80
+
+  # AccountingService
+  accountingservice:
+    enabled: true
+    replicas: 1
+    image:
+      repository: ghcr.io/ahmedmuhi/reddog-accountingservice
+    port: 5700
+    dapr:
+      appId: accounting-service
+      appPort: 80
+
+  # ReceiptGenerationService
+  receiptgenerationservice:
+    enabled: true
+    replicas: 1
+    image:
+      repository: ghcr.io/ahmedmuhi/reddog-receiptgenerationservice
+    port: 5300
+    dapr:
+      appId: receipt-generation-service
+      appPort: 80
+    binding:
+      enabled: true
+      metadata:
+        - name: rootPath
+          value: /tmp/receipts
+
+  # VirtualCustomers (load generator)
+  virtualcustomers:
+    enabled: true
+    replicas: 1
+    image:
+      repository: ghcr.io/ahmedmuhi/reddog-virtualcustomers
+    dapr:
+      appId: virtual-customers
+
+  # VirtualWorker (order completion simulator)
+  virtualworker:
+    enabled: true
+    replicas: 1
+    image:
+      repository: ghcr.io/ahmedmuhi/reddog-virtualworker
+    port: 5500
+    dapr:
+      appId: virtual-worker
+      appPort: 80
+    binding:
+      metadata:
+        - name: schedule
+          value: "@every 5s"
+
+  # UI (Vue.js frontend)
+  ui:
+    enabled: true
+    replicas: 1
+    image:
+      repository: ghcr.io/ahmedmuhi/reddog-ui
+    port: 8080
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 1Gi
+    env:
+      VITE_MAKELINE_BASE_URL: ""
+      VITE_ACCOUNTING_BASE_URL: ""
+
+# Bootstrapper (database initialization via EF migrations)
+bootstrapper:
+  enabled: true
+  image:
+    repository: ghcr.io/ahmedmuhi/reddog-bootstrapper
+  dapr:
+    appId: bootstrapper
+    appPort: 80
+    httpPort: 3500
+    grpcPort: 50001
+  jobAnnotations: {}
+
+# Observability (optional)
+observability:
+  jaeger:
+    enabled: false
+  prometheus:
+    enabled: false
+  grafana:
+    enabled: false

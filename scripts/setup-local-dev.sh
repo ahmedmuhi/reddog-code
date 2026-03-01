@@ -85,22 +85,16 @@ else
 fi
 echo ""
 
-# Ensure local values file exists
+# Ensure local values file exists (auto-copy from sample if missing)
 if [ ! -f values/values-local.yaml ]; then
-    print_error "values/values-local.yaml not found."
-    echo "Create it by copying values/values-local.yaml.sample and setting local secrets (e.g., SQL password)."
-    exit 1
+    print_warning "values/values-local.yaml not found. Copying from sample..."
+    cp values/values-local.yaml.sample values/values-local.yaml
+    print_warning "IMPORTANT: Edit values/values-local.yaml and set your SQL Server password!"
+    echo "  Default password is 'CHANGE_ME' — update infrastructure.sqlserver.saPassword"
+    echo ""
+    read -p "Press Enter after editing values/values-local.yaml (or Ctrl+C to exit)..."
 fi
-
-# Validate Dapr sidecar resource configuration
-echo "Validating Dapr sidecar resource configuration..."
-# Simplified validation - just check if the 200m limit exists
-if grep -q "cpu: 200m" values/values-local.yaml; then
-    print_status "Dapr sidecar CPU limit: 200m"
-else
-    print_warning "Dapr sidecar CPU limit not found at expected value (200m)"
-    echo "  Continuing anyway - check values-local.yaml if you encounter resource issues"
-fi
+print_status "values/values-local.yaml exists"
 echo ""
 
 # 1. Create kind cluster

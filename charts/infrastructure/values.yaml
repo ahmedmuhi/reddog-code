@@ -1,0 +1,68 @@
+# Red Dog Infrastructure Chart - Default Values
+# These are shared defaults for all environments.
+# Override per-environment values in values/values-{env}.yaml.
+
+global:
+  namespace: reddog
+
+# Dapr state store port (used by Redis service)
+dapr:
+  stateStore:
+    port: 6379
+  secretStore:
+    type: kubernetes
+    metadata:
+      - name: namespace
+        value: reddog
+
+# Database settings (used by secrets templates)
+database:
+  enabled: true
+  type: sqlserver
+  host: sqlserver.reddog.svc.cluster.local
+  port: 1433
+  name: reddog
+  username: sa
+  passwordSecret:
+    name: sqlserver-secret
+    key: SA_PASSWORD
+  connectionString: "Server=sqlserver.reddog.svc.cluster.local,1433;Database=reddog;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=True;Encrypt=False;"
+
+# Infrastructure Components
+infrastructure:
+  redis:
+    enabled: true
+    architecture: standalone
+    auth:
+      enabled: false
+    master:
+      persistence:
+        enabled: false
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+
+  sqlserver:
+    enabled: true
+    image:
+      repository: mcr.microsoft.com/mssql/server
+      tag: "2022-latest"
+      pullPolicy: IfNotPresent
+    acceptEula: true
+    edition: Developer
+    saPassword: ""  # MUST be set in environment override file
+    persistence:
+      enabled: true
+      size: 5Gi
+      storageClass: standard
+    resources:
+      requests:
+        cpu: 500m
+        memory: 2Gi
+      limits:
+        cpu: 2000m
+        memory: 4Gi

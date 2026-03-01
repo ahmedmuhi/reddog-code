@@ -1,15 +1,12 @@
-# Red Dog - Azure Cloud Configuration (Sample)
-# Demonstrates using RabbitMQ + Cosmos DB via metadata overrides (see ADR-0013)
+# Red Dog - Azure Cloud Overrides (Sample)
+# Demonstrates RabbitMQ + Cosmos DB via metadata overrides (see ADR-0013).
+# Chart defaults: charts/reddog/values.yaml, charts/infrastructure/values.yaml
 
 global:
   environment: azure
   domain: reddog.contoso.cloud
-  namespace: reddog
 
 dapr:
-  enabled: true
-  version: "1.16.2"
-
   pubsub:
     type: rabbitmq
     metadata:
@@ -48,7 +45,41 @@ dapr:
           name: workload-identity
           key: client-id
 
-# Example binding overrides
+# Ingress: cloud domain with TLS
+ingress:
+  tls:
+    enabled: true
+  annotations:
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+  hosts:
+    - host: reddog.contoso.cloud
+      paths:
+        - path: /api/orders(/|$)(.*)
+          pathType: ImplementationSpecific
+          service: orderservice
+          port: 80
+        - path: /api/makeline(/|$)(.*)
+          pathType: ImplementationSpecific
+          service: makelineservice
+          port: 80
+        - path: /api/accounting(/|$)(.*)
+          pathType: ImplementationSpecific
+          service: accountingservice
+          port: 80
+        - path: /()(.*)
+          pathType: ImplementationSpecific
+          service: ui
+          port: 80
+
+# Cloud infrastructure (managed services — disable local infra)
+infrastructure:
+  redis:
+    enabled: false
+  sqlserver:
+    enabled: false
+
+# Binding overrides for cloud storage
 services:
   receiptgenerationservice:
     binding:
@@ -68,3 +99,8 @@ services:
       metadata:
         - name: schedule
           value: "0 */5 * * * *"  # Every 5 minutes in production
+
+  ui:
+    env:
+      VITE_MAKELINE_BASE_URL: https://reddog.contoso.cloud/api/makeline
+      VITE_ACCOUNTING_BASE_URL: https://reddog.contoso.cloud/api/accounting

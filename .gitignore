@@ -575,7 +575,9 @@ typings/
 .env/local          # Local secrets (use .env/local.sample as template)
 .env/dev            # Development environment secrets
 .env/staging        # Staging environment secrets
-values/values-local.yaml
+# Environment values (contain secrets); samples are tracked
+values/values-*.yaml
+!values/values-*.yaml.sample
 
 # parcel-bundler cache (https://parceljs.org/)
 .cache
