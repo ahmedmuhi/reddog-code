@@ -5,6 +5,7 @@
 set -euo pipefail
 
 STORE_ID=${1:-Redmond}
+NAMESPACE=${REDDOG_NAMESPACE:-reddog}
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 FIND_PORT_SCRIPT="${SCRIPT_DIR}/find-open-port.sh"
 
@@ -19,7 +20,7 @@ if ! command -v curl >/dev/null 2>&1; then
 fi
 
 echo "🔍 Locating MakeLineService pod..."
-POD_NAME=$(kubectl get pods -l app=make-line-service --no-headers 2>/dev/null | head -1 | awk '{print $1}' || true)
+POD_NAME=$(kubectl get pods -n "$NAMESPACE" -l app=make-line-service --no-headers 2>/dev/null | head -1 | awk '{print $1}' || true)
 if [ -z "$POD_NAME" ]; then
   echo "Unable to find pod with label app=make-line-service" >&2
   exit 1
@@ -29,7 +30,7 @@ echo "  Pod: $POD_NAME"
 echo ""
 echo "☕ HTTP smoke test (kubectl port-forward svc/makelineservice)..."
 SERVICE_PORT=$("$FIND_PORT_SCRIPT" 5200 15200 25200)
-kubectl port-forward svc/makelineservice ${SERVICE_PORT}:80 >/tmp/makeline-http-portforward.log 2>&1 &
+kubectl port-forward -n "$NAMESPACE" svc/makelineservice ${SERVICE_PORT}:80 >/tmp/makeline-http-portforward.log 2>&1 &
 HTTP_PF_PID=$!
 sleep 3
 
@@ -49,13 +50,13 @@ fi
 echo ""
 echo "🔄 Dapr service invocation smoke test..."
 DAPR_PORT=$("$FIND_PORT_SCRIPT" 3510 23510 33510)
-kubectl port-forward $POD_NAME ${DAPR_PORT}:3500 >/tmp/makeline-dapr-portforward.log 2>&1 &
+kubectl port-forward -n "$NAMESPACE" $POD_NAME ${DAPR_PORT}:3500 >/tmp/makeline-dapr-portforward.log 2>&1 &
 DAPR_PF_PID=$!
 sleep 3
 
 set +e
 DAPR_STATUS=$(curl -s -o /tmp/makeline-dapr-response.json -w "%{http_code}" \
-  http://localhost:${DAPR_PORT}/v1.0/invoke/makelineservice/method/orders/${STORE_ID})
+  http://localhost:${DAPR_PORT}/v1.0/invoke/make-line-service/method/orders/${STORE_ID})
 set -e
 kill $DAPR_PF_PID 2>/dev/null || true
 wait $DAPR_PF_PID 2>/dev/null || true

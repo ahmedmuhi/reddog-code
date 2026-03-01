@@ -19,26 +19,26 @@ dapr:
   stateStore:
     type: redis
     # Dapr init provides Redis at localhost:6379
-    # In-cluster: redis-master.default.svc.cluster.local:6379
-    host: redis-master.default.svc.cluster.local
+    # In-cluster: redis-master.reddog.svc.cluster.local:6379
+    host: redis-master.reddog.svc.cluster.local
     port: 6379
     password: ""  # No password for local dev
     # Preferred pattern (ADR-0013): override metadata for other backends (Cosmos, Dynamo, etc.)
     metadata:
       - name: redisHost
-        value: redis-master.default.svc.cluster.local:6379
+        value: redis-master.reddog.svc.cluster.local:6379
       - name: redisPassword
         value: ""
 
   # Pub/Sub (Redis-based for local - NOT RabbitMQ)
   pubsub:
     type: redis
-    host: redis-master.default.svc.cluster.local
+    host: redis-master.reddog.svc.cluster.local
     port: 6379
     password: ""
     metadata:
       - name: redisHost
-        value: redis-master.default.svc.cluster.local:6379
+        value: redis-master.reddog.svc.cluster.local:6379
       - name: redisPassword
         value: ""
 
@@ -48,7 +48,7 @@ dapr:
     # Cloud alternatives: azurekeyvault, aws.secretsmanager, gcp.secretmanager
     metadata:
       - name: namespace
-        value: default
+        value: reddog
 
   configuration:
     name: reddog.configuration
@@ -61,8 +61,8 @@ dapr:
 database:
   enabled: true
   type: sqlserver
-  # In-cluster DNS: sqlserver.default.svc.cluster.local
-  host: sqlserver.default.svc.cluster.local
+  # In-cluster DNS: sqlserver.reddog.svc.cluster.local
+  host: sqlserver.reddog.svc.cluster.local
   port: 1433
   name: reddog
   username: sa
@@ -71,7 +71,7 @@ database:
     name: sqlserver-secret
     key: SA_PASSWORD
   # Connection string template (used by services)
-  connectionString: "Server=sqlserver.default.svc.cluster.local,1433;Database=reddog;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=True;Encrypt=False;"
+  connectionString: "Server=sqlserver.reddog.svc.cluster.local,1433;Database=reddog;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=True;Encrypt=False;"
 
 # Ingress Configuration
 ingress:
