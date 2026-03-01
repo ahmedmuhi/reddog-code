@@ -30,6 +30,10 @@ database:
 infrastructure:
   redis:
     enabled: true
+    image:
+      repository: redis
+      tag: 7.2-alpine
+      pullPolicy: IfNotPresent
     master:
       resources:
         requests:
