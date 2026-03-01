@@ -57,6 +57,38 @@ This Knowledge Item captures stable, reusable knowledge about how Red Dog servic
     - Strongly-typed options / configuration objects, or
     - A small, well-defined “configuration provider” abstraction, not scattered `GetConfiguration` calls.
 
+  **Concrete Example — VirtualCustomers (.NET 10):**
+
+  Redis keys (seeded by `reddog-config-seeder` Job):
+  ```
+  VirtualCustomers||StoreId = "Redmond"
+  VirtualCustomers||MaxItemQuantity = "4"
+  VirtualCustomers||MaxUniqueItemsPerOrder = "3"
+  VirtualCustomers||MinSecondsToPlaceOrder = "1"
+  VirtualCustomers||MaxSecondsToPlaceOrder = "3"
+  VirtualCustomers||MinSecondsBetweenOrders = "1"
+  VirtualCustomers||MaxSecondsBetweenOrders = "3"
+  ```
+
+  Program.cs startup load:
+  ```csharp
+  var configClient = new DaprClientBuilder().Build();
+  builder.Configuration.AddDaprConfigurationStore(
+      "reddog.config",
+      new List<string>
+      {
+          "VirtualCustomers||StoreId",
+          "VirtualCustomers||MaxItemQuantity",
+          // ... remaining keys
+      },
+      configClient,
+      TimeSpan.FromSeconds(60));
+  ```
+
+  The `||` separator is mapped to `:` by `Dapr.Extensions.Configuration`, so `VirtualCustomers||StoreId` becomes `VirtualCustomers:StoreId` in IConfiguration. The existing `BindConfiguration("VirtualCustomers")` + `ValidateDataAnnotations()` + `IOptions<VirtualCustomerOptions>` chain binds these keys to strongly-typed properties unchanged.
+
+  Operational/infra keys (`NumOrders`, `DisableDaprCalls`, `OrderServiceAppId`) remain as env vars per ADR-0006.
+
 - **PAT-003**: **Runtime Refresh Pattern (Where Needed)**  
   - For a small subset of settings that benefit from runtime changes (typically feature flags and operational thresholds):
     - Use Dapr’s configuration subscription capability.

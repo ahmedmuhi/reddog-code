@@ -123,6 +123,18 @@ Alternative approaches (direct cloud SDKs, ConfigMaps-only, image-baked config) 
 - Application services MUST NOT introduce platform detection logic (e.g. “if Azure… else if AWS…”) for configuration.
 - Mandatory configuration keys MUST have clearly defined behaviour if missing or invalid (fail-fast or documented fallback). The canonical patterns live in `knowledge/dapr-configuration-api-ki.md`.
 
+## Implementation Status
+
+| Service | Status | Notes |
+|---|---|---|
+| VirtualCustomers | Implemented | Pilot service — 7 business keys via `AddDaprConfigurationStore` + Redis config seeder Job. 3 operational keys remain as env vars. |
+| OrderService | Pending | TASK-054 |
+| VirtualWorker | Pending | TASK-054 |
+| LoyaltyService | Pending | TASK-054 |
+| AccountingService | Pending | TASK-054 |
+| MakeLineService | Pending | TASK-054 |
+| ReceiptGenerationService | Pending | TASK-054 |
+
 ## Related Work
 
 - ADR-0002: Dapr abstraction for cloud-agnostic integration.
