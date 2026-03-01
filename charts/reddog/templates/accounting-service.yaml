@@ -60,6 +60,10 @@ spec:
         - containerPort: 80
           protocol: TCP
         env:
+        - name: ASPNETCORE_URLS
+          value: "http://+:80"
+        - name: DAPR_HTTP_PORT
+          value: "3500"
         - name: ConnectionStrings__RedDog
           valueFrom:
             secretKeyRef:

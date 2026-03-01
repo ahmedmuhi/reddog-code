@@ -75,7 +75,6 @@ spec:
         readinessProbe:
           tcpSocket:
             port: 1433
-          initialDelaySeconds: 5
           periodSeconds: 5
   {{- if .Values.infrastructure.sqlserver.persistence.enabled }}
   volumeClaimTemplates:

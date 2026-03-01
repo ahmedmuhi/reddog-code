@@ -62,6 +62,8 @@ spec:
         env:
         - name: ASPNETCORE_URLS
           value: "http://+:80"
+        - name: DAPR_HTTP_PORT
+          value: "3500"
         resources:
           requests:
             cpu: {{ .Values.services.common.resources.requests.cpu }}
