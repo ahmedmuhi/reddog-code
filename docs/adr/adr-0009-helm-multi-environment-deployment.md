@@ -35,10 +35,10 @@ superseded_by: ""
 - Non-local values:
   - `values/values-azure.yaml`, `values/values-aws.yaml`, `values/values-gcp.yaml` do not yet exist as first-class, maintained files (only `*.sample` exists for Azure).
 - Raw manifests:
-  - `manifests/branch/base/*.yaml` and `manifests/overlays/*/*.yaml` still contain the legacy raw Kubernetes manifests and Dapr components.
-  - No `HelmRelease` resources exist in `manifests/` for the `reddog` chart; GitOps wiring (Flux/Argo) still points at raw manifests or is out-of-band.
+  - Legacy manifests have been archived to `manifests/Archive/`. CI workflows no longer update them.
+  - No `HelmRelease` resources exist for the `reddog` chart; GitOps wiring (Flux/Argo) is not yet configured.
 - Single source of truth:
-  - Helm is actively used (especially for local dev and infra upgrades), but the repository still carries both charts and raw manifests. The migration of all environments to Helm as the canonical deployment mechanism is incomplete.
+  - Helm is the canonical deployment mechanism. Raw manifests have been archived (Phase 3). Remaining work is adding maintained cloud values files and GitOps wiring.
 
 **Next Steps (Implementation-Oriented, Not Binding on Architecture):**
 
@@ -47,7 +47,7 @@ superseded_by: ""
    - `values/values-aws.yaml`
    - `values/values-gcp.yaml`
 2. Decide and document the canonical layout for values (top-level `values/` directory vs chart-local `values/`), and converge repo + ADR on that pattern.
-3. Migrate GitOps manifests to consume the Helm charts (e.g. Flux `HelmRelease`), and explicitly deprecate/remove raw manifests under `manifests/branch` and `manifests/overlays` once migration is complete.
+3. ~~Migrate GitOps manifests to consume the Helm charts and deprecate/remove raw manifests.~~ **Done** — raw manifests archived to `manifests/Archive/` (Phase 3). GitOps `HelmRelease` wiring remains future work.
 4. Add CI checks:
    - `helm lint ./charts/reddog`
    - `helm template` for all supported `values/values-*.yaml` to prevent template regressions.
@@ -269,4 +269,4 @@ These points are descriptive of current and intended practice; they are not part
 
   * All new deployment work for Red Dog to go through Helm charts.
   * GitOps manifests to reference Helm charts and values only.
-  * Raw manifests under `manifests/branch` and `manifests/overlays` to be explicitly deprecated and removed once migrations are complete.
+  * ~~Raw manifests under `manifests/branch` and `manifests/overlays` to be explicitly deprecated and removed once migrations are complete.~~ **Done** — archived to `manifests/Archive/`.
