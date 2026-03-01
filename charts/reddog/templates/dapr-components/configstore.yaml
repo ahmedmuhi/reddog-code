@@ -1,0 +1,23 @@
+{{- if .Values.dapr.enabled }}
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: reddog.config
+  namespace: {{ .Values.global.namespace }}
+spec:
+  type: configuration.{{ .Values.dapr.configStore.type }}
+  version: v1
+  metadata:
+  {{- if .Values.dapr.configStore.metadata }}
+  {{- toYaml .Values.dapr.configStore.metadata | nindent 2 }}
+  {{- else }}
+  - name: redisHost
+    value: {{ .Values.dapr.configStore.host }}:{{ .Values.dapr.configStore.port }}
+    {{- if .Values.dapr.configStore.password }}
+  - name: redisPassword
+    value: {{ .Values.dapr.configStore.password | quote }}
+    {{- end }}
+  {{- end }}
+scopes:
+  - {{ .Values.services.virtualcustomers.dapr.appId | quote }}
+{{- end }}

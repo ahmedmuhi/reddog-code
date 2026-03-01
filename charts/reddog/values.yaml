@@ -30,6 +30,10 @@ dapr:
   pubsub:
     type: redis
 
+  # Config Store (application business configuration — ADR-0004)
+  configStore:
+    type: redis
+
 # Ingress (environment-specific: override annotations + hosts with paths)
 ingress:
   enabled: true
