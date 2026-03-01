@@ -45,20 +45,21 @@
 * **Scope:** Listening ports, Dapr HTTP port, runtime mode (e.g., `NODE_ENV`).
 * **Out of Scope:** Business rules and secrets.
 
-### [ADR-0004](adr-0004-dapr-configuration-api-standardization.md) – Application Configuration ⚪
+### [ADR-0004](adr-0004-dapr-configuration-api-standardization.md) – Application Configuration 🟡
 * **Decision:** Standardize on the Dapr Configuration API for application configuration.
 * **Types:** Business rules (e.g., maximum order size, feature flags).
 * **Benefits:** Enables runtime configuration updates (subscription-based).
+* **Status:** VirtualCustomers pilot implemented (Phase 5); remaining services pending.
 
 ---
 
 ## Deployment & Local Development
 
-### [ADR-0009](adr-0009-helm-multi-environment-deployment.md) – Helm Multi-Environment Deployment 🟡
+### [ADR-0009](adr-0009-helm-multi-environment-deployment.md) – Helm Multi-Environment Deployment 🟢
 * **Decision:** Use Helm charts with environment-specific values.
 * **Goal:** Single source of truth (chart templates + value files).
 * **Target:** kind, Azure Container Apps, AKS, EKS, or GKE.
-* **Status:** Migration from raw manifests in progress.
+* **Status:** Implemented — Helm is the sole deployment mechanism; raw manifests archived.
 
 ### [ADR-0008](adr-0008-kind-local-development-environment.md) – Local Development with kind ⚪
 * **Decision:** Adopt kind (Kubernetes in Docker) as the standard local development environment.
@@ -107,6 +108,7 @@
 | [Web API Standards](../standards/web-api-standards.md)                     | HTTP API conventions, versioning, CORS, and error handling.         |
 | [Modernization Strategy](../../plan/modernization-strategy.md)             | 8-phase modernization roadmap and milestones.                       |
 | [Testing & Validation Strategy](../../plan/testing-validation-strategy.md) | Testing expectations and validation stages.                         |
+| [Configuration Architecture KI](../../knowledge/configuration-architecture-ki.md) | 4-layer configuration model (chart defaults → env overrides → secrets → Dapr Config). |
 
 ---
 
@@ -128,4 +130,4 @@ Update this README when:
 
 ---
 
-**Last Updated:** 2025-11-16
+**Last Updated:** 2026-03-02
