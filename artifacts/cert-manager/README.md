@@ -16,7 +16,7 @@ artifacts/cert-manager/
 └── README.md          # This file
 ```
 
-**Note:** Deployment manifests (ClusterIssuer YAML files) remain in `manifests/branch/dependencies/cert-manager/` as they are part of the infrastructure configuration. This directory stores operational artifacts from the deployment process.
+**Note:** ClusterIssuer YAML templates are stored in this directory alongside deployment artifacts. Legacy copies exist in `manifests/Archive/branch/dependencies/cert-manager/` for reference.
 
 ---
 
@@ -116,7 +116,7 @@ Before populating these artifacts:
 2. **Kubernetes Version:** Clusters running Kubernetes 1.31+
 3. **Ingress Controller:** Nginx Ingress Controller operational (v1.14.0+)
 4. **DNS Configuration:** Public DNS for HTTP-01 challenges
-5. **Email Configuration:** Real email for ACME registration (update ClusterIssuer manifests in `manifests/branch/dependencies/cert-manager/`)
+5. **Email Configuration:** Real email for ACME registration (update ClusterIssuer manifests in this directory)
 
 ---
 
@@ -128,11 +128,11 @@ Follow `plan/upgrade-certmanager-1.19-implementation-1.md` for complete procedur
 - [ ] Verify Kubernetes ≥1.31 on target clusters
 - [ ] Export existing resources to `backups/`
 - [ ] Create Helm values in `manifests/`
-- [ ] Update ClusterIssuer emails in `manifests/branch/dependencies/cert-manager/`
+- [ ] Update ClusterIssuer emails in ClusterIssuer manifests
 
 ### Phase 2: Staging Deployment
 - [ ] Install cert-manager v1.19.1 via Helm
-- [ ] Apply ClusterIssuers from `manifests/branch/dependencies/cert-manager/`
+- [ ] Apply ClusterIssuers from `artifacts/cert-manager/`
 - [ ] Request test certificate
 - [ ] Capture evidence in `verification/`
 
@@ -164,7 +164,7 @@ If issues occur:
 ## Related Documentation
 
 - **Implementation Plan:** `plan/upgrade-certmanager-1.19-implementation-1.md`
-- **Deployment Manifests:** `manifests/branch/dependencies/cert-manager/`
+- **Deployment Manifests:** `artifacts/cert-manager/`
 - **Session Log:** `.claude/sessions/2025-11-24-0013-cert-manager-upgrade-verification.md`
 
 ---
