@@ -136,18 +136,3 @@ jobs:
             org.opencontainers.image.source=${{ github.repositoryUrl }}
             org.opencontainers.image.created=${{ needs.set-env.outputs.created }}
             org.opencontainers.image.revision=${{ needs.set-env.outputs.version }}
-      - name: Update deployment yaml
-        uses: fjogeleit/yaml-update-action@v0.16.1
-        with:
-          valueFile: 'manifests/branch/base/deployments/virtual-customers.yaml'
-          propertyPath: 'spec.template.spec.containers.0.image'
-          value: ${{ needs.set-env.outputs.repository }}/${{ needs.set-env.outputs.image }}:${{ needs.set-env.outputs.version }}
-          commitChange: 'true'
-          message: 'Update deployment manifest for ${{ needs.set-env.outputs.version }}'
-          branch: ui-deploy/${{ needs.set-env.outputs.version }}
-          targetBranch: 'master'
-          token: ${{ secrets.GITHUB_TOKEN }}
-          createPR: 'true'
-      - name: Echo yaml
-        run: |
-          cat manifests/branch/base/deployments/virtual-customers.yaml
