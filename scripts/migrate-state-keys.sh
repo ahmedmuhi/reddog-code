@@ -22,14 +22,7 @@ fi
 REDIS_HOST="${1:-localhost}"
 REDIS_PORT="${2:-6379}"
 
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-RED='\033[0;31m'
-NC='\033[0m'
-
-print_status()  { echo -e "${GREEN}✓${NC} $1"; }
-print_warning() { echo -e "${YELLOW}⚠${NC} $1"; }
-print_error()   { echo -e "${RED}✗${NC} $1"; }
+source "$(dirname "$0")/_helpers.sh"
 
 # App ID mappings for stateful services only (MakeLine and Loyalty use Dapr state stores).
 declare -A MIGRATIONS=(
