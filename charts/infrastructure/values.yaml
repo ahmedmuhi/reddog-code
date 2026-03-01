@@ -17,8 +17,6 @@ dapr:
 
 # Database settings (used by secrets templates)
 database:
-  enabled: true
-  type: sqlserver
   host: sqlserver.reddog.svc.cluster.local
   port: 1433
   name: reddog
@@ -32,12 +30,7 @@ database:
 infrastructure:
   redis:
     enabled: true
-    architecture: standalone
-    auth:
-      enabled: false
     master:
-      persistence:
-        enabled: false
       resources:
         requests:
           cpu: 100m
@@ -52,7 +45,6 @@ infrastructure:
       repository: mcr.microsoft.com/mssql/server
       tag: "2022-latest"
       pullPolicy: IfNotPresent
-    acceptEula: true
     edition: Developer
     saPassword: ""  # MUST be set in environment override file
     persistence:

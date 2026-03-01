@@ -7,13 +7,9 @@ global:
   environment: local
   domain: localhost
 
-# Dapr: Redis for state + pub/sub (cloud overrides to Cosmos/RabbitMQ)
+# Dapr: Redis metadata for state + pub/sub
 dapr:
   stateStore:
-    type: redis
-    host: redis-master.reddog.svc.cluster.local
-    port: 6379
-    password: ""
     metadata:
       - name: redisHost
         value: redis-master.reddog.svc.cluster.local:6379
@@ -21,10 +17,6 @@ dapr:
         value: ""
 
   pubsub:
-    type: redis
-    host: redis-master.reddog.svc.cluster.local
-    port: 6379
-    password: ""
     metadata:
       - name: redisHost
         value: redis-master.reddog.svc.cluster.local:6379
@@ -32,8 +24,7 @@ dapr:
         value: ""
 
 # Ingress: localhost with nginx rewrite-target
-# Regex paths strip /api/{service} prefix before forwarding to backend.
-# Capture group $2 holds the remainder (e.g., /api/makeline/orders/X -> /orders/X).
+# Capture group $2 strips /api/{service} prefix (e.g., /api/makeline/orders/X -> /orders/X).
 ingress:
   annotations:
     nginx.ingress.kubernetes.io/use-regex: "true"
@@ -65,18 +56,6 @@ infrastructure:
 
 # Service environment overrides
 services:
-  virtualcustomers:
-    env:
-      VirtualCustomers__StoreId: Redmond
-      VirtualCustomers__MaxItemQuantity: 4
-      VirtualCustomers__MaxUniqueItemsPerOrder: 3
-      VirtualCustomers__MinSecondsToPlaceOrder: 1
-      VirtualCustomers__MaxSecondsToPlaceOrder: 3
-      VirtualCustomers__MinSecondsBetweenOrders: 1
-      VirtualCustomers__MaxSecondsBetweenOrders: 3
-      VirtualCustomers__NumOrders: -1
-      VirtualCustomers__DisableDaprCalls: false
-
   ui:
     env:
       VITE_MAKELINE_BASE_URL: http://localhost/api/makeline
