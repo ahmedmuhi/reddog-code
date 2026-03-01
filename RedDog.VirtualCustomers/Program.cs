@@ -16,6 +16,7 @@ var builder = Host.CreateApplicationBuilder(args);
 
 // Load business config from Dapr Configuration API (ADR-0004).
 // Separate DaprClient is needed because the DI container isn't built yet.
+// Registered as singleton so the DI container disposes it on shutdown.
 var configClient = new DaprClientBuilder().Build();
 builder.Configuration.AddDaprConfigurationStore(
     "reddog.config",
@@ -31,6 +32,7 @@ builder.Configuration.AddDaprConfigurationStore(
     },
     configClient,
     TimeSpan.FromSeconds(60));
+builder.Services.AddSingleton(configClient);
 
 builder.Services.AddOptions<VirtualCustomerOptions>()
     .BindConfiguration(VirtualCustomerOptions.SectionName)

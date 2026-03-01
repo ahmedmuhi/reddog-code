@@ -14,6 +14,12 @@ spec:
       labels:
         app: reddog-config-seeder
     spec:
+      {{- if .Values.services.common.image.pullSecrets }}
+      imagePullSecrets:
+      {{- range .Values.services.common.image.pullSecrets }}
+        - name: {{ .name }}
+      {{- end }}
+      {{- end }}
       restartPolicy: Never
       containers:
         - name: config-seeder
@@ -40,6 +46,13 @@ spec:
                 "VirtualCustomers||MaxSecondsBetweenOrders" {{ .maxSecondsBetweenOrders | quote }}
               {{- end }}
               echo "Config seeding complete. Verifying..."
-              redis-cli -h {{ .Values.configSeeder.redisHost }} -p {{ .Values.configSeeder.redisPort }} KEYS "VirtualCustomers||*"
+              redis-cli -h {{ .Values.configSeeder.redisHost }} -p {{ .Values.configSeeder.redisPort }} MGET \
+                "VirtualCustomers||StoreId" \
+                "VirtualCustomers||MaxItemQuantity" \
+                "VirtualCustomers||MaxUniqueItemsPerOrder" \
+                "VirtualCustomers||MinSecondsToPlaceOrder" \
+                "VirtualCustomers||MaxSecondsToPlaceOrder" \
+                "VirtualCustomers||MinSecondsBetweenOrders" \
+                "VirtualCustomers||MaxSecondsBetweenOrders"
               echo "Done."
 {{- end }}

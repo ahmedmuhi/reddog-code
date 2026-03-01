@@ -10,10 +10,10 @@ public sealed class VirtualCustomerOptions
     public string StoreId { get; init; } = "Redmond";
 
     [Range(1, 50)]
-    public int MaxItemQuantity { get; init; } = 1;
+    public int MaxItemQuantity { get; init; } = 4;
 
     [Range(1, 20)]
-    public int MaxUniqueItemsPerOrder { get; init; } = 5;
+    public int MaxUniqueItemsPerOrder { get; init; } = 3;
 
     [Range(0, 60)]
     public int MinSecondsToPlaceOrder { get; init; } = 1;
