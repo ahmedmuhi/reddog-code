@@ -63,6 +63,20 @@ spec:
         volumeMounts:
         - name: mssql-data
           mountPath: /var/opt/mssql
+        startupProbe:
+          tcpSocket:
+            port: 1433
+          failureThreshold: 30
+          periodSeconds: 10
+        livenessProbe:
+          tcpSocket:
+            port: 1433
+          periodSeconds: 10
+        readinessProbe:
+          tcpSocket:
+            port: 1433
+          initialDelaySeconds: 5
+          periodSeconds: 5
   {{- if .Values.infrastructure.sqlserver.persistence.enabled }}
   volumeClaimTemplates:
   - metadata:
@@ -75,7 +89,8 @@ spec:
         requests:
           storage: {{ .Values.infrastructure.sqlserver.persistence.size }}
   {{- else }}
-        - name: mssql-data
-          emptyDir: {}
+      volumes:
+      - name: mssql-data
+        emptyDir: {}
   {{- end }}
 {{- end }}
