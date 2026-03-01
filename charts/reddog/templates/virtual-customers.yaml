@@ -42,10 +42,7 @@ spec:
         image: {{ .Values.services.virtualcustomers.image.repository }}:{{ .Values.services.common.image.tag }}
         imagePullPolicy: {{ .Values.services.common.image.pullPolicy }}
         env:
-        - name: ASPNETCORE_URLS
-          value: "http://+:80"
-        - name: DAPR_HTTP_PORT
-          value: "3500"
+        {{- include "reddog.commonEnv" . | nindent 8 }}
         {{- range $name, $value := .Values.services.virtualcustomers.env }}
         - name: {{ $name }}
           value: {{ $value | quote }}
