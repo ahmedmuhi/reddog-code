@@ -6,7 +6,7 @@ echo "Red Dog Local Development Teardown"
 echo "========================================="
 echo ""
 
-source "$(dirname "$0")/_helpers.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/_helpers.sh"
 
 # Delete kind cluster
 echo "Deleting kind cluster 'reddog-local'..."

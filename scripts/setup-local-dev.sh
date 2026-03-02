@@ -9,7 +9,7 @@ echo "Red Dog Local Development Setup"
 echo "========================================="
 echo ""
 
-source "$(dirname "$0")/_helpers.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/_helpers.sh"
 
 # Check prerequisites
 echo "Checking prerequisites..."

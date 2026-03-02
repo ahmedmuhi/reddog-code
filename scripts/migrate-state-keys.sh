@@ -22,7 +22,7 @@ fi
 REDIS_HOST="${1:-localhost}"
 REDIS_PORT="${2:-6379}"
 
-source "$(dirname "$0")/_helpers.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/_helpers.sh"
 
 # App ID mappings for stateful services only (MakeLine and Loyalty use Dapr state stores).
 declare -A MIGRATIONS=(

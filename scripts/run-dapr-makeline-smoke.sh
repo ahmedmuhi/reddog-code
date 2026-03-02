@@ -28,9 +28,9 @@ fi
 echo "  Pod: $POD_NAME"
 
 echo ""
-echo "☕ HTTP smoke test (kubectl port-forward svc/makelineservice)..."
+echo "☕ HTTP smoke test (kubectl port-forward svc/make-line-service)..."
 SERVICE_PORT=$("$FIND_PORT_SCRIPT" 5200 15200 25200)
-kubectl port-forward -n "$NAMESPACE" svc/makelineservice ${SERVICE_PORT}:80 >/tmp/makeline-http-portforward.log 2>&1 &
+kubectl port-forward -n "$NAMESPACE" svc/make-line-service ${SERVICE_PORT}:80 >/tmp/makeline-http-portforward.log 2>&1 &
 HTTP_PF_PID=$!
 sleep 3
 
