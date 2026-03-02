@@ -349,6 +349,29 @@ Each phase has explicit completion criteria and mapped tests. Run tests incremen
 
 ---
 
+### Implementation Phase 7: Cleanup & Consistency Sweep
+
+**Goal:** Address pre-existing issues, low-priority skipped items, and technical debt discovered during Phases 1–6
+
+| Task ID  | Description                                                                                     | Priority | Status     | Date |
+|----------|-------------------------------------------------------------------------------------------------|----------|------------|------|
+| TASK-068 | Fix `AddDaprClient` build errors in Bootstrapper and VirtualCustomers (Dapr SDK compatibility issue) | Medium | Done | No build errors — Dapr SDK 1.16.0 works correctly |
+| TASK-069 | Update old app IDs in Helm K8s Service names and OTel constants to kebab-case | Medium | Done | 6 Service names + 7 OTel constants renamed |
+| TASK-070 | Extract shared shell helpers (duplicated across scripts) into a common sourced file | Low | Done | `scripts/_helpers.sh` created; 3 scripts updated |
+| TASK-071 | Extract `ASPNETCORE_URLS` and `DAPR_HTTP_PORT` env vars into `_helpers.tpl` named template (7 service templates) | Low | Done | `_helpers.tpl` with `reddog.commonEnv`; 7 templates updated |
+| TASK-072 | Use `database.port` value in `sqlserver.yaml` container port and probes (currently hardcoded 1433) | Low | Done | 6 hardcoded 1433 → `{{ .Values.database.port }}` |
+| TASK-073 | UI ingress catch-all `/()(.*) ` — unused first capture group | Low | Done | Working correctly — required for `/$2` rewrite pattern |
+| TASK-074 | `database` block in both charts | Low | Done | Not duplicated — only in infrastructure chart |
+| TASK-075 | `connectionString` duplicates its own field values | Low | Done | Dead `connectionString` removed; template builds from parts |
+| TASK-076 | `observability.*` values with no templates | Low | Done | Intentional placeholder for future ADR-0011 work |
+
+**Completion Criteria for Phase 7:**
+- All medium-priority items resolved
+- Low-priority items resolved or explicitly documented as accepted technical debt
+- `helm lint` and `helm template` pass for all charts
+
+---
+
 ## 3. Alternatives
 
 ### Alternative 1: Keep Both Helm and Kustomize

@@ -24,7 +24,6 @@ database:
   passwordSecret:
     name: sqlserver-secret
     key: SA_PASSWORD
-  connectionString: "Server=sqlserver.reddog.svc.cluster.local,1433;Database=reddog;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=True;Encrypt=False;"
 
 # Infrastructure Components
 infrastructure:
